@@ -12,14 +12,20 @@ export interface Timeline {
   totalMs: number
 }
 
+/** Default 1.6-second pause between each ayah in multi-ayah reels */
+export const DEFAULT_AYAH_GAP_MS = 1600
+
 export function buildTimeline(
   verses: Verse[],
   audioDurationsMs: (number | null)[] | null,
   fallbackMs: number,
+  gapMs = DEFAULT_AYAH_GAP_MS,
 ): Timeline {
   let cursor = 0
   const slots: VerseSlot[] = verses.map((verse, i) => {
-    const durationMs = audioDurationsMs?.[i] ?? fallbackMs
+    const rawDuration = audioDurationsMs?.[i] ?? fallbackMs
+    const pause = verses.length > 1 && i < verses.length - 1 ? gapMs : 0
+    const durationMs = rawDuration + pause
     const slot: VerseSlot = {
       verse,
       startMs: cursor,

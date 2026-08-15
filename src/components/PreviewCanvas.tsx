@@ -161,20 +161,26 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
         soundOnRef.current
 
       let verseTimeMs = 0
+      const wallTimeMs = now - slotStartRef.current
+
       if (isAudioPlaying && audio) {
         verseTimeMs = audio.currentTime * 1000
       } else {
-        verseTimeMs = now - slotStartRef.current
+        verseTimeMs = wallTimeMs
       }
 
-      // Effective slot duration: audio duration if known, else timeline slot duration
-      const effectiveDuration =
+      // Slot duration includes the 1.6s contemplation pause
+      const rawAudioMs =
         audio && Number.isFinite(audio.duration) && audio.duration > 0
           ? audio.duration * 1000
           : slot.durationMs
+      const isMultiAyah = verses.length > 1
+      const isLastAyah = currentIndex === verses.length - 1
+      const pauseMs = isMultiAyah && !isLastAyah ? 1600 : 0
+      const totalSlotMs = Math.max(slot.durationMs, rawAudioMs + pauseMs)
 
-      // Check if current verse has finished
-      if (verseTimeMs >= effectiveDuration || (isAudioPlaying && audio && audio.ended)) {
+      // Check if current verse plus pause has finished
+      if (wallTimeMs >= totalSlotMs || verseTimeMs >= totalSlotMs) {
         const nextIndex = (currentIndex + 1) % verses.length
         if (nextIndex === 0) {
           loopBaseRef.current += timeline.totalMs
@@ -190,7 +196,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
         image,
         verse,
         verseTimeMs,
-        slotDurationMs: effectiveDuration,
+        slotDurationMs: totalSlotMs,
       })
 
       rafRef.current = requestAnimationFrame(loop)

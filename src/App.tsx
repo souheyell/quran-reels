@@ -122,6 +122,7 @@ function App() {
             onLoadRandom={verseLoader.loadRandom}
             onEditionChange={verseLoader.changeEdition}
             onReciterChange={verseLoader.changeReciter}
+            onRandomizeReciter={verseLoader.randomizeReciter}
           />
           <BackgroundPanel
             url={config.background.url}

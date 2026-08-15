@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Verse } from '../types'
-import { fetchVerses, fetchRandomVerses, DEFAULT_RECITER_ID } from '../api/quran'
+import { fetchVerses, fetchRandomVerses, POPULAR_RECITERS, DEFAULT_RECITER_ID } from '../api/quran'
 
 interface UseVerseLoaderOptions {
   initialSurah: number
@@ -73,9 +73,14 @@ export function useVerseLoader(options: UseVerseLoaderOptions) {
         typeof count === 'number' && Number.isFinite(count) && count > 0
           ? Math.floor(count)
           : (verses.length > 0 ? verses.length : 1)
-      return handleLoad((signal) => fetchRandomVerses(safeCount, editionId, reciterId, signal))
+
+      // Randomize reciter along with the verse
+      const randomReciter = POPULAR_RECITERS[Math.floor(Math.random() * POPULAR_RECITERS.length)].id
+      setReciterId(randomReciter)
+
+      return handleLoad((signal) => fetchRandomVerses(safeCount, editionId, randomReciter, signal))
     },
-    [handleLoad, editionId, reciterId, verses.length],
+    [handleLoad, editionId, verses.length],
   )
 
   const changeEdition = useCallback(
@@ -106,6 +111,11 @@ export function useVerseLoader(options: UseVerseLoaderOptions) {
     [handleLoad, verses, editionId],
   )
 
+  const randomizeReciter = useCallback(() => {
+    const randomReciter = POPULAR_RECITERS[Math.floor(Math.random() * POPULAR_RECITERS.length)].id
+    return changeReciter(randomReciter)
+  }, [changeReciter])
+
   // Load initial verse on mount
   useEffect(() => {
     if (mountedRef.current) return
@@ -123,5 +133,6 @@ export function useVerseLoader(options: UseVerseLoaderOptions) {
     loadRandom,
     changeEdition,
     changeReciter,
+    randomizeReciter,
   }
 }

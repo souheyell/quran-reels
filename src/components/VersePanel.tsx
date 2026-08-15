@@ -12,6 +12,7 @@ interface VersePanelProps {
   onLoadRandom: () => Promise<void>
   onEditionChange: (editionId: string) => void
   onReciterChange: (reciterId: string) => void
+  onRandomizeReciter?: () => void
 }
 
 const QUICK_PICKS: Array<[number, number, string]> = [
@@ -33,6 +34,7 @@ export function VersePanel({
   onLoadRandom,
   onEditionChange,
   onReciterChange,
+  onRandomizeReciter,
 }: VersePanelProps) {
   const [surahInput, setSurahInput] = useState(String(verses[0]?.surah ?? 2))
   const [ayatInput, setAyatInput] = useState(String(verses[0]?.ayat ?? 255))
@@ -118,27 +120,43 @@ export function VersePanel({
       </div>
 
       <div className="row">
-        <label>
+        <label style={{ flex: 1 }}>
           Audio Reciter (Qari)
-          <select
-            id="reciter-select"
-            value={reciterId}
-            onChange={(e) => onReciterChange(e.target.value)}
-          >
-            {POPULAR_RECITERS.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
+          <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.2rem' }}>
+            <select
+              id="reciter-select"
+              value={reciterId}
+              onChange={(e) => onReciterChange(e.target.value)}
+              style={{ flex: 1 }}
+            >
+              {POPULAR_RECITERS.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+            {onRandomizeReciter && (
+              <button
+                type="button"
+                className="btn"
+                onClick={onRandomizeReciter}
+                title="Randomize Qari Reciter"
+                style={{ padding: '0.4rem 0.6rem' }}
+                disabled={loading}
+              >
+                🎲
+              </button>
+            )}
+          </div>
         </label>
 
-        <label>
+        <label style={{ flex: 1 }}>
           Translation
           <select
             id="edition-select"
             value={editionId}
             onChange={(e) => onEditionChange(e.target.value)}
+            style={{ marginTop: '0.2rem' }}
           >
             {POPULAR_EDITIONS.map((e) => (
               <option key={e.id} value={e.id}>
@@ -155,13 +173,14 @@ export function VersePanel({
         className="btn"
         onClick={() => void onLoadRandom()}
         disabled={loading}
+        title="Discover random verse with a random Qari"
       >
         {loading ? (
           <span className="loading-text">
             <span className="spinner" /> Loading…
           </span>
         ) : (
-          '🎲 Random verse(s)'
+          '🎲 Random verse & Qari'
         )}
       </button>
 
@@ -186,7 +205,7 @@ export function VersePanel({
 
       {error && <p className="error">{error}</p>}
       {verses.length > 0 && (
-        <p className="meta">Selected: {rangeLabel} · Reciter: {currentReciter} · {verses[0]?.editionName}</p>
+        <p className="meta">Selected: {rangeLabel} · 🎙️ {currentReciter} · {verses[0]?.editionName}</p>
       )}
     </section>
   )
