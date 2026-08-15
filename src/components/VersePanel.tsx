@@ -157,11 +157,20 @@ export function VersePanel({
               onChange={(e) => onReciterChange(e.target.value)}
               style={{ flex: 1 }}
             >
-              {POPULAR_RECITERS.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
+              <optgroup label="👑 Golden Age & Classical Masters">
+                {POPULAR_RECITERS.filter((r) => r.name.startsWith('👑') || r.name.includes('Haram') || r.name.includes('Madinah') || r.name.includes('Akhdar')).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="✨ Contemporary Masters & Imams">
+                {POPULAR_RECITERS.filter((r) => !r.name.startsWith('👑') && !r.name.includes('Haram') && !r.name.includes('Madinah') && !r.name.includes('Akhdar')).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </optgroup>
             </select>
             {onRandomizeReciter && (
               <button

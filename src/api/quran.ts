@@ -47,35 +47,73 @@ export const POPULAR_EDITIONS: Edition[] = [
 ]
 
 export const POPULAR_RECITERS: Reciter[] = [
-  { id: 'ar.alafasy', name: 'Mishary Rashid Alafasy (مشاري العفاسي)' },
-  { id: 'ar.alijaber', name: 'Ali Jaber (علي جابر)' },
-  { id: 'ar.muhammadayyoub', name: 'Mohamed Ayoub (محمد أيوب)' },
-  { id: 'ar.abdulsamad', name: 'AbdulBaset AbdulSamad (عبد الباسط عبد الصمد)' },
-  { id: 'ar.mahermuaiqly', name: 'Maher Al-Muaiqly (ماهر المعيقلي)' },
-  { id: 'ar.abdurrahmaansudais', name: 'Abdurrahmaan As-Sudais (عبد الرحمن السديس)' },
-  { id: 'ar.dussary', name: 'Yasser Al-Dosari (ياسر الدوسري)' },
-  { id: 'ar.ghamadi', name: 'Saad Al-Ghamdi (سعد الغامدي)' },
-  { id: 'ar.qatami', name: 'Nasser Al-Qatami (ناصر القطامي)' },
-  { id: 'ar.shaatree', name: 'Abu Bakr Ash-Shaatree (أبو بكر الشاطري)' },
-  { id: 'ar.ahmedajamy', name: 'Ahmed al-Ajamy (أحمد العجمي)' },
-  { id: 'ar.husary', name: 'Mahmoud Khalil Al-Husary (محمود خليل الحصري)' },
-  { id: 'ar.husarymujawwad', name: 'Al-Husary Mujawwad (الحصري مجود)' },
-  { id: 'ar.hudhaify', name: 'Ali Al-Hudhaify (علي الحذيفي)' },
-  { id: 'ar.saoodshuraym', name: 'Saood Ash-Shuraym (سعود الشريم)' },
-  { id: 'ar.hanirifai', name: 'Hani Ar-Rifai (هاني الرفاعي)' },
-  { id: 'ar.muhammadjibreel', name: 'Muhammad Jibreel (محمد جبريل)' },
-  { id: 'ar.abdullahbasfar', name: 'Abdullah Basfar (عبد الله بصفر)' },
-  { id: 'ar.ibrahimakhbar', name: 'Ibrahim Akhdar (إبراهيم الأخضر)' },
+  // ── Golden Age & Classical Masters (كبار قراء العصر الذهبي) ──
+  { id: 'ar.husary', name: '👑 Mahmoud Khalil Al-Husary - Murattal (محمود خليل الحصري - مرتل)' },
+  { id: 'ar.husarymujawwad', name: '👑 Mahmoud Khalil Al-Husary - Mujawwad (محمود خليل الحصري - مجود)' },
+  { id: 'ar.abdulbasitmurattal', name: '👑 Abdulbasit Abdussamad - Murattal (عبد الباسط عبد الصمد - مرتل)' },
+  { id: 'ar.abdulbasitmujawwad', name: '👑 Abdulbasit Abdussamad - Mujawwad (عبد الباسط عبد الصمد - مجود)' },
+  { id: 'ar.minshawi', name: '👑 Mohamed Siddiq Al-Minshawi - Murattal (محمد صديق المنشاوي - مرتل)' },
+  { id: 'ar.minshawimujawwad', name: '👑 Mohamed Siddiq Al-Minshawi - Mujawwad (محمد صديق المنشاوي - مجود)' },
+  { id: 'ar.mustafaismail', name: '👑 Mustafa Ismail (مصطفى إسماعيل)' },
+  { id: 'ar.tablawi', name: '👑 Mohammad Al-Tablawi (محمد محمود الطبلاوي)' },
+  { id: 'ar.banna', name: '👑 Mahmoud Ali Al-Banna (محمود علي البنا)' },
+  { id: 'ar.suwaisi', name: '👑 Ali Hajjaj Al-Suwaisi (علي حجاج السويسي)' },
+  { id: 'ar.alijaber', name: '🕋 Ali Jaber - Former Haram Imam (علي جابر)' },
+  { id: 'ar.muhammadayyoub', name: '🕌 Muhammad Ayyub - Madinah Imam (محمد أيوب)' },
+  { id: 'ar.hudhaify', name: '🕌 Ali Al-Hudhaify - Madinah Imam (علي الحذيفي)' },
+  { id: 'ar.akhdar', name: '🕌 Ibrahim Al-Akhdar (إبراهيم الأخضر)' },
+
+  // ── Contemporary Masters & Haram Imams (أئمة الحرمين والقراء المعاصرون) ──
+  { id: 'ar.alafasy', name: '✨ Mishary Rashid Alafasy (مشاري راشد العفاسي)' },
+  { id: 'ar.sudais', name: '🕋 Abdul Rahman Al-Sudais (عبد الرحمن السديس)' },
+  { id: 'ar.shuraim', name: '🕋 Saud Al-Shuraim (سعود الشريم)' },
+  { id: 'ar.dossari', name: '🕋 Yasser Al-Dosari (ياسر الدوسري)' },
+  { id: 'ar.maher', name: '🕋 Maher Al-Muaiqly (ماهر المعيقلي)' },
+  { id: 'ar.qatami', name: '✨ Nasser Al-Qatami (ناصر القطامي)' },
+  { id: 'ar.shaatree', name: '✨ Abu Bakr Al-Shatri (أبو بكر الشاطري)' },
+  { id: 'ar.ghamadi', name: '✨ Saad Al-Ghamdi (سعد الغامدي)' },
+  { id: 'ar.fares', name: '✨ Fares Abbad (فارس عباد)' },
+  { id: 'ar.rifai', name: '✨ Hani Ar-Rifai (هاني الرفاعي)' },
+  { id: 'ar.budair', name: '🕌 Salah Al-Budair (صلاح البدير)' },
 ]
 
 export const DEFAULT_RECITER_ID = 'ar.alafasy'
 
-/** Custom EveryAyah CDN mappings for reciters not on alquran.cloud */
+/** Direct high-speed EveryAyah CDN mappings for all classical & contemporary reciters */
 const EVERYAYAH_RECITERS: Record<string, string> = {
+  'ar.husary': 'Husary_128kbps',
+  'ar.husarymujawwad': 'Husary_128kbps_Mujawwad',
+  'ar.abdulbasitmurattal': 'Abdul_Basit_Murattal_192kbps',
+  'ar.abdulbasitmujawwad': 'Abdul_Basit_Mujawwad_128kbps',
+  'ar.minshawi': 'Minshawy_Murattal_128kbps',
+  'ar.minshawimujawwad': 'Minshawy_Mujawwad_192kbps',
+  'ar.mustafaismail': 'Mustafa_Ismail_48kbps',
+  'ar.tablawi': 'Mohammad_al_Tablaway_128kbps',
+  'ar.banna': 'Mahmoud_Ali_al_Banna_32kbps',
+  'ar.suwaisi': 'Ali_Hajjaj_AlSuesy_128kbps',
   'ar.alijaber': 'Ali_Jaber_64kbps',
+  'ar.muhammadayyoub': 'Muhammad_Ayyoub_128kbps',
+  'ar.hudhaify': 'Hudhaify_128kbps',
+  'ar.akhdar': 'Ibrahim_Akhdar_32kbps',
+  'ar.alafasy': 'Alafasy_128kbps',
+  'ar.sudais': 'Abdurrahmaan_As-Sudais_192kbps',
+  'ar.shuraim': 'Saood_ash-Shuraym_128kbps',
+  'ar.dossari': 'Yasser_Ad-Dussary_128kbps',
   'ar.dussary': 'Yasser_Ad-Dussary_128kbps',
-  'ar.ghamadi': 'Ghamadi_40kbps',
+  'ar.maher': 'MaherAlMuaiqly128kbps',
   'ar.qatami': 'Nasser_Alqatami_128kbps',
+  'ar.shaatree': 'Abu_Bakr_Ash-Shaatree_128kbps',
+  'ar.ghamadi': 'Ghamadi_40kbps',
+  'ar.fares': 'Fares_Abbad_64kbps',
+  'ar.rifai': 'Hani_Rifai_192kbps',
+  'ar.budair': 'Salah_Al_Budair_128kbps',
+  // Legacy aliases
+  'ar.abdulsamad': 'Abdul_Basit_Murattal_192kbps',
+  'ar.mahermuaiqly': 'MaherAlMuaiqly128kbps',
+  'ar.abdurrahmaansudais': 'Abdurrahmaan_As-Sudais_192kbps',
+  'ar.saoodshuraym': 'Saood_ash-Shuraym_128kbps',
+  'ar.hanirifai': 'Hani_Rifai_192kbps',
+  'ar.ibrahimakhbar': 'Ibrahim_Akhdar_32kbps',
 }
 
 function getEveryAyahAudioUrl(folder: string, surah: number, ayat: number): string {
@@ -100,10 +138,9 @@ export async function fetchVerses(
   const safeCount = Math.min(Math.max(Number(count) || 1, 1), 30)
   const safeReciterId = reciterId || DEFAULT_RECITER_ID
 
-  const isEveryAyah = Boolean(EVERYAYAH_RECITERS[safeReciterId])
-  const apiAudioEdition = isEveryAyah ? DEFAULT_RECITER_ID : safeReciterId
+  const everyAyahFolder = EVERYAYAH_RECITERS[safeReciterId] || EVERYAYAH_RECITERS[DEFAULT_RECITER_ID]
 
-  const editions = `${ARABIC_EDITION_ID},${editionId},${apiAudioEdition}`
+  const editions = `${ARABIC_EDITION_ID},${editionId}`
   const res = await fetch(`${QURAN_API_BASE}/surah/${safeSurah}/editions/${editions}`, { signal })
   if (!res.ok) throw new Error(`Quran API error: ${res.status}`)
 
@@ -121,7 +158,6 @@ export async function fetchVerses(
 
   const arabicData = json.data.find((d) => d.edition?.identifier === ARABIC_EDITION_ID)
   const translationData = json.data.find((d) => d.edition?.identifier === editionId)
-  const audioData = json.data.find((d) => d.edition?.identifier === apiAudioEdition)
   const edition = POPULAR_EDITIONS.find((e) => e.id === editionId)
   const reciter = POPULAR_RECITERS.find((r) => r.id === safeReciterId)
 
@@ -142,12 +178,7 @@ export async function fetchVerses(
         : rawArabic.replace(/^\ufeff/, '').trim()
     const translation = translationData?.ayahs?.find((a) => a.numberInSurah === ayat)?.text ?? ''
 
-    let audioUrl: string | null = null
-    if (isEveryAyah) {
-      audioUrl = getEveryAyahAudioUrl(EVERYAYAH_RECITERS[safeReciterId], safeSurah, ayat)
-    } else {
-      audioUrl = audioData?.ayahs?.find((a) => a.numberInSurah === ayat)?.audio ?? null
-    }
+    const audioUrl = getEveryAyahAudioUrl(everyAyahFolder, safeSurah, ayat)
 
     if (!arabic && !translation) break // past end of surah
 
@@ -169,31 +200,22 @@ export async function fetchVerses(
   if (verses.length === 0) {
     throw new Error(`No verses found for ${safeSurah}:${safeStart}`)
   }
+
   return verses
 }
 
+/**
+ * Fetch random verses across the Quran.
+ */
 export async function fetchRandomVerses(
-  count: number,
-  editionId: string,
+  count = 1,
+  editionId = 'en.sahih',
   reciterId = DEFAULT_RECITER_ID,
   signal?: AbortSignal,
 ): Promise<Verse[]> {
-  const safeCount = typeof count === 'number' && Number.isFinite(count) && count > 0 ? Math.floor(count) : 1
   const surahs = await fetchSurahList(signal)
-  const surahMeta = surahs[Math.floor(Math.random() * surahs.length)]
-  const totalAyahs = Number(surahMeta?.numberOfAyahs) || 7
-  const maxStart = Math.max(1, totalAyahs - safeCount + 1)
-  const startAyat = Math.floor(Math.random() * maxStart) + 1
-  return fetchVerses(surahMeta.number, startAyat, safeCount, editionId, reciterId, signal)
-}
-
-export async function validateReference(
-  surah: number,
-  ayat: number,
-): Promise<{ valid: boolean; maxAyahs: number }> {
-  if (surah < 1 || surah > 114) return { valid: false, maxAyahs: 0 }
-  const surahs = await fetchSurahList()
-  const meta = surahs.find((s) => s.number === surah)
-  if (!meta) return { valid: false, maxAyahs: 0 }
-  return { valid: ayat >= 1 && ayat <= meta.numberOfAyahs, maxAyahs: meta.numberOfAyahs }
+  const randomSurah = surahs[Math.floor(Math.random() * surahs.length)]
+  const maxStart = Math.max(1, randomSurah.numberOfAyahs - count + 1)
+  const randomStart = Math.floor(Math.random() * maxStart) + 1
+  return fetchVerses(randomSurah.number, randomStart, count, editionId, reciterId, signal)
 }

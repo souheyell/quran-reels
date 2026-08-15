@@ -14,16 +14,19 @@ interface BackgroundPanelProps {
 }
 
 const CATEGORY_ICONS: Record<StockCategory, string> = {
+  Mosques: '🕌',
   Mountains: '🏔️',
   Oceans: '🌊',
   Forests: '🌲',
-  Mosques: '🕌',
+  Deserts: '🏜️',
+  Cosmos: '🌌',
 }
 
 export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: BackgroundPanelProps) {
-  const [selectedCategory, setSelectedCategory] = useState<StockCategory>('Mountains')
+  const [selectedCategory, setSelectedCategory] = useState<StockCategory>('Mosques')
+  const [shuffleSeed, setShuffleSeed] = useState(0)
 
-  const images = getImagesForCategory(selectedCategory)
+  const images = getImagesForCategory(selectedCategory, shuffleSeed)
 
   const handleRandomBackground = () => {
     const randomImg = getRandomStockImage()
@@ -31,9 +34,24 @@ export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: Backgrou
     onUrlChange(randomImg.full)
   }
 
+  const handleRefreshGallery = () => {
+    setShuffleSeed((prev) => prev + 2)
+  }
+
   return (
     <section className="panel" id="background-panel">
-      <h2>Background Nature & Mosque Stock</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+        <h2 style={{ margin: 0 }}>Background Footage & Stock</h2>
+        <button
+          type="button"
+          className="btn"
+          onClick={handleRefreshGallery}
+          title="Shuffle and refresh stock photos"
+          style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+        >
+          🔄 Refresh
+        </button>
+      </div>
 
       <div className="picks">
         {STOCK_CATEGORIES.map((cat) => (
@@ -43,7 +61,7 @@ export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: Backgrou
             className={`chip ${selectedCategory === cat ? 'active' : ''}`}
             onClick={() => {
               setSelectedCategory(cat)
-              const firstImg = getImagesForCategory(cat)[0]
+              const firstImg = getImagesForCategory(cat, shuffleSeed)[0]
               if (firstImg) onUrlChange(firstImg.full)
             }}
           >
@@ -54,7 +72,7 @@ export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: Backgrou
           type="button"
           className="chip"
           onClick={handleRandomBackground}
-          title="Pick a random nature or mosque photo"
+          title="Pick a random photo across all categories"
         >
           🎲 Random
         </button>
@@ -66,7 +84,7 @@ export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: Backgrou
             key={item.id}
             type="button"
             className={`thumb ${item.full === url ? 'active' : ''}`}
-            title={item.title}
+            title={`${item.title} (${item.source})`}
             onClick={() => onUrlChange(item.full)}
           >
             <img src={item.thumb} alt={item.title} loading="lazy" />
