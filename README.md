@@ -1,12 +1,32 @@
-# Islamic Reels Creator (Studio) 🎬📖✨
+# Islamic Reels Creator (Studio & Mobile App) 🎬📖✨
 
-A high-performance, studio-grade browser application for creating breathtaking Quran verse video reels for **Instagram Reels, TikTok, YouTube Shorts, and WhatsApp Status**. 
+> **بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ**  
+> ﴿ وَذَكِّرْ فَإِنَّ الذِّكْرَىٰ تَنفَعُ الْمُؤْمِنِينَ ﴾  
+> *“And remind, for indeed, the reminder benefits the believers.”* — Surah Adh-Dhariyat (51:55)
 
-Overlays sacred Quranic verses with authentic **Thuluth script vector calligraphy**, 1-click aesthetic themes, ultra-smooth continuous karaoke glow, authentic Islamic arabesque frames, voice audio spectrum visualizers, dual multi-language subtitles, custom media uploads, 5 atmospheric particle effects, 7 cinematic camera motions, and synchronized audio from **25 classical and modern master Qaris**.
+---
+
+## 🤲 App Bio & Dedication — Sadaqah Jariyah (صدقة جارية إن شاء الله)
+
+> **قال رسول الله ﷺ:**  
+> **«إِذَا مَاتَ ابْنُ آدَمَ انْقَطَعَ عَمَلُهُ إِلَّا مِنْ ثَلَاثٍ: صَدَقَةٍ جَارِيَةٍ، أَوْ عِلْمٍ يُنْتَفَعُ بِهِ، أَوْ وَلَدٍ صَالِحٍ يَدْعُو لَهُ»**  
+> *(صحيح مسلم)*
+>
+> *The Messenger of Allah ﷺ said: “When a human being dies, their deeds come to an end except for three: an ongoing charity (Sadaqah Jariyah), beneficial knowledge, or a righteous child who prays for them.”* — (Sahih Muslim 1631)
+
+**Islamic Reels Creator** is created purely for the sake of Allah ﷻ as an ongoing charity (**Sadaqah Jariyah**). It empowers every Muslim, content creator, and seeker of truth to produce breathtaking, studio-grade Quran video reels for **Instagram Reels, TikTok, YouTube Shorts, and WhatsApp Status** with ease, beauty, and reverence.
+
+May Allah accept this humble endeavor from everyone who builds, reads, recites, designs, creates, and shares these sacred verses.
 
 ---
 
 ## 🌟 Key Features
+
+### 📱 Native Android App (APK Available)
+- Standalone installable Android APK with full hardware acceleration for smooth 60FPS video rendering and audio playback.
+- Ready to install: [`quran-reels-creator.apk`](./quran-reels-creator.apk) (4.0 MB).
+
+---
 
 ### 🌟 1-Click Aesthetic Themes & Presets
 Instant, professional styling configurations tailored for high engagement on social platforms:
@@ -134,16 +154,17 @@ Curated high-resolution stock photography library with instant 1-click **Live Re
 
 ### 🚀 Hardware-Accelerated 1080p 60FPS Video Export
 - **Off-screen Canvas Pipeline**: Frame-by-frame rendering with backpressure control (<50MB RAM).
-- **Audio Mixing**: High-fidelity stereo AAC audio multiplexed directly in the browser via WebCodecs/MediaRecorder.
+- **Audio Mixing**: High-fidelity stereo AAC audio multiplexed directly in the browser/app via WebCodecs/MediaRecorder.
 - Instant single-frame **4K PNG snapshot download**.
 
 ---
 
 ## 🛠️ Technology Stack
-- **Framework**: React 19 + TypeScript + Vite
-- **Rendering Engine**: Hardware-accelerated Canvas 2D with sub-pixel interpolation
+- **Framework**: React 19 + TypeScript + Vite + Capacitor
+- **Mobile Engine**: Native Android WebView (Capacitor) with hardware acceleration
+- **Rendering Engine**: Canvas 2D with sub-pixel interpolation
 - **Video & Audio**: WebCodecs / MediaRecorder API + Web Audio
-- **Styling**: Vanilla CSS tokens (Dark theme, glassmorphism, responsive grid)
+- **Styling**: Vanilla CSS tokens (Dark theme, glassmorphism, responsive mobile layout)
 - **Testing**: Vitest + Oxlint
 
 ---
@@ -153,6 +174,7 @@ Curated high-resolution stock photography library with instant 1-click **Live Re
 ### Prerequisites
 - Node.js (v18 or higher)
 - npm or pnpm
+- Android SDK (for building Android APK)
 
 ### Installation
 ```bash
@@ -161,21 +183,20 @@ cd quran-reels
 npm install
 ```
 
-### Development Server
+### Development Server (Web)
 ```bash
 npm run dev
 ```
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-### Verification & Testing
+### Build Android APK
 ```bash
-npm run typecheck
-npm test
-npm run lint
-npm run build
+npm run build:apk
 ```
+The compiled APK will be generated at:
+`./quran-reels-creator.apk`
 
 ---
 
-## 📄 License
-Open-source under the [MIT License](LICENSE). Built for Quran Dawah, reflection, and educational purposes.
+## 📄 License & Dedication
+Open-source under the [MIT License](LICENSE). Built for Quran Dawah, spiritual reflection, and educational purposes as a **Sadaqah Jariyah (صدقة جارية إن شاء الله)**.

@@ -1,0 +1,15 @@
+{
+  "appId": "com.islamic.quranreels",
+  "appName": "Islamic Reels Creator",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  }
+}

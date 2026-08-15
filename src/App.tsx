@@ -14,6 +14,7 @@ import { MotionPanel } from './components/MotionPanel'
 import { EffectsPanel } from './components/EffectsPanel'
 import { FooterPanel } from './components/FooterPanel'
 import { PreviewCanvas } from './components/PreviewCanvas'
+import { AboutModal } from './components/AboutModal'
 import { getRandomStockImage } from './api/unsplash'
 import type { ReelConfig } from './types'
 import './App.css'
@@ -68,6 +69,7 @@ function App() {
   })
 
   const [image, setImage] = useState<HTMLImageElement | null>(null)
+  const [showAbout, setShowAbout] = useState(false)
 
   // Sync loaded verses into config
   useEffect(() => {
@@ -143,8 +145,23 @@ function App() {
         <div className="header-brand">
           <h1>Islamic Reels Creator</h1>
           <span className="header-badge">STUDIO</span>
+          <button
+            type="button"
+            className="sadaqah-badge"
+            onClick={() => setShowAbout(true)}
+            title="صدقة جارية إن شاء الله · Click to view dedication"
+          >
+            🤲 صدقة جارية
+          </button>
         </div>
         <div className="header-links">
+          <button
+            type="button"
+            className="header-link about-btn"
+            onClick={() => setShowAbout(true)}
+          >
+            About & Bio
+          </button>
           <a
             href="https://alquran.cloud/api"
             target="_blank"
@@ -322,7 +339,25 @@ function App() {
 
       <footer className="app-footer">
         <div className="footer-content">
-          <p>© {new Date().getFullYear()} Islamic Reels Creator · Built for Quran Dawah & Reminders</p>
+          <p>
+            © {new Date().getFullYear()} Islamic Reels Creator · Built for Quran Dawah &amp; Reminders (
+            <button
+              type="button"
+              onClick={() => setShowAbout(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#ffd700',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                padding: 0,
+                fontSize: 'inherit',
+              }}
+            >
+              صدقة جارية إن شاء الله
+            </button>
+            )
+          </p>
           <div className="footer-social-links">
             <span className="footer-tag">HD 60FPS</span>
             <span className="footer-tag">AAC Audio</span>
@@ -330,6 +365,8 @@ function App() {
           </div>
         </div>
       </footer>
+
+      <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
     </div>
   )
 }

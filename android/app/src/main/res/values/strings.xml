@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Islamic Reels Creator</string>
+    <string name="title_activity_main">Islamic Reels Creator</string>
+    <string name="package_name">com.islamic.quranreels</string>
+    <string name="custom_url_scheme">com.islamic.quranreels</string>
+</resources>
