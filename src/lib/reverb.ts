@@ -41,8 +41,13 @@ export function attachMosqueReverb(
   destination: AudioNode,
   intensity = 0.45,
 ): { convolver: ConvolverNode; wetGain: GainNode; dryGain: GainNode } {
+  if (ctx.state === 'suspended') {
+    void ctx.resume()
+  }
+
   const impulseBuffer = createMosqueImpulseResponse(ctx)
   const convolver = ctx.createConvolver()
+  convolver.normalize = true
   convolver.buffer = impulseBuffer
 
   const wetGain = ctx.createGain()

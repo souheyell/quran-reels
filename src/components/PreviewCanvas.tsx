@@ -63,6 +63,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   // Create persistent audio element with comprehensive event handlers
   useEffect(() => {
     const audio = new Audio()
+    audio.crossOrigin = 'anonymous'
     audio.volume = volume
     audio.preload = 'auto'
 
@@ -107,6 +108,9 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
         if (AudioCtx) {
           try {
             const ctx = new AudioCtx()
+            if (ctx.state === 'suspended') {
+              void ctx.resume()
+            }
             const source = ctx.createMediaElementSource(audio)
             const reverb = attachMosqueReverb(
               ctx,
@@ -116,12 +120,17 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
             )
             audioContextRef.current = ctx
             reverbNodesRef.current = reverb
-          } catch {
-            // Context already exists or MediaElementSource error
+          } catch (e) {
+            console.warn('Web Audio reverb initialization failed:', e)
           }
         }
-      } else if (reverbNodesRef.current) {
-        reverbNodesRef.current.wetGain.gain.value = config.audio.reverbIntensity ?? 0.45
+      } else {
+        if (audioContextRef.current.state === 'suspended') {
+          void audioContextRef.current.resume()
+        }
+        if (reverbNodesRef.current) {
+          reverbNodesRef.current.wetGain.gain.value = config.audio.reverbIntensity ?? 0.45
+        }
       }
     } else if (reverbNodesRef.current) {
       reverbNodesRef.current.wetGain.gain.value = 0
@@ -362,6 +371,9 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   const togglePlay = () => {
     const nextPlaying = !playing
     setPlaying(nextPlaying)
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      void audioContextRef.current.resume()
+    }
     const audio = audioRef.current
     if (audio) {
       if (nextPlaying && soundOn) {
@@ -376,6 +388,9 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   const toggleSound = () => {
     const nextSound = !soundOn
     setSoundOn(nextSound)
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      void audioContextRef.current.resume()
+    }
     const audio = audioRef.current
     if (audio) {
       if (nextSound && playing) {
@@ -408,6 +423,9 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
 
   // Enable audio on user click if autoplay was blocked
   const handleEnableAudio = () => {
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      void audioContextRef.current.resume()
+    }
     const audio = audioRef.current
     if (audio) {
       audio.play()
