@@ -42,8 +42,6 @@ function App() {
     setKaraokeHighlight,
     setHighlightColor,
     setSecondaryEditionId,
-    setShowReflectionNote,
-    setReflectionNoteText,
     setFooterEnabled,
     setFooterText,
     setFooterIcon,
@@ -207,8 +205,6 @@ function App() {
             karaokeHighlight={config.text.karaokeHighlight}
             highlightColor={config.text.highlightColor}
             secondaryEditionId={config.text.secondaryEditionId}
-            showReflectionNote={config.text.showReflectionNote}
-            reflectionNoteText={config.text.reflectionNoteText}
             onApplyPreset={applyPreset}
             onOverlayColor={setOverlayColor}
             onOverlayOpacity={setOverlayOpacity}
@@ -229,8 +225,6 @@ function App() {
               setSecondaryEditionId(id)
               void verseLoader.changeSecondaryEdition(id)
             }}
-            onShowReflectionNote={setShowReflectionNote}
-            onReflectionNoteText={setReflectionNoteText}
           />
           <FooterPanel
             enabled={config.footer.enabled}

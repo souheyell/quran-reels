@@ -19,8 +19,6 @@ interface StylePanelProps {
   karaokeHighlight: boolean
   highlightColor: string
   secondaryEditionId: string
-  showReflectionNote: boolean
-  reflectionNoteText: string
   onApplyPreset: (preset: ReelPreset) => void
   onOverlayColor: (v: string) => void
   onOverlayOpacity: (v: number) => void
@@ -38,8 +36,6 @@ interface StylePanelProps {
   onKaraokeHighlight: (v: boolean) => void
   onHighlightColor: (v: string) => void
   onSecondaryEditionId: (v: string) => void
-  onShowReflectionNote: (v: boolean) => void
-  onReflectionNoteText: (v: string) => void
 }
 
 export function StylePanel(props: StylePanelProps) {
@@ -277,28 +273,6 @@ export function StylePanel(props: StylePanelProps) {
         />
         Text glow / shadow
       </label>
-
-      <div style={{ marginTop: '0.4rem' }}>
-        <label className="row-inline">
-          <input
-            id="reflection-card-checkbox"
-            type="checkbox"
-            checked={props.showReflectionNote}
-            onChange={(e) => props.onShowReflectionNote(e.target.checked)}
-          />
-          ✨ Spiritual Reflection / Tafsir Footnote
-        </label>
-        {props.showReflectionNote && (
-          <input
-            id="reflection-note-text-input"
-            type="text"
-            placeholder="e.g. Reflect upon the signs of Allah..."
-            value={props.reflectionNoteText}
-            onChange={(e) => props.onReflectionNoteText(e.target.value)}
-            style={{ width: '100%', marginTop: '0.3rem', fontSize: '0.82rem' }}
-          />
-        )}
-      </div>
     </section>
   )
 }

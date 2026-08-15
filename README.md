@@ -31,9 +31,8 @@ Instant, professional styling configurations tailored for high engagement on soc
 
 ---
 
-### 🌍 Dual Multi-Language Subtitles & Reflection Cards
-- **Dual Subtitles**: Display two translations simultaneously (e.g. English + French / Urdu / Turkish / Indonesian / German).
-- **✨ Reflection Cards**: Add an optional spiritual reflection footnote (e.g., *"Reflect upon the signs of Allah"*) at the base of the verse.
+### 🌍 Dual Multi-Language Subtitles
+- Display two translations simultaneously on the reel (e.g. English + French / Urdu / Turkish / Indonesian / German).
 
 ---
 

@@ -65,8 +65,6 @@ export interface ReelConfig {
     karaokeHighlight: boolean
     highlightColor: string
     secondaryEditionId: string
-    showReflectionNote: boolean
-    reflectionNoteText: string
   }
   footer: {
     enabled: boolean
@@ -130,8 +128,6 @@ export type ConfigAction =
   | { type: 'SET_KARAOKE_HIGHLIGHT'; enabled: boolean }
   | { type: 'SET_HIGHLIGHT_COLOR'; color: string }
   | { type: 'SET_SECONDARY_EDITION_ID'; editionId: string }
-  | { type: 'SET_SHOW_REFLECTION_NOTE'; show: boolean }
-  | { type: 'SET_REFLECTION_NOTE_TEXT'; text: string }
   | { type: 'SET_FOOTER_ENABLED'; enabled: boolean }
   | { type: 'SET_FOOTER_TEXT'; text: string }
   | { type: 'SET_FOOTER_ICON'; icon: ReelConfig['footer']['icon'] }

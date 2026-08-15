@@ -51,10 +51,6 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
       return { ...state, text: { ...state.text, highlightColor: action.color } }
     case 'SET_SECONDARY_EDITION_ID':
       return { ...state, text: { ...state.text, secondaryEditionId: action.editionId } }
-    case 'SET_SHOW_REFLECTION_NOTE':
-      return { ...state, text: { ...state.text, showReflectionNote: action.show } }
-    case 'SET_REFLECTION_NOTE_TEXT':
-      return { ...state, text: { ...state.text, reflectionNoteText: action.text } }
     case 'SET_FOOTER_ENABLED':
       return { ...state, footer: { ...state.footer, enabled: action.enabled } }
     case 'SET_FOOTER_TEXT':
@@ -202,14 +198,6 @@ export function useReelConfig() {
     (editionId: string) => dispatch({ type: 'SET_SECONDARY_EDITION_ID', editionId }),
     [],
   )
-  const setShowReflectionNote = useCallback(
-    (show: boolean) => dispatch({ type: 'SET_SHOW_REFLECTION_NOTE', show }),
-    [],
-  )
-  const setReflectionNoteText = useCallback(
-    (text: string) => dispatch({ type: 'SET_REFLECTION_NOTE_TEXT', text }),
-    [],
-  )
   const setFooterEnabled = useCallback(
     (enabled: boolean) => dispatch({ type: 'SET_FOOTER_ENABLED', enabled }),
     [],
@@ -277,8 +265,6 @@ export function useReelConfig() {
     setKaraokeHighlight,
     setHighlightColor,
     setSecondaryEditionId,
-    setShowReflectionNote,
-    setReflectionNoteText,
     setFooterEnabled,
     setFooterText,
     setFooterIcon,

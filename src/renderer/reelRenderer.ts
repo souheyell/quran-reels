@@ -393,15 +393,6 @@ function drawVerse(
       ctx.fillText(prepareText(verse.secondaryTranslation, secRtl), width / 2, cursorY + height * 0.008)
       cursorY += secFontSize * 1.5
     }
-
-    // Spiritual Reflection Note Card
-    if (text.showReflectionNote && text.reflectionNoteText?.trim()) {
-      const noteFontSize = Math.max(11, Math.round(height * 0.019))
-      ctx.font = `500 ${noteFontSize}px ${text.translationFont}`
-      ctx.fillStyle = text.highlightColor || '#ffd700'
-      ctx.globalAlpha = translationAlpha * 0.9
-      ctx.fillText(prepareText(`✨ ${text.reflectionNoteText.trim()}`, false), width / 2, cursorY + height * 0.02)
-    }
   }
 
   // ── Render Bottom Reference (if selected) ────────────────
@@ -551,8 +542,6 @@ export function defaultConfig(): ReelConfig {
       karaokeHighlight: false,
       highlightColor: '#ffd700',
       secondaryEditionId: 'none',
-      showReflectionNote: false,
-      reflectionNoteText: 'Reflect upon the signs of Allah',
     },
     footer: {
       enabled: false,

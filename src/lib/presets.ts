@@ -34,8 +34,6 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
         karaokeHighlight: true,
         highlightColor: '#fff8db',
         secondaryEditionId: 'none',
-        showReflectionNote: false,
-        reflectionNoteText: 'Reflect upon the signs of Allah',
       },
       overlay: {
         color: '#0f0700',
@@ -75,8 +73,6 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
         karaokeHighlight: true,
         highlightColor: '#80deea',
         secondaryEditionId: 'none',
-        showReflectionNote: false,
-        reflectionNoteText: 'Reflect upon the signs of Allah',
       },
       overlay: {
         color: '#020b14',
@@ -116,8 +112,6 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
         karaokeHighlight: true,
         highlightColor: '#fef08a',
         secondaryEditionId: 'none',
-        showReflectionNote: false,
-        reflectionNoteText: 'Reflect upon the signs of Allah',
       },
       overlay: {
         color: '#051008',
@@ -157,8 +151,6 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
         karaokeHighlight: true,
         highlightColor: '#fde047',
         secondaryEditionId: 'none',
-        showReflectionNote: false,
-        reflectionNoteText: 'Reflect upon the signs of Allah',
       },
       overlay: {
         color: '#180800',
@@ -198,8 +190,6 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
         karaokeHighlight: true,
         highlightColor: '#fdba74',
         secondaryEditionId: 'none',
-        showReflectionNote: false,
-        reflectionNoteText: 'Reflect upon the signs of Allah',
       },
       overlay: {
         color: '#1c0d02',
@@ -239,8 +229,6 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
         karaokeHighlight: false,
         highlightColor: '#ffffff',
         secondaryEditionId: 'none',
-        showReflectionNote: false,
-        reflectionNoteText: '',
       },
       overlay: {
         color: '#000000',
