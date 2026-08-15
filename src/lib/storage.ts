@@ -43,6 +43,14 @@ export function loadSavedConfig(): ReelConfig {
         ...base.effects,
         ...parsed.effects,
       },
+      border: {
+        ...base.border,
+        ...parsed.border,
+      },
+      waveform: {
+        ...base.waveform,
+        ...parsed.waveform,
+      },
       text: {
         ...base.text,
         ...parsed.text,

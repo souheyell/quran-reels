@@ -1,5 +1,11 @@
 import { useReducer, useCallback, useEffect } from 'react'
-import type { ReelConfig, ConfigAction, AtmosphericEffectType } from '../types'
+import type {
+  ReelConfig,
+  ConfigAction,
+  AtmosphericEffectType,
+  BorderType,
+  WaveformType,
+} from '../types'
 import { loadSavedConfig, saveConfig } from '../lib/storage'
 import { applyPresetToConfig, type ReelPreset } from '../lib/presets'
 
@@ -21,6 +27,18 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
       return { ...state, effects: { ...state.effects, intensity: action.intensity } }
     case 'SET_EFFECT_SPEED':
       return { ...state, effects: { ...state.effects, speed: action.speed } }
+    case 'SET_BORDER_TYPE':
+      return { ...state, border: { ...state.border, type: action.borderType } }
+    case 'SET_BORDER_COLOR':
+      return { ...state, border: { ...state.border, color: action.color } }
+    case 'SET_BORDER_OPACITY':
+      return { ...state, border: { ...state.border, opacity: action.opacity } }
+    case 'SET_WAVEFORM_TYPE':
+      return { ...state, waveform: { ...state.waveform, type: action.waveformType } }
+    case 'SET_WAVEFORM_COLOR':
+      return { ...state, waveform: { ...state.waveform, color: action.color } }
+    case 'SET_WAVEFORM_OPACITY':
+      return { ...state, waveform: { ...state.waveform, opacity: action.opacity } }
     case 'SET_ARABIC_FONT':
       return { ...state, text: { ...state.text, arabicFont: action.font } }
     case 'SET_ARABIC_SIZE':
@@ -83,6 +101,14 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
           ...state.effects,
           ...action.preset.effects,
         },
+        border: {
+          ...state.border,
+          ...action.preset.border,
+        },
+        waveform: {
+          ...state.waveform,
+          ...action.preset.waveform,
+        },
         text: {
           ...state.text,
           ...action.preset.text,
@@ -133,6 +159,30 @@ export function useReelConfig() {
   )
   const setEffectSpeed = useCallback(
     (speed: number) => dispatch({ type: 'SET_EFFECT_SPEED', speed }),
+    [],
+  )
+  const setBorderType = useCallback(
+    (borderType: BorderType) => dispatch({ type: 'SET_BORDER_TYPE', borderType }),
+    [],
+  )
+  const setBorderColor = useCallback(
+    (color: string) => dispatch({ type: 'SET_BORDER_COLOR', color }),
+    [],
+  )
+  const setBorderOpacity = useCallback(
+    (opacity: number) => dispatch({ type: 'SET_BORDER_OPACITY', opacity }),
+    [],
+  )
+  const setWaveformType = useCallback(
+    (waveformType: WaveformType) => dispatch({ type: 'SET_WAVEFORM_TYPE', waveformType }),
+    [],
+  )
+  const setWaveformColor = useCallback(
+    (color: string) => dispatch({ type: 'SET_WAVEFORM_COLOR', color }),
+    [],
+  )
+  const setWaveformOpacity = useCallback(
+    (opacity: number) => dispatch({ type: 'SET_WAVEFORM_OPACITY', opacity }),
     [],
   )
   const setArabicFont = useCallback(
@@ -250,6 +300,12 @@ export function useReelConfig() {
     setEffectType,
     setEffectIntensity,
     setEffectSpeed,
+    setBorderType,
+    setBorderColor,
+    setBorderOpacity,
+    setWaveformType,
+    setWaveformColor,
+    setWaveformOpacity,
     setArabicFont,
     setArabicSize,
     setTranslationFont,

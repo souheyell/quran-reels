@@ -1,6 +1,8 @@
 import type { ReelConfig, Verse } from '../types'
 import { drawBackground, getTransform } from './kenburns'
 import { drawAtmosphericEffect } from './effects'
+import { drawBorder } from './borders'
+import { drawWaveform } from './waveform'
 import { fitFontSize, isRtl, prepareText } from './textLayout'
 import { DEFAULT_BACKGROUND_URL } from '../api/unsplash'
 import {
@@ -49,7 +51,7 @@ export function buildFont(style: FontSpec): string {
   return `${style.size}px ${style.font}`
 }
 
-function hexToRgba(hex: string, alpha: number): string {
+function hexToRgbComponents(hex: string): { r: number; g: number; b: number } {
   const normalized = hex.replace('#', '')
   const full =
     normalized.length === 3
@@ -58,83 +60,67 @@ function hexToRgba(hex: string, alpha: number): string {
           .map((c) => c + c)
           .join('')
       : normalized
-  const r = parseInt(full.slice(0, 2), 16)
-  const g = parseInt(full.slice(2, 4), 16)
-  const b = parseInt(full.slice(4, 6), 16)
+  const num = parseInt(full, 16)
+  if (Number.isNaN(num)) return { r: 255, g: 215, b: 0 }
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  }
+}
+
+function interpolateColor(color1: string, color2: string, factor: number): string {
+  const c1 = hexToRgbComponents(color1)
+  const c2 = hexToRgbComponents(color2)
+  const t = Math.max(0, Math.min(1, factor))
+  const r = Math.round(c1.r + (c2.r - c1.r) * t)
+  const g = Math.round(c1.g + (c2.g - c1.g) * t)
+  const b = Math.round(c1.b + (c2.b - c1.b) * t)
+  return `rgb(${r}, ${g}, ${b})`
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const { r, g, b } = hexToRgbComponents(hex)
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
-function smoothStep(t: number): number {
-  const clamped = Math.max(0, Math.min(1, t))
-  return clamped * clamped * (3 - 2 * clamped)
+function cleanBasmalahFromText(arabic: string): string {
+  const basmalahPattern = /^(?:بِسْمِ\s*ٱ?للَّهِ\s*ٱلرَّحْمَٰ?نِ\s*ٱلرَّحِيمِ\s*|بِسْمِ\s*اللَّهِ\s*الرَّحْمَٰ?نِ\s*الرَّحِيمِ\s*)/u
+  return arabic.replace(basmalahPattern, '').trim()
 }
 
-/**
- * Calculate smooth cinematic fade-in and fade-out alpha to prevent any text flickering.
- */
-function calculateFadeAlpha(
-  timeMs: number,
-  slotDurationMs: number,
-  fadeInMs = 400,
-  fadeOutMs = 450,
-): number {
-  if (slotDurationMs <= 0) return 1
-
-  // Smooth fade-in at the beginning of the ayah
-  if (timeMs < fadeInMs) {
-    return smoothStep(timeMs / fadeInMs)
-  }
-
-  // Smooth fade-out during the pause before the next ayah
-  const fadeOutStartMs = Math.max(fadeInMs, slotDurationMs - fadeOutMs)
-  if (timeMs > fadeOutStartMs) {
-    const elapsed = timeMs - fadeOutStartMs
-    const progress = elapsed / fadeOutMs
-    return smoothStep(1 - progress)
-  }
-
-  // Full opacity during active recitation
-  return 1
-}
-
-function toArabicDigits(num: number | string): string {
-  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩']
-  return String(num).replace(/[0-9]/g, (d) => arabicDigits[Number(d)] ?? d)
-}
-
-function getSurahHeaderContent(
+export function getSurahHeader(
   verse: Verse,
-  language: ReelConfig['text']['surahNameLanguage'] = 'arabic',
+  lang: ReelConfig['text']['surahNameLanguage'],
 ): { title: string; subtitle: string; isRtl: boolean } {
-  const arabicName = verse.surahArabicName || `سُورَةُ ${verse.surah}`
-  const englishName = verse.surahName || `Surah ${verse.surah}`
-  const arabicAyahNum = toArabicDigits(verse.ayat)
+  const arabic = verse.surahArabicName || `سورة ${verse.surahName}`
+  const english = `${verse.surahName} · Verse ${verse.ayat}`
+  const bothSubtitle = `Surah ${verse.surahName} · Ayah ${verse.ayat}`
 
-  if (language === 'english') {
+  if (lang === 'arabic') {
     return {
-      title: englishName.toUpperCase(),
-      subtitle: `Verse ${verse.ayat}`,
-      isRtl: false,
-    }
-  }
-
-  if (language === 'both') {
-    return {
-      title: arabicName,
-      subtitle: `${englishName} · Ayah ${verse.ayat}`,
+      title: arabic,
+      subtitle: `الآية ${verse.ayat}`,
       isRtl: true,
     }
   }
 
-  // Default 'arabic'
+  if (lang === 'both') {
+    return {
+      title: arabic,
+      subtitle: bothSubtitle,
+      isRtl: false,
+    }
+  }
+
   return {
-    title: arabicName,
-    subtitle: `الآية ${arabicAyahNum}`,
-    isRtl: true,
+    title: english,
+    subtitle: verse.editionName,
+    isRtl: false,
   }
 }
 
-function drawVerse(
+export function drawVerse(
   ctx: CanvasRenderingContext2D,
   config: ReelConfig,
   verse: Verse,
@@ -144,167 +130,214 @@ function drawVerse(
   height: number,
 ): void {
   const { text } = config
-
   const baseWidth = ASPECT_SIZES[config.aspectRatio].width
   const scale = width / baseWidth
 
-  const scaledArabicSize = Math.max(12, Math.round(text.arabicSize * scale))
-  const scaledTranslationSize = Math.max(10, Math.round(text.translationSize * scale))
-
-  const padding = width * 0.09
-  const maxTextWidth = width - padding * 2
-  const centerY = height / 2
-  const lowerThirdY = height * 0.6
-
+  ctx.save()
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
-  const arabicRtl = isRtl(verse.arabic)
-  const arabicMeasure = (s: string, size: number) => {
-    ctx.font = buildFont({ size, font: text.arabicFont })
-    return ctx.measureText(prepareText(s, arabicRtl)).width
-  }
-  const maxArabicHeight = text.showTranslation ? height * 0.42 : height * 0.65
-  const arabicLines = fitFontSize(
-    verse.arabic,
-    maxTextWidth,
-    maxArabicHeight,
-    scaledArabicSize,
-    arabicMeasure,
-    1.6,
-    Math.max(8, Math.floor(scaledArabicSize * 0.55)),
-  )
-
-  const surahHeader = getSurahHeaderContent(
-    verse,
-    text.surahNameLanguage || 'arabic',
-  )
-
-  // Smooth cinematic alphas with zero flickering
-  const arabicAlpha = calculateFadeAlpha(verseTimeMs, slotDurationMs, 400, 450)
-  const translationAlpha = calculateFadeAlpha(Math.max(0, verseTimeMs - 80), slotDurationMs, 400, 450)
-  const subtitleAlpha = calculateFadeAlpha(verseTimeMs, slotDurationMs, 300, 450)
-
-  ctx.save()
-  ctx.fillStyle = text.textColor
-
   if (text.showGlow) {
-    ctx.shadowColor = 'rgba(0,0,0,0.85)'
-    ctx.shadowBlur = Math.round(24 * scale)
+    ctx.shadowColor = text.textColor
+    ctx.shadowBlur = Math.round(14 * scale)
+  } else {
+    ctx.shadowColor = 'transparent'
+    ctx.shadowBlur = 0
   }
 
-  // ── Surah in Thuluth Calligraphy + Subtitle ──
-  const showHeaderTop = text.surahHeaderPosition === 'top' || text.surahHeaderPosition === undefined
-  if (showHeaderTop) {
-    const topHeaderY = height * 0.075
-    const isArabicMode = text.surahNameLanguage === 'arabic' || text.surahNameLanguage === undefined
-    const calligraphyImg = isArabicMode ? getSurahCalligraphyImage(verse.surah, text.textColor) : null
+  const maxWidth = width * 0.86
+  const isFirstAyahOfSurah = verse.ayat === 1
+  const displayArabic =
+    isFirstAyahOfSurah && text.showBasmalah
+      ? cleanBasmalahFromText(verse.arabic)
+      : verse.arabic
 
-    if (calligraphyImg && calligraphyImg.complete && calligraphyImg.naturalWidth > 0) {
-      // Draw Authentic Thuluth Vector Calligraphy
-      const targetH = height * 0.05
-      const aspect = calligraphyImg.naturalWidth / calligraphyImg.naturalHeight || 1.5
-      const targetW = targetH * aspect
-      const imgX = (width - targetW) / 2
-      const imgY = topHeaderY - targetH / 2
-
-      // Header emblem stays steady and dignified without flickering
-      ctx.globalAlpha = 0.98
-      ctx.drawImage(calligraphyImg, imgX, imgY, targetW, targetH)
-
-      // Verse Number directly underneath the Calligraphy
-      const subtitleFontSize = Math.max(11, Math.round(height * 0.019))
-      const subtitleY = imgY + targetH + height * 0.018
-      const subtitleFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
-      ctx.font = buildFont({ size: subtitleFontSize, font: subtitleFont })
-      ctx.globalAlpha = subtitleAlpha * 0.82
-      ctx.fillText(prepareText(surahHeader.subtitle, surahHeader.isRtl), width / 2, subtitleY)
-    } else {
-      // Fallback to text calligraphy while image loads
-      if (isArabicMode) void loadSurahCalligraphy(verse.surah, text.textColor)
-      const titleFontSize = surahHeader.isRtl
-        ? Math.max(16, Math.round(height * 0.033))
-        : Math.max(13, Math.round(height * 0.025))
-      const titleFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
-
-      ctx.font = buildFont({ size: titleFontSize, font: titleFont })
-      ctx.globalAlpha = 0.98
-      ctx.fillText(prepareText(surahHeader.title, surahHeader.isRtl), width / 2, topHeaderY)
-
-      const subtitleFontSize = Math.max(11, Math.round(height * 0.019))
-      const subtitleY = topHeaderY + titleFontSize * 1.15
-      const subtitleFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
-      ctx.font = buildFont({ size: subtitleFontSize, font: subtitleFont })
-      ctx.globalAlpha = subtitleAlpha * 0.8
-      ctx.fillText(prepareText(surahHeader.subtitle, surahHeader.isRtl), width / 2, subtitleY)
-    }
+  const measureText = (s: string, sz: number, fontName: string) => {
+    ctx.font = `${sz}px ${fontName}`
+    return ctx.measureText(s).width
   }
 
-  // ── Dedicated Thuluth Basmalah Banner for Ayah 1 ─────────
-  const hasBasmalah =
-    verse.ayat === 1 && verse.surah > 1 && verse.surah !== 9 && text.showBasmalah !== false
+  const maxArabicHeight = height * 0.45
+  const arabicLines = fitFontSize(
+    displayArabic,
+    maxWidth,
+    maxArabicHeight,
+    text.arabicSize * scale,
+    (s, sz) => measureText(s, sz, text.arabicFont),
+    1.6,
+    Math.max(8, Math.floor(text.arabicSize * scale * 0.55)),
+  )
 
-  const basmalahImg = hasBasmalah ? getBasmalahCalligraphyImage(text.textColor) : null
-  const basmalahH = height * 0.05
-  const basmalahGap = height * 0.035
-  const basmalahBlock = hasBasmalah ? basmalahH + basmalahGap : 0
-
-  // ── Calculate Main Content Layout ────────────────────────
-  const arabicBlock = arabicLines.lines.length * arabicLines.size * 1.6
-
-  let translationBlock = 0
   let translationLines: ReturnType<typeof fitFontSize> | null = null
-
-  if (text.showTranslation && verse.translation) {
-    const translationRtl = isRtl(verse.translation)
-    const translationMeasure = (s: string, size: number) => {
-      ctx.font = buildFont({ size, font: text.translationFont })
-      return ctx.measureText(prepareText(s, translationRtl)).width
-    }
+  if (text.showTranslation) {
+    const maxTranslationHeight = height * 0.28
     translationLines = fitFontSize(
       verse.translation,
-      maxTextWidth,
-      height * 0.28,
-      scaledTranslationSize,
-      translationMeasure,
+      maxWidth,
+      maxTranslationHeight,
+      text.translationSize * scale,
+      (s, sz) => measureText(s, sz, text.translationFont),
       1.5,
-      Math.max(7, Math.floor(scaledTranslationSize * 0.5)),
+      Math.max(8, Math.floor(text.translationSize * scale * 0.55)),
     )
-    translationBlock = translationLines.lines.length * translationLines.size * 1.5
   }
 
-  const gap = text.showTranslation && translationBlock > 0 ? height * 0.04 : 0
-  const bottomRefBlock = text.surahHeaderPosition === 'bottom' ? height * 0.04 + height * 0.02 : 0
-  const totalHeight = basmalahBlock + arabicBlock + translationBlock + gap + bottomRefBlock
+  const arabicH = arabicLines.lines.length * arabicLines.size * 1.6
+  const translationH = translationLines
+    ? translationLines.lines.length * translationLines.size * 1.5
+    : 0
 
-  let cursorY: number
-  if (text.textPosition === 'lower-third') {
-    cursorY = lowerThirdY - totalHeight / 2
+  let secTranslationH = 0
+  if (text.showTranslation && verse.secondaryTranslation) {
+    const secFontSize = Math.max(10, Math.round((translationLines?.size ?? text.translationSize * scale) * 0.82))
+    secTranslationH = secFontSize * 1.5 + height * 0.01
+  }
+
+  const gap = Math.round(height * 0.035)
+  const basmalahH = isFirstAyahOfSurah && text.showBasmalah ? Math.round(height * 0.05) : 0
+  const basmalahGap = basmalahH > 0 ? Math.round(height * 0.02) : 0
+  const translationBlock = translationH + secTranslationH
+
+  const contentH =
+    basmalahH +
+    basmalahGap +
+    arabicH +
+    (text.showTranslation && translationBlock > 0 ? gap + translationBlock : 0)
+
+  let startY: number
+  if (text.textPosition === 'center') {
+    startY = (height - contentH) / 2
   } else {
-    cursorY = centerY - totalHeight / 2
+    startY = height * 0.52
   }
 
-  // ── Render Dedicated Thuluth Basmalah Calligraphy Banner ──
-  if (hasBasmalah) {
-    if (basmalahImg && basmalahImg.complete && basmalahImg.naturalWidth > 0) {
-      // Draw Thuluth vector Basmalah emblem
-      const aspect = basmalahImg.naturalWidth / basmalahImg.naturalHeight || 5.0
-      const basmalahW = Math.min(width * 0.85, basmalahH * aspect)
-      const bX = (width - basmalahW) / 2
-      ctx.globalAlpha = arabicAlpha * 0.98
-      ctx.drawImage(basmalahImg, bX, cursorY, basmalahW, basmalahH)
+  const surahHeader = getSurahHeader(verse, text.surahNameLanguage)
+  const isBasmalahSpecial = isFirstAyahOfSurah && text.showBasmalah
+  const baseAyahTimeMs = isBasmalahSpecial ? Math.max(0, verseTimeMs - 2200) : verseTimeMs
+
+  // Smooth fadeIn and fadeOut easing
+  const fadeIn = Math.min(1, Math.max(0, baseAyahTimeMs / 700))
+  const fadeOut =
+    slotDurationMs > 800
+      ? Math.min(1, Math.max(0, (slotDurationMs - verseTimeMs) / 700))
+      : 1
+  const arabicAlpha = fadeIn * fadeOut
+
+  let translationAlpha = arabicAlpha
+  if (isMultiVerseDelayedTranslation(slotDurationMs, verseTimeMs)) {
+    const translationDelayMs = Math.min(1200, slotDurationMs * 0.25)
+    const delayedTime = Math.max(0, baseAyahTimeMs - translationDelayMs)
+    translationAlpha = Math.min(1, Math.max(0, delayedTime / 700)) * fadeOut
+  }
+
+  function isMultiVerseDelayedTranslation(slotDur: number, currTime: number): boolean {
+    return slotDur > 3000 && currTime < slotDur - 700
+  }
+
+  let basmalahAlpha = 0
+  if (isBasmalahSpecial) {
+    const bFadeIn = Math.min(1, Math.max(0, verseTimeMs / 600))
+    const bFadeOut = Math.min(1, Math.max(0, (slotDurationMs - verseTimeMs) / 700))
+    basmalahAlpha = bFadeIn * bFadeOut
+  }
+
+  const subtitleAlpha = fadeIn * fadeOut
+  const arabicRtl = true
+
+  // ── Render Top Surah Header (Continuity) ─────────────────
+  if (text.surahHeaderPosition === 'top') {
+    const topMarginY = Math.round(height * 0.1)
+    const calligraphyImg = getSurahCalligraphyImage(verse.surah)
+    if (!calligraphyImg) {
+      loadSurahCalligraphy(verse.surah)
+    }
+
+    if (calligraphyImg && calligraphyImg.complete && calligraphyImg.naturalWidth > 0) {
+      const emblemTargetH = Math.round(height * 0.055)
+      const aspect = calligraphyImg.naturalWidth / calligraphyImg.naturalHeight
+      const emblemTargetW = emblemTargetH * aspect
+
+      ctx.save()
+      ctx.globalAlpha = subtitleAlpha * 0.95
+      ctx.drawImage(
+        calligraphyImg,
+        (width - emblemTargetW) / 2,
+        topMarginY - emblemTargetH / 2,
+        emblemTargetW,
+        emblemTargetH,
+      )
+      ctx.restore()
+
+      const ayahNumSize = Math.max(10, Math.round(height * 0.016))
+      ctx.font = buildFont({ size: ayahNumSize, font: text.translationFont })
+      ctx.fillStyle = text.textColor
+      ctx.globalAlpha = subtitleAlpha * 0.8
+      ctx.fillText(
+        prepareText(`Ayah ${verse.ayat}`, false),
+        width / 2,
+        topMarginY + emblemTargetH * 0.65,
+      )
     } else {
-      // Fallback to text Basmalah in Arabic calligraphy font
-      void loadBasmalahCalligraphy(text.textColor)
-      const basmalahSize = Math.max(14, Math.round(scaledArabicSize * 0.84))
+      const topTitleSize = surahHeader.isRtl
+        ? Math.max(16, Math.round(height * 0.034))
+        : Math.max(14, Math.round(height * 0.026))
+      const topFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
+
+      ctx.font = buildFont({ size: topTitleSize, font: topFont })
+      ctx.fillStyle = text.textColor
+      ctx.globalAlpha = subtitleAlpha * 0.95
+      ctx.fillText(prepareText(surahHeader.title, surahHeader.isRtl), width / 2, topMarginY)
+
+      const subFontSize = Math.max(11, Math.round(height * 0.018))
+      ctx.font = buildFont({ size: subFontSize, font: text.translationFont })
+      ctx.globalAlpha = subtitleAlpha * 0.75
+      ctx.fillText(
+        prepareText(surahHeader.subtitle, surahHeader.isRtl),
+        width / 2,
+        topMarginY + topTitleSize * 1.1,
+      )
+    }
+  }
+
+  let cursorY = startY + arabicLines.size / 2
+
+  // ── Render Basmalah Emblem Centerpiece (if Ayah 1) ───────
+  if (isFirstAyahOfSurah && text.showBasmalah) {
+    const basmalahImg = getBasmalahCalligraphyImage()
+    if (!basmalahImg) {
+      loadBasmalahCalligraphy()
+    }
+
+    if (basmalahImg && basmalahImg.complete && basmalahImg.naturalWidth > 0) {
+      const bAspect = basmalahImg.naturalWidth / basmalahImg.naturalHeight
+      const bTargetH = basmalahH
+      const bTargetW = bTargetH * bAspect
+
+      ctx.save()
+      ctx.globalAlpha = basmalahAlpha * 0.98
+      ctx.drawImage(
+        basmalahImg,
+        (width - bTargetW) / 2,
+        cursorY - bTargetH / 2,
+        bTargetW,
+        bTargetH,
+      )
+      ctx.restore()
+    } else {
+      const basmalahSize = Math.max(16, Math.round(arabicLines.size * 0.65))
       ctx.font = buildFont({ size: basmalahSize, font: text.arabicFont })
+      ctx.fillStyle = text.textColor
       ctx.globalAlpha = arabicAlpha * 0.95
-      ctx.fillText(prepareText('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', true), width / 2, cursorY + basmalahH / 2)
+      ctx.fillText(
+        prepareText('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', true),
+        width / 2,
+        cursorY + basmalahH / 2,
+      )
     }
     cursorY += basmalahH + basmalahGap
   }
 
-  // ── Render Arabic Text with Smooth Dissolve & Karaoke Highlighting ─
+  // ── Render Arabic Text with Ultra-Smooth Continuous Karaoke Glow ─
   const userDelayMs =
     typeof text.ayahPauseDelay === 'number' && text.ayahPauseDelay >= 0
       ? Math.round(text.ayahPauseDelay * 1000)
@@ -314,8 +347,13 @@ function drawVerse(
   ctx.font = buildFont({ size: arabicLines.size, font: text.arabicFont })
   const allArabicWords = verse.arabic.trim().split(/\s+/).filter(Boolean)
   const totalWords = allArabicWords.length || 1
-  const karaokeProgress = recitationDurationMs > 0 ? Math.min(1, Math.max(0, verseTimeMs / recitationDurationMs)) : 0
-  const activeWordIndex = Math.floor(karaokeProgress * totalWords)
+  const karaokeProgress =
+    recitationDurationMs > 0
+      ? Math.min(1, Math.max(0, verseTimeMs / recitationDurationMs))
+      : 0
+  const continuousWordIdx = karaokeProgress * totalWords
+  const highlightCol = text.highlightColor || '#ffd700'
+  const baseCol = text.textColor || '#ffffff'
 
   let runningWordIndex = 0
   for (const line of arabicLines.lines) {
@@ -324,7 +362,7 @@ function drawVerse(
       ctx.globalAlpha = arabicAlpha
       ctx.fillText(prepareText(line.text, arabicRtl), width / 2, cursorY)
     } else {
-      // Karaoke word-by-word progressive illumination
+      // Ultra-smooth progressive fluid illumination
       const lineWords = line.text.trim().split(/\s+/).filter(Boolean)
       const spaceWidth = ctx.measureText(' ').width
       const measuredWords = lineWords.map((w) => ({
@@ -342,23 +380,46 @@ function drawVerse(
       // In RTL Arabic, lineWords[0] is rightmost; leftmost visually is lineWords[length - 1]
       for (let i = lineWords.length - 1; i >= 0; i--) {
         const wordGlobalIdx = runningWordIndex + i
-        const isPastOrActive = wordGlobalIdx <= activeWordIndex
-        const isActive = wordGlobalIdx === activeWordIndex
+        const delta = continuousWordIdx - wordGlobalIdx
 
-        if (isPastOrActive) {
-          ctx.fillStyle = text.highlightColor || '#ffd700'
-          ctx.globalAlpha = arabicAlpha * (isActive ? 1.0 : 0.92)
+        // Smooth continuous easing transition
+        let wordAlpha = arabicAlpha * 0.46
+        let wordColor = baseCol
+        let glowRadius = 0
+
+        if (delta >= 1.0) {
+          // Already recited word: settled high opacity & golden warmth
+          wordAlpha = arabicAlpha * 0.94
+          wordColor = highlightCol
+          glowRadius = text.showGlow ? Math.round(6 * scale) : 0
+        } else if (delta > -0.25) {
+          // Actively reciting word: smooth Hermite curve interpolation
+          const p = Math.max(0, Math.min(1, (delta + 0.25) / 1.25))
+          const hermite = p * p * (3 - 2 * p)
+
+          wordAlpha = arabicAlpha * (0.46 + 0.54 * hermite)
+          wordColor = interpolateColor(baseCol, highlightCol, hermite)
+
           if (text.showGlow) {
-            ctx.shadowColor = text.highlightColor || '#ffd700'
-            ctx.shadowBlur = isActive ? 18 : 8
+            // Blooming flare peaking at center of word transition
+            const flare = Math.sin(p * Math.PI)
+            glowRadius = Math.round((6 + 18 * flare) * scale)
           }
         } else {
-          ctx.fillStyle = text.textColor
-          ctx.globalAlpha = arabicAlpha * 0.52
-          if (text.showGlow) {
-            ctx.shadowColor = text.textColor
-            ctx.shadowBlur = 4
-          }
+          // Upcoming word: soft dim
+          wordAlpha = arabicAlpha * 0.46
+          wordColor = baseCol
+          glowRadius = text.showGlow ? Math.round(3 * scale) : 0
+        }
+
+        ctx.fillStyle = wordColor
+        ctx.globalAlpha = wordAlpha
+        if (text.showGlow && glowRadius > 0) {
+          ctx.shadowColor = wordColor
+          ctx.shadowBlur = glowRadius
+        } else {
+          ctx.shadowColor = 'transparent'
+          ctx.shadowBlur = 0
         }
 
         const item = measuredWords[i]
@@ -403,13 +464,18 @@ function drawVerse(
     const bottomFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
 
     ctx.font = buildFont({ size: bottomTitleSize, font: bottomFont })
+    ctx.fillStyle = text.textColor
     ctx.globalAlpha = subtitleAlpha * 0.95
     ctx.fillText(prepareText(surahHeader.title, surahHeader.isRtl), width / 2, cursorY + height * 0.03)
 
     const bottomSubSize = Math.max(10, Math.round(height * 0.018))
     ctx.font = buildFont({ size: bottomSubSize, font: bottomFont })
     ctx.globalAlpha = subtitleAlpha * 0.75
-    ctx.fillText(prepareText(surahHeader.subtitle, surahHeader.isRtl), width / 2, cursorY + height * 0.03 + bottomTitleSize * 1.1)
+    ctx.fillText(
+      prepareText(surahHeader.subtitle, surahHeader.isRtl),
+      width / 2,
+      cursorY + height * 0.03 + bottomTitleSize * 1.1,
+    )
   }
 
   ctx.restore()
@@ -491,7 +557,34 @@ export function renderFrame(ctx: CanvasRenderingContext2D, params: FrameParams):
     )
   }
 
+  // Voice audio spectrum / waveform visualizer
+  if (config.waveform?.type && config.waveform.type !== 'none') {
+    drawWaveform(
+      ctx,
+      config.waveform.type,
+      timeMs,
+      slotDurationMs,
+      width,
+      height,
+      config.waveform.color ?? '#ffd700',
+      config.waveform.opacity ?? 0.75,
+    )
+  }
+
   drawVerse(ctx, config, verse, verseTimeMs, slotDurationMs, width, height)
+
+  // Authentic Islamic borders, arabesque frames, and vignettes
+  if (config.border?.type && config.border.type !== 'none') {
+    drawBorder(
+      ctx,
+      config.border.type,
+      width,
+      height,
+      config.border.color ?? '#ffd700',
+      config.border.opacity ?? 0.75,
+    )
+  }
+
   drawFooterBranding(ctx, config, width, height)
   ctx.restore()
 }
@@ -526,6 +619,16 @@ export function defaultConfig(): ReelConfig {
       intensity: 0.7,
       speed: 1.0,
     },
+    border: {
+      type: 'none',
+      color: '#ffd700',
+      opacity: 0.75,
+    },
+    waveform: {
+      type: 'none',
+      color: '#ffd700',
+      opacity: 0.75,
+    },
     text: {
       arabicFont: '"Scheherazade New", "Amiri", serif',
       arabicSize: 72,
@@ -552,7 +655,7 @@ export function defaultConfig(): ReelConfig {
     },
     motion: {
       type: 'kenburns-zoom',
-      duration: 10,
+      duration: 15,
     },
     aspectRatio: '9:16',
   }

@@ -15,7 +15,7 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
     id: 'golden-medina',
     name: 'Golden Medina',
     icon: '🌟',
-    description: 'Amber calligraphy, glowing fireflies, sunset mosque atmosphere',
+    description: 'Amber calligraphy, glowing fireflies, gilded arabesque frame, spectrum bars',
     category: 'Mosques & Holy Sites',
     config: {
       text: {
@@ -44,6 +44,16 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
         intensity: 0.75,
         speed: 1.0,
       },
+      border: {
+        type: 'gilded-corners',
+        color: '#ffd700',
+        opacity: 0.8,
+      },
+      waveform: {
+        type: 'symmetric-bars',
+        color: '#ffd700',
+        opacity: 0.75,
+      },
       motion: {
         type: 'kenburns-zoom',
         duration: 15,
@@ -54,7 +64,7 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
     id: 'midnight-reflection',
     name: 'Midnight Reflection',
     icon: '🌌',
-    description: 'Cyan glow, Amiri Quran font, gentle snow, starry cosmos',
+    description: 'Cyan glow, Amiri Quran font, gentle snow, vignette, glowing wave',
     category: 'Cosmos & Galaxies',
     config: {
       text: {
@@ -83,6 +93,16 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
         intensity: 0.7,
         speed: 0.9,
       },
+      border: {
+        type: 'vignette-feather',
+        color: '#80deea',
+        opacity: 0.85,
+      },
+      waveform: {
+        type: 'smooth-wave',
+        color: '#80deea',
+        opacity: 0.8,
+      },
       motion: {
         type: 'kenburns-pan',
         duration: 15,
@@ -93,7 +113,7 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
     id: 'sacred-grove',
     name: 'Sacred Grove',
     icon: '🌿',
-    description: 'Crisp white Naskh, sunbeam dust motes, misty redwood forest',
+    description: 'Crisp white Naskh, sunbeam dust motes, misty redwood forest, pulse line',
     category: 'Forests & Redwoods',
     config: {
       text: {
@@ -122,6 +142,16 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
         intensity: 0.65,
         speed: 1.0,
       },
+      border: {
+        type: 'none',
+        color: '#ffffff',
+        opacity: 0.7,
+      },
+      waveform: {
+        type: 'pulse-line',
+        color: '#fef08a',
+        opacity: 0.7,
+      },
       motion: {
         type: 'kenburns-drift-up',
         duration: 15,
@@ -132,7 +162,7 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
     id: 'royal-cordoba',
     name: 'Royal Cordoba',
     icon: '👑',
-    description: 'Majestic Reem Kufi calligraphy, twinkling stars, historic elegance',
+    description: 'Majestic Reem Kufi calligraphy, Moorish royal arch, starry dots matrix',
     category: 'Mosques & Holy Sites',
     config: {
       text: {
@@ -161,6 +191,16 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
         intensity: 0.8,
         speed: 1.1,
       },
+      border: {
+        type: 'royal-arch',
+        color: '#fde047',
+        opacity: 0.85,
+      },
+      waveform: {
+        type: 'dots-matrix',
+        color: '#fde047',
+        opacity: 0.75,
+      },
       motion: {
         type: 'kenburns-drift-diagonal',
         duration: 15,
@@ -171,7 +211,7 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
     id: 'desert-twilight',
     name: 'Desert Twilight',
     icon: '🏜️',
-    description: 'Warm sand glow, Tajawal font, Sahara sunset, breathing pulse',
+    description: 'Warm sand glow, Tajawal font, Andalusian geometric frame, spectrum bars',
     category: 'Deserts & Dunes',
     config: {
       text: {
@@ -199,6 +239,16 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
         type: 'dust-motes',
         intensity: 0.7,
         speed: 0.9,
+      },
+      border: {
+        type: 'islamic-geometric',
+        color: '#fdba74',
+        opacity: 0.75,
+      },
+      waveform: {
+        type: 'symmetric-bars',
+        color: '#fdba74',
+        opacity: 0.7,
       },
       motion: {
         type: 'kenburns-pulse',
@@ -239,6 +289,16 @@ export const AESTHETIC_PRESETS: ReelPreset[] = [
         intensity: 0,
         speed: 1,
       },
+      border: {
+        type: 'none',
+        color: '#ffffff',
+        opacity: 0.5,
+      },
+      waveform: {
+        type: 'none',
+        color: '#ffffff',
+        opacity: 0.5,
+      },
       motion: {
         type: 'static',
         duration: 15,
@@ -267,6 +327,14 @@ export function applyPresetToConfig(current: ReelConfig, preset: ReelPreset): Re
     effects: {
       ...current.effects,
       ...preset.config.effects,
+    },
+    border: {
+      ...current.border,
+      ...preset.config.border,
+    },
+    waveform: {
+      ...current.waveform,
+      ...preset.config.waveform,
     },
     text: {
       ...current.text,

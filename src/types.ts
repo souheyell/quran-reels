@@ -15,11 +15,6 @@ export interface Verse {
   audioUrl: string | null
 }
 
-export interface Reciter {
-  id: string
-  name: string
-}
-
 export interface BackgroundImage {
   url: string
   thumb: string
@@ -33,6 +28,20 @@ export type AtmosphericEffectType =
   | 'dust-motes'
   | 'stars'
   | 'gentle-rain'
+
+export type BorderType =
+  | 'none'
+  | 'gilded-corners'
+  | 'islamic-geometric'
+  | 'royal-arch'
+  | 'vignette-feather'
+
+export type WaveformType =
+  | 'none'
+  | 'symmetric-bars'
+  | 'smooth-wave'
+  | 'pulse-line'
+  | 'dots-matrix'
 
 export interface ReelConfig {
   verses: Verse[]
@@ -48,6 +57,16 @@ export interface ReelConfig {
     type: AtmosphericEffectType
     intensity: number
     speed: number
+  }
+  border: {
+    type: BorderType
+    color: string
+    opacity: number
+  }
+  waveform: {
+    type: WaveformType
+    color: string
+    opacity: number
   }
   text: {
     arabicFont: string
@@ -113,6 +132,12 @@ export type ConfigAction =
   | { type: 'SET_EFFECT_TYPE'; effectType: AtmosphericEffectType }
   | { type: 'SET_EFFECT_INTENSITY'; intensity: number }
   | { type: 'SET_EFFECT_SPEED'; speed: number }
+  | { type: 'SET_BORDER_TYPE'; borderType: BorderType }
+  | { type: 'SET_BORDER_COLOR'; color: string }
+  | { type: 'SET_BORDER_OPACITY'; opacity: number }
+  | { type: 'SET_WAVEFORM_TYPE'; waveformType: WaveformType }
+  | { type: 'SET_WAVEFORM_COLOR'; color: string }
+  | { type: 'SET_WAVEFORM_OPACITY'; opacity: number }
   | { type: 'SET_ARABIC_FONT'; font: string }
   | { type: 'SET_ARABIC_SIZE'; size: number }
   | { type: 'SET_TRANSLATION_FONT'; font: string }

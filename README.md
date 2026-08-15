@@ -2,7 +2,7 @@
 
 A high-performance, studio-grade browser application for creating breathtaking Quran verse video reels for **Instagram Reels, TikTok, YouTube Shorts, and WhatsApp Status**. 
 
-Overlays sacred Quranic verses with authentic **Thuluth script vector calligraphy**, 1-click aesthetic themes, progressive word-by-word karaoke glow, dual multi-language subtitles, custom media uploads, 5 atmospheric particle effects, 7 cinematic camera motions, and synchronized audio from **25 classical and modern master Qaris**.
+Overlays sacred Quranic verses with authentic **Thuluth script vector calligraphy**, 1-click aesthetic themes, ultra-smooth continuous karaoke glow, authentic Islamic arabesque frames, voice audio spectrum visualizers, dual multi-language subtitles, custom media uploads, 5 atmospheric particle effects, 7 cinematic camera motions, and synchronized audio from **25 classical and modern master Qaris**.
 
 ---
 
@@ -10,18 +10,36 @@ Overlays sacred Quranic verses with authentic **Thuluth script vector calligraph
 
 ### 🌟 1-Click Aesthetic Themes & Presets
 Instant, professional styling configurations tailored for high engagement on social platforms:
-- **🌟 Golden Medina**: Deep amber calligraphy, glowing fireflies, sunset mosque atmosphere, cinematic zoom.
-- **🌌 Midnight Reflection**: Cool cyan/silver glow, Amiri Quran font, gentle falling snow, starry cosmos night.
-- **🌿 Sacred Grove**: Crisp white Naskh, sunbeam dust motes, misty redwood forest canopy, ascending tilt.
-- **👑 Royal Cordoba**: Majestic Reem Kufi calligraphy, twinkling stars, Andalusian geometric elegance.
-- **🏜️ Desert Twilight**: Warm sand glow, Tajawal font, Sahara sunset dunes, meditative breathing pulse.
+- **🌟 Golden Medina**: Deep amber calligraphy, glowing fireflies, gilded arabesque frame, resonant spectrum bars, cinematic zoom.
+- **🌌 Midnight Reflection**: Cool cyan/silver glow, Amiri Quran font, gentle falling snow, cinematic vignette, fluid sine wave.
+- **🌿 Sacred Grove**: Crisp white Naskh, sunbeam dust motes, misty redwood forest canopy, voice pulse line, ascending tilt.
+- **👑 Royal Cordoba**: Majestic Reem Kufi calligraphy, Moorish royal arch, starry dots matrix, Andalusian elegance.
+- **🏜️ Desert Twilight**: Warm sand glow, Tajawal font, Andalusian geometric frame, spectrum bars, meditative breathing pulse.
 - **🖤 Minimalist Dark**: Sleek monochrome, modern Cairo font, lower-third layout, clean canvas.
 
 ---
 
-### 🔤 Word-by-Word Karaoke Highlighting
-- As the Qari recites each word, Arabic words illuminate progressively with a **soft golden or cyan glow** in sample-accurate synchronization with the recitation.
-- Recited words glow with high prominence, while upcoming words remain in soft elegant tone for maximum viewer retention.
+### ✨ Ultra-Smooth Continuous Karaoke Glow
+- **Fluid Sub-Word Interpolation**: As the Qari recites each word, Arabic calligraphy illuminates with a continuous Hermite cosine light transition rather than harsh stepping.
+- **Blooming Golden Flare**: Active words bloom with a soft radiating flare (`#ffd700` or custom color), while upcoming words stay delicately dimmed for maximal engagement and contemplation.
+
+---
+
+### 🎨 Authentic Islamic Arabesque Frames & Gilded Borders
+- **🌟 Gilded Arabesque Corners**: Intricate Ottoman floral leaf scrollwork and 8-pointed star rosettes framing the video corners.
+- **🕌 Andalusian Geometric Double Frame**: Classical double gold inlay lines punctuated with Rub el Hizb rosettes.
+- **👑 Moorish Royal Arch**: Majestic horseshoe arch canopy framing the sacred Surah title and Ayah text.
+- **🎬 Cinematic Vignette**: Smooth feathered radial gradient drawing the viewer's focus to the center holy calligraphy.
+- Fully customizable frame color and opacity.
+
+---
+
+### 🌊 Voice Audio Spectrum & Waveform Visualizer
+- **📊 Symmetric Bars**: Symmetrical vertical frequency spectrum bars pulsing in harmonic resonance with the Qari's voice.
+- **🌊 Glowing Wave**: Fluid sine-modulated bezier curve with soft ambient glow.
+- **⚡ Voice Pulse Line**: Clean horizontal presence line with central vocal envelope heartbeat spike.
+- **✨ Radiant Dots Matrix**: Matrix of glowing harmonic particles vibrating rhythmically.
+- Fully deterministic in real-time preview and 1080p 60fps MP4 export.
 
 ---
 
@@ -59,100 +77,105 @@ High-speed, sample-accurate audio recitations directly from the EveryAyah CDN:
 - **Ali Al-Hudhaify (Madinah Imam)** — الشيخ علي الحذيفي
 - **Ibrahim Al-Akhdar** — الشيخ إبراهيم الأخضر
 
-#### ✨ Contemporary Masters & Haram Imams (أئمة الحرمين والقراء المعاصرون)
+#### 🕌 Contemporary Masters & Haram Imams (أئمة الحرمين وكبار القراء)
 - **Mishary Rashid Alafasy** — الشيخ مشاري راشد العفاسي
-- **Abdul Rahman Al-Sudais** — الشيخ عبد الرحمن السديس
+- **Abdulrahman Al-Sudais (Imam of Masjid Al-Haram)** — الشيخ عبد الرحمن السديس
 - **Saud Al-Shuraim** — الشيخ سعود الشريم
-- **Yasser Al-Dosari** — الشيخ ياسر الدوسري
-- **Maher Al-Muaiqly** — الشيخ ماهر المعيقلي
+- **Yasser Al-Dossari (Imam of Masjid Al-Haram)** — الشيخ ياسر الدوسري
+- **Maher Al-Muaiqly (Imam of Masjid Al-Haram)** — الشيخ ماهر المعيقلي
 - **Nasser Al-Qatami** — الشيخ ناصر القطامي
 - **Abu Bakr Al-Shatri** — الشيخ أبو بكر الشاطري
 - **Saad Al-Ghamdi** — الشيخ سعد الغامدي
 - **Fares Abbad** — الشيخ فارس عباد
 - **Hani Ar-Rifai** — الشيخ هاني الرفاعي
-- **Salah Al-Budair** — الشيخ صلاح البدير
+- **Salah Al-Budair (Madinah Imam)** — الشيخ صلاح البدير
 
 ---
 
-### ✨ 5 Atmospheric Particle Video Effects
-1. **✨ Golden Fireflies / Embers**: Glowing golden particles drifting upward with harmonic horizontal sway.
-2. **❄️ Gentle Slow Snow**: Soft snowflakes drifting and fluttering on the breeze.
-3. **☀️ Sunbeam Dust Motes**: Warm spiritual dust particles floating in cathedral sunbeams.
-4. **🌌 Twinkling Night Stars**: Subtle twinkling celestial stars with diamond flares.
-5. **🌧️ Soothing Gentle Rain**: Translucent angled rainfall streaks.
+### 🌌 8 Cinematic Background Categories & Real-time Live Refresh
+Curated high-resolution stock photography library with instant 1-click **Live Refresh**:
+1. **Mosques & Holy Sites**: Masjid Al-Haram, Prophet's Mosque, Ottoman domes, Andalusian arches.
+2. **Mountains & Summits**: Dramatic misty peaks, Alpine sunrises, majestic ridges.
+3. **Oceans & Waterfalls**: Cascading waterfalls, gentle ocean tide reflections.
+4. **Forests & Redwoods**: Sunbeams piercing lush redwood canopies, misty cedar groves.
+5. **Deserts & Dunes**: Golden Sahara dunes, rippling sand waves at twilight.
+6. **Cosmos & Galaxies**: Starry night skies, nebulae, cosmic dust clouds.
+7. **Sunsets & Golden Hour**: Radiant horizon glows, amber evening clouds.
+8. **Rain & Fog**: Misty mountain roads, soothing rain on foliage.
 
 ---
 
-### 🎥 7 Cinematic Camera Motion Techniques
-Continuous unbroken motion across the entire video reel (never resets between ayahs):
-1. **🔍 Ken Burns Zoom In**: Slow push-in (`1.08x` → `1.22x`).
-2. **🔎 Ken Burns Zoom Out (Reveal)**: Starts tight and gracefully pulls back (`1.22x` → `1.08x`).
-3. **↔️ Horizontal Pan Drift**: Smooth horizontal tracking across horizons.
-4. **⬆️ Ascending Tilt**: Vertical tilt glide designed for minarets, mountains, and tall redwoods.
-5. **↗️ Diagonal Cinematic Glide**: Smooth diagonal travel with depth zoom.
-6. **🌊 Contemplative Pulse**: Subtle, meditative breathing wave motion.
-7. **⏹️ Still Canvas**: Static image with zero camera movement.
+### ❄️ 5 Atmospheric Particle Effects
+- **Fireflies / Embers**: Floating glowing particles with warm breathing pulse.
+- **Slow Snow**: Gentle falling flakes with horizontal air drift.
+- **Sunbeam Dust Motes**: Golden ambient micro-particles floating in sunlight.
+- **Twinkling Night Stars**: Subtle glistening celestial field.
+- **Gentle Rain**: Diagonal rain streaks for contemplative Quran verses.
 
 ---
 
-### ⚡ Memory-Bounded 1080p MP4 Video Export
-- **Universal Hardware Acceleration**: Powered by WebCodecs `VideoEncoder` + `AudioEncoder` with `mp4-muxer`.
-- **Memory-Bounded Backpressure Control**: Caps encoder queue to <50MB RAM, completely preventing tab lag or flushing errors.
-- **Standard Full HD Export Sizes**:
-  - `9:16`: Vertical Reels (`1080 × 1920`)
-  - `1:1`: Square Post (`1080 × 1080`)
-  - `16:9`: Landscape Video (`1920 × 1080`)
+### 🎥 7 Cinematic Camera Motion Presets (Ken Burns)
+- **Ken Burns Zoom In**: Smooth, slow push-in towards the calligraphy centerpiece.
+- **Ken Burns Zoom Out**: Expansive reveal pulling back from the scene.
+- **Horizontal Pan**: Gentle cinematic glide from left to right.
+- **Ascending Tilt**: Slow upward drift towards the heavens.
+- **Diagonal Glide**: Dynamic diagonal pan with subtle scale.
+- **Contemplative Pulse**: Rhythmic, meditative breathing zoom.
+- **Static**: Crisp, motionless frame.
+
+---
+
+### ⚡ Smart Multi-Ayah Sequence Loading
+- Load individual verses or sequences of **1 to 10 consecutive Ayat**.
+- Random discovery with smart genre pairing.
+- Automatic Basmalah insertion for opening verses.
+
+---
+
+### 🚀 Hardware-Accelerated 1080p 60FPS Video Export
+- **Off-screen Canvas Pipeline**: Frame-by-frame rendering with backpressure control (<50MB RAM).
+- **Audio Mixing**: High-fidelity stereo AAC audio multiplexed directly in the browser via WebCodecs/MediaRecorder.
+- Instant single-frame **4K PNG snapshot download**.
 
 ---
 
 ## 🛠️ Technology Stack
-
-- **Framework**: React 19, TypeScript, Vite
-- **Rendering Engine**: HTML5 Canvas 2D with RTL Arabic typography & high-DPI scaling
-- **Audio Pipeline**: Native HTML5 Audio, WebCodecs AudioEncoder
-- **Video Pipeline**: WebCodecs `VideoEncoder`, `mp4-muxer`
-- **APIs & Data**: [Al-Quran Cloud API](https://alquran.cloud/api), [EveryAyah CDN](https://everyayah.com), [Unsplash](https://unsplash.com)
-- **Quality & Testing**: Vitest (41/41 unit tests passing), Oxlint (0 warnings), TypeScript Strict Mode
+- **Framework**: React 19 + TypeScript + Vite
+- **Rendering Engine**: Hardware-accelerated Canvas 2D with sub-pixel interpolation
+- **Video & Audio**: WebCodecs / MediaRecorder API + Web Audio
+- **Styling**: Vanilla CSS tokens (Dark theme, glassmorphism, responsive grid)
+- **Testing**: Vitest + Oxlint
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+ or 20+
+- Node.js (v18 or higher)
 - npm or pnpm
 
 ### Installation
-
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-username/quran-reels.git
+git clone https://github.com/souheyell/quran-reels.git
 cd quran-reels
-
-# 2. Install dependencies
 npm install
-
-# 3. Start development server
-npm run dev
 ```
 
+### Development Server
+```bash
+npm run dev
+```
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
----
-
-## 📜 Available Scripts
-
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start Vite development server with audio proxy |
-| `npm run typecheck` | Run TypeScript strict compiler checks (`tsc -b`) |
-| `npm test` | Run test suite with Vitest (41 unit tests) |
-| `npm run lint` | Fast linter with Oxlint (0 warnings) |
-| `npm run build` | Build optimized production bundle to `dist/` |
-| `npm run preview` | Preview production build locally |
+### Verification & Testing
+```bash
+npm run typecheck
+npm test
+npm run lint
+npm run build
+```
 
 ---
 
 ## 📄 License
-
 Open-source under the [MIT License](LICENSE). Built for Quran Dawah, reflection, and educational purposes.

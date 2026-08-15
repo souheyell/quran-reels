@@ -17,6 +17,8 @@ describe('presets', () => {
     expect(updated.text.textColor).toBe('#ffd700')
     expect(updated.text.karaokeHighlight).toBe(true)
     expect(updated.effects.type).toBe('fireflies')
+    expect(updated.border.type).toBe('gilded-corners')
+    expect(updated.waveform.type).toBe('symmetric-bars')
     expect(updated.motion.type).toBe('kenburns-zoom')
   })
 
@@ -27,6 +29,8 @@ describe('presets', () => {
 
     expect(updated.text.textColor).toBe('#e0f7fa')
     expect(updated.effects.type).toBe('slow-snow')
+    expect(updated.border.type).toBe('vignette-feather')
+    expect(updated.waveform.type).toBe('smooth-wave')
     expect(updated.motion.type).toBe('kenburns-pan')
   })
 })

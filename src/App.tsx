@@ -7,6 +7,8 @@ import { loadImage } from './lib/imageCache'
 import { VersePanel } from './components/VersePanel'
 import { BackgroundPanel } from './components/BackgroundPanel'
 import { StylePanel } from './components/StylePanel'
+import { BorderPanel } from './components/BorderPanel'
+import { WaveformPanel } from './components/WaveformPanel'
 import { LayoutPanel } from './components/LayoutPanel'
 import { MotionPanel } from './components/MotionPanel'
 import { EffectsPanel } from './components/EffectsPanel'
@@ -27,6 +29,12 @@ function App() {
     setEffectType,
     setEffectIntensity,
     setEffectSpeed,
+    setBorderType,
+    setBorderColor,
+    setBorderOpacity,
+    setWaveformType,
+    setWaveformColor,
+    setWaveformOpacity,
     setArabicFont,
     setArabicSize,
     setTranslationFont,
@@ -225,6 +233,22 @@ function App() {
               setSecondaryEditionId(id)
               void verseLoader.changeSecondaryEdition(id)
             }}
+          />
+          <BorderPanel
+            borderType={config.border.type}
+            color={config.border.color}
+            opacity={config.border.opacity}
+            onBorderType={setBorderType}
+            onColor={setBorderColor}
+            onOpacity={setBorderOpacity}
+          />
+          <WaveformPanel
+            waveformType={config.waveform.type}
+            color={config.waveform.color}
+            opacity={config.waveform.opacity}
+            onWaveformType={setWaveformType}
+            onColor={setWaveformColor}
+            onOpacity={setWaveformOpacity}
           />
           <FooterPanel
             enabled={config.footer.enabled}
