@@ -39,6 +39,10 @@ export function loadSavedConfig(): ReelConfig {
         ...base.overlay,
         ...parsed.overlay,
       },
+      effects: {
+        ...base.effects,
+        ...parsed.effects,
+      },
       text: {
         ...base.text,
         ...parsed.text,

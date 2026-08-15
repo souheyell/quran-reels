@@ -3,6 +3,7 @@ import {
   STOCK_CATEGORIES,
   getImagesForCategory,
   getRandomStockImage,
+  searchStockImages,
   type StockCategory,
 } from '../api/unsplash'
 
@@ -14,21 +15,27 @@ interface BackgroundPanelProps {
 }
 
 const CATEGORY_ICONS: Record<StockCategory, string> = {
-  Mosques: '🕌',
-  Mountains: '🏔️',
-  Oceans: '🌊',
-  Forests: '🌲',
-  Deserts: '🏜️',
-  Cosmos: '🌌',
+  'Mosques & Holy Sites': '🕌',
+  'Mountains & Summits': '🏔️',
+  'Oceans & Waterfalls': '🌊',
+  'Forests & Redwoods': '🌲',
+  'Deserts & Dunes': '🏜️',
+  'Cosmos & Galaxies': '🌌',
+  'Sunsets & Golden Hour': '🌅',
+  'Rain & Atmospheric Fog': '🌧️',
 }
 
 export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: BackgroundPanelProps) {
-  const [selectedCategory, setSelectedCategory] = useState<StockCategory>('Mosques')
+  const [selectedCategory, setSelectedCategory] = useState<StockCategory>('Mosques & Holy Sites')
+  const [searchQuery, setSearchQuery] = useState('')
   const [shuffleSeed, setShuffleSeed] = useState(0)
 
-  const images = getImagesForCategory(selectedCategory, shuffleSeed)
+  const images = searchQuery.trim()
+    ? searchStockImages(searchQuery)
+    : getImagesForCategory(selectedCategory, shuffleSeed)
 
   const handleRandomBackground = () => {
+    setSearchQuery('')
     const randomImg = getRandomStockImage()
     setSelectedCategory(randomImg.category)
     onUrlChange(randomImg.full)
@@ -41,7 +48,7 @@ export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: Backgrou
   return (
     <section className="panel" id="background-panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-        <h2 style={{ margin: 0 }}>Background Footage & Stock</h2>
+        <h2 style={{ margin: 0 }}>Stock Footage & Backgrounds</h2>
         <button
           type="button"
           className="btn"
@@ -53,30 +60,43 @@ export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: Backgrou
         </button>
       </div>
 
-      <div className="picks">
-        {STOCK_CATEGORIES.map((cat) => (
-          <button
-            key={cat}
-            type="button"
-            className={`chip ${selectedCategory === cat ? 'active' : ''}`}
-            onClick={() => {
-              setSelectedCategory(cat)
-              const firstImg = getImagesForCategory(cat, shuffleSeed)[0]
-              if (firstImg) onUrlChange(firstImg.full)
-            }}
-          >
-            {CATEGORY_ICONS[cat]} {cat}
-          </button>
-        ))}
-        <button
-          type="button"
-          className="chip"
-          onClick={handleRandomBackground}
-          title="Pick a random photo across all categories"
-        >
-          🎲 Random
-        </button>
+      <div style={{ marginBottom: '0.4rem' }}>
+        <input
+          id="bg-search-input"
+          type="search"
+          placeholder="🔍 Search footage (e.g. Kaaba, waterfall, sunset, stars)..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{ width: '100%', fontSize: '0.82rem' }}
+        />
       </div>
+
+      {!searchQuery && (
+        <div className="picks" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+          {STOCK_CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              className={`chip ${selectedCategory === cat ? 'active' : ''}`}
+              onClick={() => {
+                setSelectedCategory(cat)
+                const firstImg = getImagesForCategory(cat, shuffleSeed)[0]
+                if (firstImg) onUrlChange(firstImg.full)
+              }}
+            >
+              {CATEGORY_ICONS[cat]} {cat}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="chip"
+            onClick={handleRandomBackground}
+            title="Pick a random photo across all categories"
+          >
+            🎲 Random
+          </button>
+        </div>
+      )}
 
       <div className="thumbs">
         {images.map((item) => (

@@ -23,6 +23,14 @@ export interface BackgroundImage {
   alt: string
 }
 
+export type AtmosphericEffectType =
+  | 'none'
+  | 'fireflies'
+  | 'slow-snow'
+  | 'dust-motes'
+  | 'stars'
+  | 'gentle-rain'
+
 export interface ReelConfig {
   verses: Verse[]
   background: {
@@ -32,6 +40,11 @@ export interface ReelConfig {
   overlay: {
     color: string
     opacity: number
+  }
+  effects: {
+    type: AtmosphericEffectType
+    intensity: number
+    speed: number
   }
   text: {
     arabicFont: string
@@ -84,6 +97,9 @@ export type ConfigAction =
   | { type: 'SET_BACKGROUND_FIT'; fit: ReelConfig['background']['fit'] }
   | { type: 'SET_OVERLAY_COLOR'; color: string }
   | { type: 'SET_OVERLAY_OPACITY'; opacity: number }
+  | { type: 'SET_EFFECT_TYPE'; effectType: AtmosphericEffectType }
+  | { type: 'SET_EFFECT_INTENSITY'; intensity: number }
+  | { type: 'SET_EFFECT_SPEED'; speed: number }
   | { type: 'SET_ARABIC_FONT'; font: string }
   | { type: 'SET_ARABIC_SIZE'; size: number }
   | { type: 'SET_TRANSLATION_FONT'; font: string }

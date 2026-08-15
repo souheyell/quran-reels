@@ -9,6 +9,7 @@ import { BackgroundPanel } from './components/BackgroundPanel'
 import { StylePanel } from './components/StylePanel'
 import { LayoutPanel } from './components/LayoutPanel'
 import { MotionPanel } from './components/MotionPanel'
+import { EffectsPanel } from './components/EffectsPanel'
 import { FooterPanel } from './components/FooterPanel'
 import { PreviewCanvas } from './components/PreviewCanvas'
 import { getRandomStockImage } from './api/unsplash'
@@ -23,6 +24,9 @@ function App() {
     setBackgroundFit,
     setOverlayColor,
     setOverlayOpacity,
+    setEffectType,
+    setEffectIntensity,
+    setEffectSpeed,
     setArabicFont,
     setArabicSize,
     setTranslationFont,
@@ -213,6 +217,14 @@ function App() {
             duration={config.motion.duration}
             onMotionType={setMotionType}
             onDuration={setDuration}
+          />
+          <EffectsPanel
+            effectType={config.effects.type}
+            intensity={config.effects.intensity}
+            speed={config.effects.speed}
+            onEffectType={setEffectType}
+            onIntensity={setEffectIntensity}
+            onSpeed={setEffectSpeed}
           />
         </aside>
 

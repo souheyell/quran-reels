@@ -1,5 +1,6 @@
 import type { ReelConfig, Verse } from '../types'
 import { drawBackground, getTransform } from './kenburns'
+import { drawAtmosphericEffect } from './effects'
 import { fitFontSize, isRtl, prepareText } from './textLayout'
 import { DEFAULT_BACKGROUND_URL } from '../api/unsplash'
 import {
@@ -406,6 +407,19 @@ export function renderFrame(ctx: CanvasRenderingContext2D, params: FrameParams):
     ctx.fillRect(0, 0, width, height)
   }
 
+  // Atmospheric video particle effects (fireflies, slow-snow, dust-motes, stars, rain)
+  if (config.effects?.type && config.effects.type !== 'none') {
+    drawAtmosphericEffect(
+      ctx,
+      config.effects.type,
+      timeMs,
+      width,
+      height,
+      config.effects.intensity ?? 0.7,
+      config.effects.speed ?? 1.0,
+    )
+  }
+
   drawVerse(ctx, config, verse, verseTimeMs, slotDurationMs, width, height)
   drawFooterBranding(ctx, config, width, height)
   ctx.restore()
@@ -435,6 +449,11 @@ export function defaultConfig(): ReelConfig {
     overlay: {
       color: '#000000',
       opacity: 0.35,
+    },
+    effects: {
+      type: 'fireflies',
+      intensity: 0.7,
+      speed: 1.0,
     },
     text: {
       arabicFont: '"Scheherazade New", "Amiri", serif',

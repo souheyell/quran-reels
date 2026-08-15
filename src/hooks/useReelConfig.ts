@@ -1,5 +1,5 @@
 import { useReducer, useCallback, useEffect } from 'react'
-import type { ReelConfig, ConfigAction } from '../types'
+import type { ReelConfig, ConfigAction, AtmosphericEffectType } from '../types'
 import { loadSavedConfig, saveConfig } from '../lib/storage'
 
 function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
@@ -14,6 +14,12 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
       return { ...state, overlay: { ...state.overlay, color: action.color } }
     case 'SET_OVERLAY_OPACITY':
       return { ...state, overlay: { ...state.overlay, opacity: action.opacity } }
+    case 'SET_EFFECT_TYPE':
+      return { ...state, effects: { ...state.effects, type: action.effectType } }
+    case 'SET_EFFECT_INTENSITY':
+      return { ...state, effects: { ...state.effects, intensity: action.intensity } }
+    case 'SET_EFFECT_SPEED':
+      return { ...state, effects: { ...state.effects, speed: action.speed } }
     case 'SET_ARABIC_FONT':
       return { ...state, text: { ...state.text, arabicFont: action.font } }
     case 'SET_ARABIC_SIZE':
@@ -83,6 +89,18 @@ export function useReelConfig() {
   )
   const setOverlayOpacity = useCallback(
     (opacity: number) => dispatch({ type: 'SET_OVERLAY_OPACITY', opacity }),
+    [],
+  )
+  const setEffectType = useCallback(
+    (effectType: AtmosphericEffectType) => dispatch({ type: 'SET_EFFECT_TYPE', effectType }),
+    [],
+  )
+  const setEffectIntensity = useCallback(
+    (intensity: number) => dispatch({ type: 'SET_EFFECT_INTENSITY', intensity }),
+    [],
+  )
+  const setEffectSpeed = useCallback(
+    (speed: number) => dispatch({ type: 'SET_EFFECT_SPEED', speed }),
     [],
   )
   const setArabicFont = useCallback(
@@ -178,6 +196,9 @@ export function useReelConfig() {
     setBackgroundFit,
     setOverlayColor,
     setOverlayOpacity,
+    setEffectType,
+    setEffectIntensity,
+    setEffectSpeed,
     setArabicFont,
     setArabicSize,
     setTranslationFont,
