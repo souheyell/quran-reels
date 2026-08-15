@@ -31,6 +31,7 @@ export interface FrameParams {
   verse: Verse
   verseTimeMs: number
   slotDurationMs: number
+  totalDurationMs?: number
 }
 
 interface FontSpec {
@@ -57,10 +58,37 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
-function fadeIn(timeMs: number, start: number, duration: number): number {
-  if (timeMs <= start) return 0
-  if (timeMs >= start + duration) return 1
-  return (timeMs - start) / duration
+function smoothStep(t: number): number {
+  const clamped = Math.max(0, Math.min(1, t))
+  return clamped * clamped * (3 - 2 * clamped)
+}
+
+/**
+ * Calculate smooth cinematic fade-in and fade-out alpha to prevent any text flickering.
+ */
+function calculateFadeAlpha(
+  timeMs: number,
+  slotDurationMs: number,
+  fadeInMs = 400,
+  fadeOutMs = 450,
+): number {
+  if (slotDurationMs <= 0) return 1
+
+  // Smooth fade-in at the beginning of the ayah
+  if (timeMs < fadeInMs) {
+    return smoothStep(timeMs / fadeInMs)
+  }
+
+  // Smooth fade-out during the pause before the next ayah
+  const fadeOutStartMs = Math.max(fadeInMs, slotDurationMs - fadeOutMs)
+  if (timeMs > fadeOutStartMs) {
+    const elapsed = timeMs - fadeOutStartMs
+    const progress = elapsed / fadeOutMs
+    return smoothStep(1 - progress)
+  }
+
+  // Full opacity during active recitation
+  return 1
 }
 
 function toArabicDigits(num: number | string): string {
@@ -115,7 +143,7 @@ function drawVerse(
   config: ReelConfig,
   verse: Verse,
   verseTimeMs: number,
-  _slotDurationMs: number,
+  slotDurationMs: number,
   width: number,
   height: number,
 ): void {
@@ -157,10 +185,10 @@ function drawVerse(
     text.showBasmalah !== false,
   )
 
-  // Alphas
-  const arabicAlpha = fadeIn(verseTimeMs, 0, 300)
-  const translationAlpha = fadeIn(verseTimeMs, 100, 300)
-  const referenceAlpha = fadeIn(verseTimeMs, 80, 300)
+  // Smooth cinematic alphas with zero flickering
+  const arabicAlpha = calculateFadeAlpha(verseTimeMs, slotDurationMs, 400, 450)
+  const translationAlpha = calculateFadeAlpha(Math.max(0, verseTimeMs - 80), slotDurationMs, 400, 450)
+  const subtitleAlpha = calculateFadeAlpha(verseTimeMs, slotDurationMs, 300, 450)
 
   ctx.save()
   ctx.fillStyle = text.textColor
@@ -170,7 +198,7 @@ function drawVerse(
     ctx.shadowBlur = Math.round(24 * scale)
   }
 
-  // ── Surah in Thuluth Calligraphy + Verse Number Just Down The Surah ──
+  // ── Surah in Thuluth Calligraphy + Subtitle ──
   const showHeaderTop = text.surahHeaderPosition === 'top' || text.surahHeaderPosition === undefined
   if (showHeaderTop) {
     const topHeaderY = height * 0.075
@@ -185,15 +213,16 @@ function drawVerse(
       const imgX = (width - targetW) / 2
       const imgY = topHeaderY - targetH / 2
 
-      ctx.globalAlpha = referenceAlpha * 0.98
+      // Header emblem stays steady and dignified without flickering
+      ctx.globalAlpha = 0.98
       ctx.drawImage(calligraphyImg, imgX, imgY, targetW, targetH)
 
-      // Verse Number directly underneath the Calligraphy
+      // Verse Number or Basmalah directly underneath the Calligraphy
       const subtitleFontSize = Math.max(11, Math.round(height * 0.019))
       const subtitleY = imgY + targetH + height * 0.018
       const subtitleFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
       ctx.font = buildFont({ size: subtitleFontSize, font: subtitleFont })
-      ctx.globalAlpha = referenceAlpha * 0.8
+      ctx.globalAlpha = subtitleAlpha * 0.82
       ctx.fillText(prepareText(surahHeader.subtitle, surahHeader.isRtl), width / 2, subtitleY)
     } else {
       // Fallback to text calligraphy while image loads
@@ -204,14 +233,14 @@ function drawVerse(
       const titleFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
 
       ctx.font = buildFont({ size: titleFontSize, font: titleFont })
-      ctx.globalAlpha = referenceAlpha * 0.98
+      ctx.globalAlpha = 0.98
       ctx.fillText(prepareText(surahHeader.title, surahHeader.isRtl), width / 2, topHeaderY)
 
       const subtitleFontSize = Math.max(11, Math.round(height * 0.019))
       const subtitleY = topHeaderY + titleFontSize * 1.15
       const subtitleFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
       ctx.font = buildFont({ size: subtitleFontSize, font: subtitleFont })
-      ctx.globalAlpha = referenceAlpha * 0.78
+      ctx.globalAlpha = subtitleAlpha * 0.8
       ctx.fillText(prepareText(surahHeader.subtitle, surahHeader.isRtl), width / 2, subtitleY)
     }
   }
@@ -251,7 +280,7 @@ function drawVerse(
     cursorY = centerY - totalHeight / 2
   }
 
-  // ── Render Arabic Text ───────────────────────────────────
+  // ── Render Arabic Text with Smooth Dissolve ────────────────
   ctx.font = buildFont({ size: arabicLines.size, font: text.arabicFont })
   ctx.globalAlpha = arabicAlpha
   for (const line of arabicLines.lines) {
@@ -259,7 +288,7 @@ function drawVerse(
     cursorY += arabicLines.size * 1.6
   }
 
-  // ── Render Translation (if enabled) ──────────────────────
+  // ── Render Translation (if enabled) with Smooth Dissolve ───
   if (text.showTranslation && translationLines && translationBlock > 0) {
     cursorY += gap
     ctx.font = buildFont({ size: translationLines.size, font: text.translationFont })
@@ -279,12 +308,12 @@ function drawVerse(
     const bottomFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
 
     ctx.font = buildFont({ size: bottomTitleSize, font: bottomFont })
-    ctx.globalAlpha = referenceAlpha * 0.95
+    ctx.globalAlpha = subtitleAlpha * 0.95
     ctx.fillText(prepareText(surahHeader.title, surahHeader.isRtl), width / 2, cursorY + height * 0.03)
 
     const bottomSubSize = Math.max(10, Math.round(height * 0.018))
     ctx.font = buildFont({ size: bottomSubSize, font: bottomFont })
-    ctx.globalAlpha = referenceAlpha * 0.75
+    ctx.globalAlpha = subtitleAlpha * 0.75
     ctx.fillText(prepareText(surahHeader.subtitle, surahHeader.isRtl), width / 2, cursorY + height * 0.03 + bottomTitleSize * 1.1)
   }
 
@@ -331,16 +360,6 @@ function drawFooterBranding(
 
   ctx.fillText(displayLabel, width / 2, y)
   ctx.restore()
-}
-
-export interface FrameParams {
-  timeMs: number
-  config: ReelConfig
-  image: HTMLImageElement | null
-  verse: Verse
-  verseTimeMs: number
-  slotDurationMs: number
-  totalDurationMs?: number
 }
 
 export function renderFrame(ctx: CanvasRenderingContext2D, params: FrameParams): void {
