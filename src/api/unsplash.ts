@@ -66,6 +66,13 @@ export function getImagesForCategory(
   }))
 }
 
+export function getRandomStockImage(width = 1440, height = 2560): CuratedImage {
+  const categories = STOCK_CATEGORIES
+  const randomCat = categories[Math.floor(Math.random() * categories.length)]
+  const images = getImagesForCategory(randomCat, width, height)
+  return images[Math.floor(Math.random() * images.length)]
+}
+
 export const DEFAULT_BACKGROUND_URL = makeUnsplashUrl(
   PHOTO_DATABASE.Mountains[0].id,
   1440,

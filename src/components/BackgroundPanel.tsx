@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   STOCK_CATEGORIES,
   getImagesForCategory,
+  getRandomStockImage,
   type StockCategory,
 } from '../api/unsplash'
 
@@ -24,6 +25,12 @@ export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: Backgrou
 
   const images = getImagesForCategory(selectedCategory)
 
+  const handleRandomBackground = () => {
+    const randomImg = getRandomStockImage()
+    setSelectedCategory(randomImg.category)
+    onUrlChange(randomImg.full)
+  }
+
   return (
     <section className="panel" id="background-panel">
       <h2>Background Nature & Mosque Stock</h2>
@@ -43,6 +50,14 @@ export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: Backgrou
             {CATEGORY_ICONS[cat]} {cat}
           </button>
         ))}
+        <button
+          type="button"
+          className="chip"
+          onClick={handleRandomBackground}
+          title="Pick a random nature or mosque photo"
+        >
+          🎲 Random
+        </button>
       </div>
 
       <div className="thumbs">

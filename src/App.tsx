@@ -11,6 +11,7 @@ import { LayoutPanel } from './components/LayoutPanel'
 import { MotionPanel } from './components/MotionPanel'
 import { FooterPanel } from './components/FooterPanel'
 import { PreviewCanvas } from './components/PreviewCanvas'
+import { getRandomStockImage } from './api/unsplash'
 import './App.css'
 
 function App() {
@@ -83,6 +84,12 @@ function App() {
     handleExportPng,
   } = useExport(config, image, timeline)
 
+  const handleRandomDiscovery = useCallback(async () => {
+    const randomBg = getRandomStockImage()
+    setBackgroundUrl(randomBg.full)
+    await verseLoader.loadRandom()
+  }, [setBackgroundUrl, verseLoader])
+
   return (
     <div className="app">
       <header className="header">
@@ -119,7 +126,7 @@ function App() {
             loading={verseLoader.loading}
             error={verseLoader.error}
             onLoadRange={verseLoader.loadRange}
-            onLoadRandom={verseLoader.loadRandom}
+            onLoadRandom={handleRandomDiscovery}
             onEditionChange={verseLoader.changeEdition}
             onReciterChange={verseLoader.changeReciter}
             onRandomizeReciter={verseLoader.randomizeReciter}
