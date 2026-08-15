@@ -109,15 +109,27 @@ export function StylePanel(props: StylePanelProps) {
       </label>
 
       <label>
-        Arabic font
+        Arabic Font Typeface
         <select
           id="arabic-font-select"
           value={props.arabicFont}
           onChange={(e) => props.onArabicFont(e.target.value)}
         >
-          <option value='"Scheherazade New", serif'>Scheherazade New</option>
-          <option value='"Amiri", serif'>Amiri</option>
-          <option value='"Times New Roman", serif'>Times New Roman</option>
+          <optgroup label="📜 Classical Quranic & Naskh (الخط القرآني والنسخ)">
+            <option value='"Scheherazade New", serif'>Scheherazade New (Traditional Mushaf Naskh)</option>
+            <option value='"Amiri Quran", "Amiri", serif'>Amiri Quran (Bulaq Classical Mushaf)</option>
+            <option value='"Noto Naskh Arabic", serif'>Noto Naskh Arabic (Digital Crisp Naskh)</option>
+          </optgroup>
+          <optgroup label="✒️ Calligraphic & Artistic Scripts (الخطوط الكوفية والرقعية)">
+            <option value='"Reem Kufi", serif'>Reem Kufi (Majestic Classical Kufic)</option>
+            <option value='"Aref Ruqaa", serif'>Aref Ruqaa (Classical Ottoman Ruq&apos;ah)</option>
+          </optgroup>
+          <optgroup label="📱 Modern Social Reels Typography (الخطوط الحديثة للريلز)">
+            <option value='"Cairo", sans-serif'>Cairo (Modern Display - Social Reels)</option>
+            <option value='"Tajawal", sans-serif'>Tajawal (Balanced Contemporary)</option>
+            <option value='"Noto Sans Arabic", sans-serif'>Noto Sans Arabic (Clean Minimalist)</option>
+            <option value='"Almarai", sans-serif'>Almarai (Modern Geometric)</option>
+          </optgroup>
         </select>
       </label>
 
@@ -153,8 +165,9 @@ export function StylePanel(props: StylePanelProps) {
               value={props.translationFont}
               onChange={(e) => props.onTranslationFont(e.target.value)}
             >
-              <option value='system-ui, sans-serif'>System</option>
-              <option value='"Inter", sans-serif'>Inter</option>
+              <option value='"Inter", sans-serif'>Inter (Modern Clean)</option>
+              <option value='system-ui, sans-serif'>System UI</option>
+              <option value='"Georgia", serif'>Georgia (Editorial Serif)</option>
               <option value='"Times New Roman", serif'>Times New Roman</option>
             </select>
           </label>
