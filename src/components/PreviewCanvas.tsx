@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReelConfig } from '../types'
 import { previewSize, renderFrame } from '../renderer/reelRenderer'
 import type { Timeline } from '../renderer/timeline'
-import { attachMosqueReverb } from '../lib/reverb'
+import { reverbAudio } from '../lib/reverbAudio'
 
 interface PreviewCanvasProps {
   config: ReelConfig
@@ -22,8 +22,6 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   const rafRef = useRef<number | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
-  const audioContextRef = useRef<AudioContext | null>(null)
-  const reverbNodesRef = useRef<{ convolver: ConvolverNode; wetGain: GainNode; dryGain: GainNode } | null>(null)
   const indexRef = useRef(0)
   const slotStartRef = useRef(0)
   const loopBaseRef = useRef(0)
@@ -41,6 +39,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   const soundOnRef = useRef(soundOn)
   const visibleRef = useRef(!document.hidden)
   const isScrubbingRef = useRef(isScrubbing)
+  const isReverbActive = Boolean(config.audio?.mosqueReverb)
 
   // Preview renders at 1/3 resolution
   const { width, height } = previewSize(config.aspectRatio)
@@ -63,7 +62,6 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   // Create persistent audio element with comprehensive event handlers
   useEffect(() => {
     const audio = new Audio()
-    audio.crossOrigin = 'anonymous'
     audio.volume = volume
     audio.preload = 'auto'
 
@@ -92,50 +90,9 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       audio.pause()
       audio.src = ''
       audioRef.current = null
+      reverbAudio.stop()
     }
   }, [])
-
-  // Mosque Sanctuary Reverb audio graph connection
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    if (config.audio?.mosqueReverb) {
-      if (!audioContextRef.current) {
-        const AudioCtx =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-        if (AudioCtx) {
-          try {
-            const ctx = new AudioCtx()
-            if (ctx.state === 'suspended') {
-              void ctx.resume()
-            }
-            const source = ctx.createMediaElementSource(audio)
-            const reverb = attachMosqueReverb(
-              ctx,
-              source,
-              ctx.destination,
-              config.audio.reverbIntensity ?? 0.45,
-            )
-            audioContextRef.current = ctx
-            reverbNodesRef.current = reverb
-          } catch (e) {
-            console.warn('Web Audio reverb initialization failed:', e)
-          }
-        }
-      } else {
-        if (audioContextRef.current.state === 'suspended') {
-          void audioContextRef.current.resume()
-        }
-        if (reverbNodesRef.current) {
-          reverbNodesRef.current.wetGain.gain.value = config.audio.reverbIntensity ?? 0.45
-        }
-      }
-    } else if (reverbNodesRef.current) {
-      reverbNodesRef.current.wetGain.gain.value = 0
-    }
-  }, [config.audio?.mosqueReverb, config.audio?.reverbIntensity])
 
   // Custom Video Background Loop Support
   useEffect(() => {
@@ -169,36 +126,101 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       const audio = audioRef.current
       audioEndedTimeRef.current = null
 
-      if (!audio) return
-
       if (!verse?.audioUrl) {
-        audio.pause()
-        audio.src = ''
+        if (audio) {
+          audio.pause()
+          audio.src = ''
+        }
+        reverbAudio.stop()
         setAudioLoading(false)
         return
       }
 
       const targetUrl = verse.audioUrl
-      if (audio.src !== targetUrl) {
-        audio.src = targetUrl
-        audio.currentTime = seekTimeSeconds
-        audio.load()
-      } else {
-        audio.currentTime = seekTimeSeconds
-      }
+      const currentVol = soundOnRef.current ? volume : 0
+      const intensity = config.audio?.reverbIntensity ?? 0.45
 
-      if (playingRef.current && soundOnRef.current) {
-        audio.play()
-          .then(() => {
-            setAutoplayBlocked(false)
-          })
-          .catch(() => {
-            setAutoplayBlocked(true)
-          })
+      if (config.audio?.mosqueReverb) {
+        if (audio) {
+          audio.pause()
+        }
+        if (playingRef.current) {
+          setAudioLoading(true)
+          void reverbAudio
+            .play(targetUrl, seekTimeSeconds, currentVol, intensity, () => {
+              audioEndedTimeRef.current = performance.now()
+            })
+            .then((success) => {
+              setAudioLoading(false)
+              if (!success && audio) {
+                // Seamless fallback to standard audio if decode fails
+                audio.src = targetUrl
+                audio.currentTime = seekTimeSeconds
+                if (soundOnRef.current) void audio.play()
+              }
+            })
+        }
+      } else {
+        reverbAudio.stop()
+        if (audio) {
+          if (audio.src !== targetUrl) {
+            audio.src = targetUrl
+            audio.currentTime = seekTimeSeconds
+            audio.load()
+          } else {
+            audio.currentTime = seekTimeSeconds
+          }
+
+          if (playingRef.current && soundOnRef.current) {
+            audio
+              .play()
+              .then(() => {
+                setAutoplayBlocked(false)
+              })
+              .catch(() => {
+                setAutoplayBlocked(true)
+              })
+          }
+        }
       }
     },
-    [verses],
+    [verses, config.audio?.mosqueReverb, config.audio?.reverbIntensity, volume],
   )
+
+  // Switch between Reverb and Standard Audio smoothly in real time
+  useEffect(() => {
+    const audio = audioRef.current
+    const verse = verses[indexRef.current]
+    if (!verse?.audioUrl) return
+
+    if (config.audio?.mosqueReverb) {
+      if (audio && !audio.paused) {
+        const sec = audio.currentTime
+        audio.pause()
+        if (playing && soundOn) {
+          void reverbAudio.play(
+            verse.audioUrl,
+            sec,
+            volume,
+            config.audio.reverbIntensity ?? 0.45,
+            () => {
+              audioEndedTimeRef.current = performance.now()
+            },
+          )
+        }
+      } else {
+        reverbAudio.setIntensity(config.audio.reverbIntensity ?? 0.45)
+      }
+    } else {
+      if (reverbAudio.getIsPlaying()) {
+        const sec = reverbAudio.pause()
+        if (audio && playing && soundOn) {
+          audio.currentTime = sec
+          void audio.play()
+        }
+      }
+    }
+  }, [config.audio?.mosqueReverb, config.audio?.reverbIntensity, verses, playing, soundOn, volume])
 
   // Advance to verse index
   const advanceTo = useCallback(
@@ -243,7 +265,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
         return
       }
 
-      const isAudioActive = Boolean(activeVerse.audioUrl && audio)
+      const isAudioActive = Boolean(activeVerse.audioUrl)
       let verseTimeMs = 0
       let totalSlotDurationMs = activeSlot.durationMs
 
@@ -256,15 +278,18 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       const pauseDurationMs = isMultiAyah && !isLastAyah ? userDelayMs : 0
 
       if (!isScrubbingRef.current) {
-        if (isAudioActive && audio) {
+        if (isAudioActive) {
           const audioDurationMs =
-            Number.isFinite(audio.duration) && audio.duration > 0
+            audio && Number.isFinite(audio.duration) && audio.duration > 0
               ? audio.duration * 1000
               : activeSlot.durationMs
 
           totalSlotDurationMs = audioDurationMs + pauseDurationMs
 
-          if (audio.ended || audioEndedTimeRef.current !== null) {
+          const isReverbPlaying = isReverbActive && reverbAudio.getIsPlaying()
+          const isNativeAudioEnded = audio?.ended || audioEndedTimeRef.current !== null
+
+          if (isNativeAudioEnded || (!isReverbPlaying && !playingRef.current && audioEndedTimeRef.current !== null)) {
             if (audioEndedTimeRef.current === null) {
               audioEndedTimeRef.current = now
             }
@@ -276,7 +301,6 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
               if (nextIndex === 0) {
                 loopBaseRef.current += timeline.totalMs
               }
-              // Immediately switch active verse reference for this frame to avoid 1-frame old-verse flash!
               advanceTo(nextIndex)
               currentIndex = nextIndex
               activeVerse = verses[nextIndex] || verses[0]
@@ -284,10 +308,11 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
               verseTimeMs = 0
               totalSlotDurationMs = activeSlot.durationMs
             }
-          } else if (!audio.paused && audio.currentTime > 0) {
+          } else if (isReverbActive) {
+            verseTimeMs = reverbAudio.getCurrentTime() * 1000
+          } else if (audio && !audio.paused && audio.currentTime > 0) {
             verseTimeMs = audio.currentTime * 1000
           } else {
-            // Buffering or muted fallback
             verseTimeMs = now - slotStartRef.current
             if (verseTimeMs >= totalSlotDurationMs) {
               const nextIndex = (currentIndex + 1) % verses.length
@@ -300,7 +325,6 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
             }
           }
         } else {
-          // Fallback without audio
           verseTimeMs = now - slotStartRef.current
           totalSlotDurationMs = activeSlot.durationMs
           if (verseTimeMs >= totalSlotDurationMs) {
@@ -342,40 +366,74 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     }
-  }, [config, image, playing, verses, timeline, advanceTo])
+  }, [
+    playing,
+    verses,
+    timeline,
+    config,
+    image,
+    advanceTo,
+    isReverbActive,
+  ])
 
-  // Handle play/pause and sound on/off changes
+  // Pause / resume audio when play state changes
   useEffect(() => {
     const audio = audioRef.current
-    if (!audio) return
-
-    if (playing && soundOn) {
-      if (audio.src && audio.paused) {
-        audio.play().catch(() => {
-          setAutoplayBlocked(true)
-        })
+    if (config.audio?.mosqueReverb) {
+      if (!playing || !soundOn) {
+        reverbAudio.pause()
+      } else if (verses[indexRef.current]?.audioUrl && !reverbAudio.getIsPlaying()) {
+        const offset = (currentProgressMs - (timeline.slots[indexRef.current]?.startMs || 0)) / 1000
+        void reverbAudio.play(
+          verses[indexRef.current].audioUrl!,
+          Math.max(0, offset),
+          volume,
+          config.audio.reverbIntensity ?? 0.45,
+          () => {
+            audioEndedTimeRef.current = performance.now()
+          },
+        )
       }
-    } else {
-      audio.pause()
+    } else if (audio) {
+      if (playing && soundOn) {
+        audio.play().catch(() => setAutoplayBlocked(true))
+      } else {
+        audio.pause()
+      }
     }
-  }, [playing, soundOn])
+  }, [playing, soundOn, config.audio?.mosqueReverb, config.audio?.reverbIntensity, verses, currentProgressMs, timeline.slots, volume])
 
   // Handle volume changes
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume
     }
-  }, [volume])
+    reverbAudio.setVolume(soundOn ? volume : 0)
+  }, [volume, soundOn])
 
   // Toggle play/pause
   const togglePlay = () => {
     const nextPlaying = !playing
     setPlaying(nextPlaying)
-    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-      void audioContextRef.current.resume()
-    }
     const audio = audioRef.current
-    if (audio) {
+    const verse = verses[indexRef.current]
+
+    if (config.audio?.mosqueReverb) {
+      if (nextPlaying && soundOn && verse?.audioUrl) {
+        const offset = (currentProgressMs - (timeline.slots[indexRef.current]?.startMs || 0)) / 1000
+        void reverbAudio.play(
+          verse.audioUrl,
+          Math.max(0, offset),
+          volume,
+          config.audio.reverbIntensity ?? 0.45,
+          () => {
+            audioEndedTimeRef.current = performance.now()
+          },
+        )
+      } else {
+        reverbAudio.pause()
+      }
+    } else if (audio) {
       if (nextPlaying && soundOn) {
         audio.play().catch(() => setAutoplayBlocked(true))
       } else {
@@ -388,11 +446,24 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   const toggleSound = () => {
     const nextSound = !soundOn
     setSoundOn(nextSound)
-    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-      void audioContextRef.current.resume()
-    }
     const audio = audioRef.current
-    if (audio) {
+    const verse = verses[indexRef.current]
+
+    if (config.audio?.mosqueReverb) {
+      reverbAudio.setVolume(nextSound ? volume : 0)
+      if (nextSound && playing && verse?.audioUrl && !reverbAudio.getIsPlaying()) {
+        const offset = (currentProgressMs - (timeline.slots[indexRef.current]?.startMs || 0)) / 1000
+        void reverbAudio.play(
+          verse.audioUrl,
+          Math.max(0, offset),
+          volume,
+          config.audio.reverbIntensity ?? 0.45,
+          () => {
+            audioEndedTimeRef.current = performance.now()
+          },
+        )
+      }
+    } else if (audio) {
       if (nextSound && playing) {
         audio.play().catch(() => setAutoplayBlocked(true))
       } else {
@@ -407,7 +478,6 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     const clampedMs = Math.min(Math.max(0, targetMs), totalMs)
     setCurrentProgressMs(clampedMs)
 
-    // Find corresponding verse slot
     const slotIdx = timeline.slots.findIndex(
       (s) => clampedMs >= s.startMs && clampedMs < s.endMs,
     )
@@ -423,12 +493,24 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
 
   // Enable audio on user click if autoplay was blocked
   const handleEnableAudio = () => {
-    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-      void audioContextRef.current.resume()
-    }
     const audio = audioRef.current
-    if (audio) {
-      audio.play()
+    const verse = verses[indexRef.current]
+    if (config.audio?.mosqueReverb && verse?.audioUrl) {
+      setAutoplayBlocked(false)
+      setSoundOn(true)
+      setPlaying(true)
+      void reverbAudio.play(
+        verse.audioUrl,
+        0,
+        volume,
+        config.audio.reverbIntensity ?? 0.45,
+        () => {
+          audioEndedTimeRef.current = performance.now()
+        },
+      )
+    } else if (audio) {
+      audio
+        .play()
         .then(() => {
           setAutoplayBlocked(false)
           setSoundOn(true)
@@ -463,139 +545,140 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
         )}
 
         {autoplayBlocked && (
-          <button
-            type="button"
-            className="autoplay-banner"
-            onClick={handleEnableAudio}
-          >
-            🔊 Click to enable audio playback
-          </button>
+          <div className="autoplay-overlay" onClick={handleEnableAudio}>
+            <button type="button" className="btn primary">
+              ▶ Tap to Enable Recitation Audio
+            </button>
+          </div>
         )}
       </div>
 
-      {/* ── Rich Video Control Bar for Editor ── */}
-      <div className="video-controller-card">
-        {/* Scrubber progress bar */}
-        <div className="scrubber-container">
+      {/* Video & Audio Scrubber & Controls Bar */}
+      <div className="player-controls">
+        <div className="scrubber-track-container">
           <input
-            id="video-scrubber"
+            id="timeline-scrubber"
             type="range"
             min={0}
             max={Math.max(1, timeline.totalMs)}
             value={currentProgressMs}
             onMouseDown={() => setIsScrubbing(true)}
             onTouchStart={() => setIsScrubbing(true)}
-            onChange={(e) => handleSeek(Number(e.target.value))}
             onMouseUp={() => setIsScrubbing(false)}
             onTouchEnd={() => setIsScrubbing(false)}
-            className="video-scrubber"
+            onChange={(e) => handleSeek(Number(e.target.value))}
+            className="timeline-slider"
             title="Seek video timeline"
           />
-          {/* Verse breakdown markers along the scrubber */}
+
           {timeline.slots.length > 1 && (
-            <div className="scrubber-markers">
-              {timeline.slots.map((s, i) => (
+            <div className="ayah-markers">
+              {timeline.slots.map((slot, i) => (
                 <div
-                  key={s.startMs}
-                  className={`scrubber-marker ${i === indexRef.current ? 'active' : ''}`}
+                  key={i}
+                  className={`ayah-marker ${indexRef.current === i ? 'active' : ''}`}
                   style={{
-                    left: `${(s.startMs / Math.max(1, timeline.totalMs)) * 100}%`,
+                    left: `${(slot.startMs / timeline.totalMs) * 100}%`,
+                    width: `${(slot.durationMs / timeline.totalMs) * 100}%`,
                   }}
-                  title={`Ayah ${s.verse.ayat}`}
+                  title={`Ayah ${verses[i]?.ayat || i + 1}`}
+                  onClick={() => advanceTo(i)}
                 />
               ))}
             </div>
           )}
         </div>
 
-        {/* Playback Controls Row */}
-        <div className="video-controls-row">
-          <div className="controls-left">
+        <div className="transport-bar">
+          <div className="transport-left">
             <button
               type="button"
-              className="ctrl-btn main-play"
+              className="btn transport-btn"
               onClick={togglePlay}
               title={playing ? 'Pause (Space)' : 'Play (Space)'}
             >
               {playing ? '⏸' : '▶'}
             </button>
-
             <button
               type="button"
-              className="ctrl-btn"
-              onClick={() => {
-                const prev = (indexRef.current - 1 + verses.length) % verses.length
-                advanceTo(prev)
-              }}
+              className="btn transport-btn"
+              onClick={() => advanceTo((indexRef.current - 1 + verses.length) % verses.length)}
               title="Previous Ayah"
               disabled={verses.length <= 1}
             >
               ⏮
             </button>
-
             <button
               type="button"
-              className="ctrl-btn"
-              onClick={() => {
-                const next = (indexRef.current + 1) % verses.length
-                advanceTo(next)
-              }}
+              className="btn transport-btn"
+              onClick={() => advanceTo((indexRef.current + 1) % verses.length)}
               title="Next Ayah"
               disabled={verses.length <= 1}
             >
               ⏭
             </button>
-
             <button
               type="button"
-              className="ctrl-btn"
-              onClick={() => {
-                handleSeek(0)
-              }}
+              className="btn transport-btn"
+              onClick={() => advanceTo(0, 0)}
               title="Restart from beginning"
             >
-              🔄
+              ↺
             </button>
-
-            <div className="time-display">
-              <span>{formatTime(currentSeconds)}</span>
-              <span className="time-sep">/</span>
-              <span>{formatTime(totalDurationSeconds)}</span>
-            </div>
+            <span className="time-display">
+              {formatTime(currentSeconds)} / {formatTime(totalDurationSeconds)}
+            </span>
           </div>
 
-          <div className="controls-right">
-            <div className="volume-control">
-              <button
-                type="button"
-                className={`ctrl-btn ${soundOn ? 'active' : ''}`}
-                onClick={toggleSound}
-                title={soundOn ? 'Mute' : 'Unmute'}
-              >
-                {soundOn ? (volume > 0.5 ? '🔊' : '🔉') : '🔇'}
-              </button>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={soundOn ? volume : 0}
-                onChange={(e) => {
-                  const v = Number(e.target.value)
-                  setVolume(v)
-                  if (!soundOn && v > 0) setSoundOn(true)
+          <div className="transport-right">
+            {isReverbActive && (
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  color: '#ffd700',
+                  background: 'rgba(255, 215, 0, 0.15)',
+                  padding: '0.15rem 0.4rem',
+                  borderRadius: '4px',
                 }}
-                className="volume-slider"
-                title="Volume"
-              />
-            </div>
-
-            <div className="verse-pill">
-              Ayah {currentVerse.ayat}
-              {verses.length > 1 ? ` (${indexRef.current + 1}/${verses.length})` : ''}
-            </div>
+              >
+                🕌 Sanctuary Reverb
+              </span>
+            )}
+            <button
+              type="button"
+              className="btn transport-btn"
+              onClick={toggleSound}
+              title={soundOn ? 'Mute audio' : 'Unmute audio'}
+            >
+              {soundOn ? '🔊' : '🔇'}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={soundOn ? volume : 0}
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                setVolume(v)
+                if (v > 0 && !soundOn) setSoundOn(true)
+              }}
+              className="volume-slider"
+              title={`Volume: ${Math.round(volume * 100)}%`}
+            />
           </div>
         </div>
+      </div>
+
+      <div className="preview-meta">
+        <span>
+          {currentVerse
+            ? `${currentVerse.surahName} ${currentVerse.surah}:${currentVerse.ayat}`
+            : 'Verse'}
+        </span>
+        <span>
+          Ayah {indexRef.current + 1} of {verses.length}
+        </span>
       </div>
     </div>
   )
