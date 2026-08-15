@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   STOCK_CATEGORIES,
   getImagesForCategory,
@@ -29,6 +29,7 @@ export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: Backgrou
   const [selectedCategory, setSelectedCategory] = useState<StockCategory>('Mosques & Holy Sites')
   const [searchQuery, setSearchQuery] = useState('')
   const [shuffleSeed, setShuffleSeed] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const images = searchQuery.trim()
     ? searchStockImages(searchQuery)
@@ -45,19 +46,44 @@ export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: Backgrou
     setShuffleSeed((prev) => prev + 2)
   }
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const objectUrl = URL.createObjectURL(file)
+    onUrlChange(objectUrl)
+  }
+
   return (
     <section className="panel" id="background-panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
         <h2 style={{ margin: 0 }}>Stock Footage & Backgrounds</h2>
-        <button
-          type="button"
-          className="btn"
-          onClick={handleRefreshGallery}
-          title="Shuffle and refresh stock photos"
-          style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
-        >
-          🔄 Refresh
-        </button>
+        <div style={{ display: 'flex', gap: '0.3rem' }}>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => fileInputRef.current?.click()}
+            title="Upload your own background image or video"
+            style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+          >
+            📤 Upload
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/mp4,video/webm"
+            onChange={handleFileUpload}
+            style={{ display: 'none' }}
+          />
+          <button
+            type="button"
+            className="btn"
+            onClick={handleRefreshGallery}
+            title="Shuffle and refresh stock photos"
+            style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+          >
+            🔄 Refresh
+          </button>
+        </div>
       </div>
 
       <div style={{ marginBottom: '0.4rem' }}>

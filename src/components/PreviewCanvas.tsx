@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReelConfig } from '../types'
 import { previewSize, renderFrame } from '../renderer/reelRenderer'
 import type { Timeline } from '../renderer/timeline'
+import { attachMosqueReverb } from '../lib/reverb'
 
 interface PreviewCanvasProps {
   config: ReelConfig
@@ -20,6 +21,9 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef<number | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const reverbNodesRef = useRef<{ convolver: ConvolverNode; wetGain: GainNode; dryGain: GainNode } | null>(null)
   const indexRef = useRef(0)
   const slotStartRef = useRef(0)
   const loopBaseRef = useRef(0)
@@ -89,6 +93,65 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       audioRef.current = null
     }
   }, [])
+
+  // Mosque Sanctuary Reverb audio graph connection
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    if (config.audio?.mosqueReverb) {
+      if (!audioContextRef.current) {
+        const AudioCtx =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        if (AudioCtx) {
+          try {
+            const ctx = new AudioCtx()
+            const source = ctx.createMediaElementSource(audio)
+            const reverb = attachMosqueReverb(
+              ctx,
+              source,
+              ctx.destination,
+              config.audio.reverbIntensity ?? 0.45,
+            )
+            audioContextRef.current = ctx
+            reverbNodesRef.current = reverb
+          } catch {
+            // Context already exists or MediaElementSource error
+          }
+        }
+      } else if (reverbNodesRef.current) {
+        reverbNodesRef.current.wetGain.gain.value = config.audio.reverbIntensity ?? 0.45
+      }
+    } else if (reverbNodesRef.current) {
+      reverbNodesRef.current.wetGain.gain.value = 0
+    }
+  }, [config.audio?.mosqueReverb, config.audio?.reverbIntensity])
+
+  // Custom Video Background Loop Support
+  useEffect(() => {
+    const isVideo =
+      config.background.url.endsWith('.mp4') ||
+      config.background.url.endsWith('.webm') ||
+      config.background.url.startsWith('blob:')
+    if (isVideo) {
+      const v = document.createElement('video')
+      v.src = config.background.url
+      v.autoplay = true
+      v.loop = true
+      v.muted = true
+      v.playsInline = true
+      v.play().catch(() => {})
+      videoRef.current = v
+      return () => {
+        v.pause()
+        v.src = ''
+        videoRef.current = null
+      }
+    } else {
+      videoRef.current = null
+    }
+  }, [config.background.url])
 
   // Load and play audio for a specific verse index
   const loadAndPlayVerse = useCallback(
@@ -252,7 +315,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       renderFrame(ctx, {
         timeMs: currentGlobalMs,
         config,
-        image,
+        image: videoRef.current || image,
         verse: activeVerse,
         verseTimeMs,
         slotDurationMs: totalSlotDurationMs,

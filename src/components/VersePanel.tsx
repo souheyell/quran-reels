@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { Verse } from '../types'
 import { POPULAR_EDITIONS, POPULAR_RECITERS } from '../api/quran'
 
@@ -10,6 +10,8 @@ interface VersePanelProps {
   lockReciter: boolean
   loading: boolean
   error: string | null
+  mosqueReverb?: boolean
+  reverbIntensity?: number
   onLoadRange: (surah: number, startAyat: number, count: number, edition?: string, reciter?: string) => Promise<void>
   onLoadRandom: () => Promise<void>
   onEditionChange: (editionId: string) => void
@@ -18,6 +20,9 @@ interface VersePanelProps {
   onToggleLockCount: (locked: boolean) => void
   onToggleLockReciter: (locked: boolean) => void
   onCountChange?: (count: number) => void
+  onMosqueReverb?: (enabled: boolean) => void
+  onReverbIntensity?: (intensity: number) => void
+  onUploadAudio?: (audioUrl: string) => void
 }
 
 const QUICK_PICKS: Array<[number, number, string]> = [
@@ -37,6 +42,8 @@ export function VersePanel({
   lockReciter,
   loading,
   error,
+  mosqueReverb = false,
+  reverbIntensity = 0.45,
   onLoadRange,
   onLoadRandom,
   onEditionChange,
@@ -45,10 +52,14 @@ export function VersePanel({
   onToggleLockCount,
   onToggleLockReciter,
   onCountChange,
+  onMosqueReverb,
+  onReverbIntensity,
+  onUploadAudio,
 }: VersePanelProps) {
   const [surahInput, setSurahInput] = useState(String(verses[0]?.surah ?? 2))
   const [ayatInput, setAyatInput] = useState(String(verses[0]?.ayat ?? 255))
   const [countInput, setCountInput] = useState(String(verses.length || 1))
+  const audioFileInputRef = useRef<HTMLInputElement>(null)
 
   // Keep input fields in sync when verses change
   useEffect(() => {
@@ -75,6 +86,13 @@ export function VersePanel({
     }
   }
 
+  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !onUploadAudio) return
+    const objectUrl = URL.createObjectURL(file)
+    onUploadAudio(objectUrl)
+  }
+
   const surahName = verses[0]?.surahName || ''
   const rangeLabel =
     verses.length === 1
@@ -87,7 +105,29 @@ export function VersePanel({
 
   return (
     <section className="panel" id="verse-panel">
-      <h2>Verse & Audio Reciter</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ margin: 0 }}>Verse & Audio Reciter</h2>
+        {onUploadAudio && (
+          <div>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => audioFileInputRef.current?.click()}
+              title="Upload custom MP3 audio or voiceover"
+              style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+            >
+              🎵 Upload Audio
+            </button>
+            <input
+              ref={audioFileInputRef}
+              type="file"
+              accept="audio/*,.mp3,.wav,.m4a,.aac"
+              onChange={handleAudioUpload}
+              style={{ display: 'none' }}
+            />
+          </div>
+        )}
+      </div>
 
       <div className="row">
         <label>
@@ -124,9 +164,12 @@ export function VersePanel({
               max={30}
               value={countInput}
               onChange={(e) => {
-                setCountInput(e.target.value)
-                const parsed = Number(e.target.value)
-                if (parsed > 0) onCountChange?.(parsed)
+                const val = e.target.value
+                setCountInput(val)
+                const n = Number(val)
+                if (n >= 1 && n <= 30) {
+                  onCountChange?.(n)
+                }
               }}
               onKeyDown={handleKeyDown}
               style={{ flex: 1 }}
@@ -134,18 +177,31 @@ export function VersePanel({
             <button
               type="button"
               className={`btn ${lockCount ? 'primary' : ''}`}
-              style={{ padding: '0.45rem 0.55rem', fontSize: '0.8rem' }}
+              style={{ padding: '0.4rem 0.55rem', fontSize: '0.8rem' }}
               onClick={() => onToggleLockCount(!lockCount)}
-              title={lockCount ? 'Ayah count is LOCKED on random discovery' : 'Lock ayah count'}
+              title={lockCount ? 'Ayah count is LOCKED on random discovery' : 'Lock Ayah count'}
             >
               {lockCount ? '🔒' : '🔓'}
             </button>
           </div>
         </label>
-        <button type="button" className="btn" onClick={loadRange} disabled={loading} style={{ alignSelf: 'flex-end' }}>
-          {loading ? 'Loading…' : 'Load'}
-        </button>
       </div>
+
+      <button
+        id="load-btn"
+        type="button"
+        className="btn primary"
+        onClick={() => void loadRange()}
+        disabled={loading}
+      >
+        {loading ? (
+          <span className="loading-text">
+            <span className="spinner" /> Loading…
+          </span>
+        ) : (
+          'Load Verse Range'
+        )}
+      </button>
 
       <div className="row">
         <label style={{ flex: 1 }}>
@@ -197,7 +253,7 @@ export function VersePanel({
         </label>
 
         <label style={{ flex: 1 }}>
-          Translation
+          Primary Translation
           <select
             id="edition-select"
             value={editionId}
@@ -212,6 +268,34 @@ export function VersePanel({
           </select>
         </label>
       </div>
+
+      {onMosqueReverb && (
+        <div className="row" style={{ alignItems: 'center', marginTop: '0.2rem' }}>
+          <label className="row-inline" style={{ flex: 1 }}>
+            <input
+              id="mosque-reverb-checkbox"
+              type="checkbox"
+              checked={mosqueReverb}
+              onChange={(e) => onMosqueReverb(e.target.checked)}
+            />
+            🕌 Mosque Sanctuary Acoustic Reverb
+          </label>
+          {mosqueReverb && onReverbIntensity && (
+            <label style={{ margin: 0, width: '110px' }}>
+              Mix {Math.round(reverbIntensity * 100)}%
+              <input
+                id="reverb-intensity-input"
+                type="range"
+                min={0.1}
+                max={0.9}
+                step={0.05}
+                value={reverbIntensity}
+                onChange={(e) => onReverbIntensity(Number(e.target.value))}
+              />
+            </label>
+          )}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
         <button

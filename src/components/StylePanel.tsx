@@ -1,4 +1,6 @@
 import type { ReelConfig } from '../types'
+import { AESTHETIC_PRESETS, type ReelPreset } from '../lib/presets'
+import { POPULAR_EDITIONS } from '../api/quran'
 
 interface StylePanelProps {
   overlayColor: string
@@ -14,6 +16,12 @@ interface StylePanelProps {
   surahNameLanguage: ReelConfig['text']['surahNameLanguage']
   ayahPauseDelay: number
   showBasmalah: boolean
+  karaokeHighlight: boolean
+  highlightColor: string
+  secondaryEditionId: string
+  showReflectionNote: boolean
+  reflectionNoteText: string
+  onApplyPreset: (preset: ReelPreset) => void
   onOverlayColor: (v: string) => void
   onOverlayOpacity: (v: number) => void
   onArabicFont: (v: string) => void
@@ -27,11 +35,32 @@ interface StylePanelProps {
   onSurahNameLanguage: (v: ReelConfig['text']['surahNameLanguage']) => void
   onAyahPauseDelay: (v: number) => void
   onShowBasmalah: (v: boolean) => void
+  onKaraokeHighlight: (v: boolean) => void
+  onHighlightColor: (v: string) => void
+  onSecondaryEditionId: (v: string) => void
+  onShowReflectionNote: (v: boolean) => void
+  onReflectionNoteText: (v: string) => void
 }
 
 export function StylePanel(props: StylePanelProps) {
   return (
     <section className="panel" id="style-panel">
+      <h2>1-Click Themes & Presets</h2>
+      <div className="picks" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.8rem' }}>
+        {AESTHETIC_PRESETS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            className="chip"
+            title={p.description}
+            onClick={() => props.onApplyPreset(p)}
+            style={{ fontSize: '0.8rem' }}
+          >
+            {p.icon} {p.name}
+          </button>
+        ))}
+      </div>
+
       <h2>Text & Overlay Style</h2>
       <div className="row">
         <label className="color">
@@ -146,6 +175,29 @@ export function StylePanel(props: StylePanelProps) {
         />
       </label>
 
+      <div className="row" style={{ alignItems: 'center' }}>
+        <label className="row-inline" style={{ flex: 1 }}>
+          <input
+            id="karaoke-checkbox"
+            type="checkbox"
+            checked={props.karaokeHighlight}
+            onChange={(e) => props.onKaraokeHighlight(e.target.checked)}
+          />
+          🔤 Word-by-Word Karaoke Glow
+        </label>
+        {props.karaokeHighlight && (
+          <label className="color" style={{ margin: 0 }}>
+            Glow
+            <input
+              id="highlight-color-input"
+              type="color"
+              value={props.highlightColor}
+              onChange={(e) => props.onHighlightColor(e.target.value)}
+            />
+          </label>
+        )}
+      </div>
+
       <label className="row-inline">
         <input
           id="show-translation-checkbox"
@@ -158,19 +210,37 @@ export function StylePanel(props: StylePanelProps) {
 
       {props.showTranslation && (
         <>
-          <label>
-            Translation font
-            <select
-              id="translation-font-select"
-              value={props.translationFont}
-              onChange={(e) => props.onTranslationFont(e.target.value)}
-            >
-              <option value='"Inter", sans-serif'>Inter (Modern Clean)</option>
-              <option value='system-ui, sans-serif'>System UI</option>
-              <option value='"Georgia", serif'>Georgia (Editorial Serif)</option>
-              <option value='"Times New Roman", serif'>Times New Roman</option>
-            </select>
-          </label>
+          <div className="row">
+            <label style={{ flex: 1 }}>
+              Translation font
+              <select
+                id="translation-font-select"
+                value={props.translationFont}
+                onChange={(e) => props.onTranslationFont(e.target.value)}
+              >
+                <option value='"Inter", sans-serif'>Inter (Modern Clean)</option>
+                <option value='system-ui, sans-serif'>System UI</option>
+                <option value='"Georgia", serif'>Georgia (Editorial Serif)</option>
+                <option value='"Times New Roman", serif'>Times New Roman</option>
+              </select>
+            </label>
+            <label style={{ flex: 1 }}>
+              Dual 2nd Language
+              <select
+                id="secondary-edition-select"
+                value={props.secondaryEditionId}
+                onChange={(e) => props.onSecondaryEditionId(e.target.value)}
+              >
+                <option value="none">None (Single language)</option>
+                {POPULAR_EDITIONS.map((ed) => (
+                  <option key={ed.id} value={ed.id}>
+                    {ed.name} ({ed.language})
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
           <label>
             Translation size {props.translationSize}px
             <input
@@ -207,6 +277,28 @@ export function StylePanel(props: StylePanelProps) {
         />
         Text glow / shadow
       </label>
+
+      <div style={{ marginTop: '0.4rem' }}>
+        <label className="row-inline">
+          <input
+            id="reflection-card-checkbox"
+            type="checkbox"
+            checked={props.showReflectionNote}
+            onChange={(e) => props.onShowReflectionNote(e.target.checked)}
+          />
+          ✨ Spiritual Reflection / Tafsir Footnote
+        </label>
+        {props.showReflectionNote && (
+          <input
+            id="reflection-note-text-input"
+            type="text"
+            placeholder="e.g. Reflect upon the signs of Allah..."
+            value={props.reflectionNoteText}
+            onChange={(e) => props.onReflectionNoteText(e.target.value)}
+            style={{ width: '100%', marginTop: '0.3rem', fontSize: '0.82rem' }}
+          />
+        )}
+      </div>
     </section>
   )
 }

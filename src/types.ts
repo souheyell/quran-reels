@@ -5,8 +5,11 @@ export interface Verse {
   surahArabicName?: string
   arabic: string
   translation: string
+  secondaryTranslation?: string
   editionId: string
   editionName: string
+  secondaryEditionId?: string
+  secondaryEditionName?: string
   reciterId?: string
   reciterName?: string
   audioUrl: string | null
@@ -46,6 +49,10 @@ export interface ReelConfig {
     intensity: number
     speed: number
   }
+  audio: {
+    mosqueReverb: boolean
+    reverbIntensity: number
+  }
   text: {
     arabicFont: string
     arabicSize: number
@@ -59,6 +66,11 @@ export interface ReelConfig {
     surahNameLanguage: 'arabic' | 'english' | 'both'
     ayahPauseDelay: number
     showBasmalah: boolean
+    karaokeHighlight: boolean
+    highlightColor: string
+    secondaryEditionId: string
+    showReflectionNote: boolean
+    reflectionNoteText: string
   }
   footer: {
     enabled: boolean
@@ -100,6 +112,8 @@ export type ConfigAction =
   | { type: 'SET_EFFECT_TYPE'; effectType: AtmosphericEffectType }
   | { type: 'SET_EFFECT_INTENSITY'; intensity: number }
   | { type: 'SET_EFFECT_SPEED'; speed: number }
+  | { type: 'SET_MOSQUE_REVERB'; enabled: boolean }
+  | { type: 'SET_REVERB_INTENSITY'; intensity: number }
   | { type: 'SET_ARABIC_FONT'; font: string }
   | { type: 'SET_ARABIC_SIZE'; size: number }
   | { type: 'SET_TRANSLATION_FONT'; font: string }
@@ -112,6 +126,11 @@ export type ConfigAction =
   | { type: 'SET_SURAH_NAME_LANGUAGE'; language: ReelConfig['text']['surahNameLanguage'] }
   | { type: 'SET_AYAH_PAUSE_DELAY'; delay: number }
   | { type: 'SET_SHOW_BASMALAH'; show: boolean }
+  | { type: 'SET_KARAOKE_HIGHLIGHT'; enabled: boolean }
+  | { type: 'SET_HIGHLIGHT_COLOR'; color: string }
+  | { type: 'SET_SECONDARY_EDITION_ID'; editionId: string }
+  | { type: 'SET_SHOW_REFLECTION_NOTE'; show: boolean }
+  | { type: 'SET_REFLECTION_NOTE_TEXT'; text: string }
   | { type: 'SET_FOOTER_ENABLED'; enabled: boolean }
   | { type: 'SET_FOOTER_TEXT'; text: string }
   | { type: 'SET_FOOTER_ICON'; icon: ReelConfig['footer']['icon'] }
@@ -120,3 +139,4 @@ export type ConfigAction =
   | { type: 'SET_MOTION_TYPE'; motionType: ReelConfig['motion']['type'] }
   | { type: 'SET_DURATION'; duration: number }
   | { type: 'SET_ASPECT_RATIO'; ratio: ReelConfig['aspectRatio'] }
+  | { type: 'APPLY_PRESET'; preset: Partial<ReelConfig> }

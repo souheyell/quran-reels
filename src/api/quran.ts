@@ -40,10 +40,13 @@ export const POPULAR_EDITIONS: Edition[] = [
   { id: 'en.sahih', name: 'Saheeh International', language: 'English' },
   { id: 'en.pickthall', name: 'Pickthall', language: 'English' },
   { id: 'en.asad', name: 'Muhammad Asad', language: 'English' },
+  { id: 'fr.hamidullah', name: 'Hamidullah', language: 'French' },
   { id: 'ur.jalandhry', name: 'Jalandhry', language: 'Urdu' },
+  { id: 'tr.diyanet', name: 'Diyanet Isleri', language: 'Turkish' },
+  { id: 'id.indonesian', name: 'Bahasa Indonesia', language: 'Indonesian' },
+  { id: 'de.bubenheim', name: 'Bubenheim & Elyas', language: 'German' },
   { id: 'bn.bengali', name: 'Muhiuddin Khan', language: 'Bengali' },
   { id: 'hi.hindi', name: 'Suhel Farooq Khan', language: 'Hindi' },
-  { id: 'fr.hamidullah', name: 'Hamidullah', language: 'French' },
 ]
 
 export const POPULAR_RECITERS: Reciter[] = [
@@ -132,6 +135,7 @@ export async function fetchVerses(
   editionId: string,
   reciterId = DEFAULT_RECITER_ID,
   signal?: AbortSignal,
+  secondaryEditionId?: string,
 ): Promise<Verse[]> {
   const safeSurah = Number(surah) || 1
   const safeStart = Number(startAyat) || 1
@@ -140,7 +144,12 @@ export async function fetchVerses(
 
   const everyAyahFolder = EVERYAYAH_RECITERS[safeReciterId] || EVERYAYAH_RECITERS[DEFAULT_RECITER_ID]
 
-  const editions = `${ARABIC_EDITION_ID},${editionId}`
+  const editionList = [ARABIC_EDITION_ID, editionId]
+  if (secondaryEditionId && secondaryEditionId !== 'none' && secondaryEditionId !== editionId) {
+    editionList.push(secondaryEditionId)
+  }
+
+  const editions = editionList.join(',')
   const res = await fetch(`${QURAN_API_BASE}/surah/${safeSurah}/editions/${editions}`, { signal })
   if (!res.ok) throw new Error(`Quran API error: ${res.status}`)
 
@@ -158,7 +167,14 @@ export async function fetchVerses(
 
   const arabicData = json.data.find((d) => d.edition?.identifier === ARABIC_EDITION_ID)
   const translationData = json.data.find((d) => d.edition?.identifier === editionId)
+  const secondaryData = secondaryEditionId && secondaryEditionId !== 'none'
+    ? json.data.find((d) => d.edition?.identifier === secondaryEditionId)
+    : undefined
+
   const edition = POPULAR_EDITIONS.find((e) => e.id === editionId)
+  const secondaryEdition = secondaryEditionId
+    ? POPULAR_EDITIONS.find((e) => e.id === secondaryEditionId)
+    : undefined
   const reciter = POPULAR_RECITERS.find((r) => r.id === safeReciterId)
 
   // Ensure surah list is loaded for surah name
@@ -177,6 +193,7 @@ export async function fetchVerses(
         ? rawArabic.replace(BASMALAH_PREFIX_REGEX, '').trim()
         : rawArabic.replace(/^\ufeff/, '').trim()
     const translation = translationData?.ayahs?.find((a) => a.numberInSurah === ayat)?.text ?? ''
+    const secondaryTranslation = secondaryData?.ayahs?.find((a) => a.numberInSurah === ayat)?.text ?? ''
 
     const audioUrl = getEveryAyahAudioUrl(everyAyahFolder, safeSurah, ayat)
 
@@ -189,8 +206,11 @@ export async function fetchVerses(
       surahArabicName: surahMeta?.name ?? `سورة ${safeSurah}`,
       arabic,
       translation,
+      secondaryTranslation: secondaryTranslation || undefined,
       editionId,
       editionName: edition?.name ?? editionId,
+      secondaryEditionId: secondaryEdition ? secondaryEdition.id : undefined,
+      secondaryEditionName: secondaryEdition ? secondaryEdition.name : undefined,
       reciterId: safeReciterId,
       reciterName: reciter?.name ?? safeReciterId,
       audioUrl,
@@ -212,10 +232,11 @@ export async function fetchRandomVerses(
   editionId = 'en.sahih',
   reciterId = DEFAULT_RECITER_ID,
   signal?: AbortSignal,
+  secondaryEditionId?: string,
 ): Promise<Verse[]> {
   const surahs = await fetchSurahList(signal)
   const randomSurah = surahs[Math.floor(Math.random() * surahs.length)]
   const maxStart = Math.max(1, randomSurah.numberOfAyahs - count + 1)
   const randomStart = Math.floor(Math.random() * maxStart) + 1
-  return fetchVerses(randomSurah.number, randomStart, count, editionId, reciterId, signal)
+  return fetchVerses(randomSurah.number, randomStart, count, editionId, reciterId, signal, secondaryEditionId)
 }

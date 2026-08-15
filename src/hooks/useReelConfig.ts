@@ -1,6 +1,7 @@
 import { useReducer, useCallback, useEffect } from 'react'
 import type { ReelConfig, ConfigAction, AtmosphericEffectType } from '../types'
 import { loadSavedConfig, saveConfig } from '../lib/storage'
+import { applyPresetToConfig, type ReelPreset } from '../lib/presets'
 
 function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
   switch (action.type) {
@@ -20,6 +21,10 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
       return { ...state, effects: { ...state.effects, intensity: action.intensity } }
     case 'SET_EFFECT_SPEED':
       return { ...state, effects: { ...state.effects, speed: action.speed } }
+    case 'SET_MOSQUE_REVERB':
+      return { ...state, audio: { ...state.audio, mosqueReverb: action.enabled } }
+    case 'SET_REVERB_INTENSITY':
+      return { ...state, audio: { ...state.audio, reverbIntensity: action.intensity } }
     case 'SET_ARABIC_FONT':
       return { ...state, text: { ...state.text, arabicFont: action.font } }
     case 'SET_ARABIC_SIZE':
@@ -44,6 +49,16 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
       return { ...state, text: { ...state.text, ayahPauseDelay: action.delay } }
     case 'SET_SHOW_BASMALAH':
       return { ...state, text: { ...state.text, showBasmalah: action.show } }
+    case 'SET_KARAOKE_HIGHLIGHT':
+      return { ...state, text: { ...state.text, karaokeHighlight: action.enabled } }
+    case 'SET_HIGHLIGHT_COLOR':
+      return { ...state, text: { ...state.text, highlightColor: action.color } }
+    case 'SET_SECONDARY_EDITION_ID':
+      return { ...state, text: { ...state.text, secondaryEditionId: action.editionId } }
+    case 'SET_SHOW_REFLECTION_NOTE':
+      return { ...state, text: { ...state.text, showReflectionNote: action.show } }
+    case 'SET_REFLECTION_NOTE_TEXT':
+      return { ...state, text: { ...state.text, reflectionNoteText: action.text } }
     case 'SET_FOOTER_ENABLED':
       return { ...state, footer: { ...state.footer, enabled: action.enabled } }
     case 'SET_FOOTER_TEXT':
@@ -60,6 +75,35 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
       return { ...state, motion: { ...state.motion, duration: action.duration } }
     case 'SET_ASPECT_RATIO':
       return { ...state, aspectRatio: action.ratio }
+    case 'APPLY_PRESET':
+      return {
+        ...state,
+        ...action.preset,
+        background: {
+          ...state.background,
+          ...action.preset.background,
+        },
+        overlay: {
+          ...state.overlay,
+          ...action.preset.overlay,
+        },
+        effects: {
+          ...state.effects,
+          ...action.preset.effects,
+        },
+        audio: {
+          ...state.audio,
+          ...action.preset.audio,
+        },
+        text: {
+          ...state.text,
+          ...action.preset.text,
+        },
+        motion: {
+          ...state.motion,
+          ...action.preset.motion,
+        },
+      }
   }
 }
 
@@ -101,6 +145,14 @@ export function useReelConfig() {
   )
   const setEffectSpeed = useCallback(
     (speed: number) => dispatch({ type: 'SET_EFFECT_SPEED', speed }),
+    [],
+  )
+  const setMosqueReverb = useCallback(
+    (enabled: boolean) => dispatch({ type: 'SET_MOSQUE_REVERB', enabled }),
+    [],
+  )
+  const setReverbIntensity = useCallback(
+    (intensity: number) => dispatch({ type: 'SET_REVERB_INTENSITY', intensity }),
     [],
   )
   const setArabicFont = useCallback(
@@ -154,6 +206,26 @@ export function useReelConfig() {
     (show: boolean) => dispatch({ type: 'SET_SHOW_BASMALAH', show }),
     [],
   )
+  const setKaraokeHighlight = useCallback(
+    (enabled: boolean) => dispatch({ type: 'SET_KARAOKE_HIGHLIGHT', enabled }),
+    [],
+  )
+  const setHighlightColor = useCallback(
+    (color: string) => dispatch({ type: 'SET_HIGHLIGHT_COLOR', color }),
+    [],
+  )
+  const setSecondaryEditionId = useCallback(
+    (editionId: string) => dispatch({ type: 'SET_SECONDARY_EDITION_ID', editionId }),
+    [],
+  )
+  const setShowReflectionNote = useCallback(
+    (show: boolean) => dispatch({ type: 'SET_SHOW_REFLECTION_NOTE', show }),
+    [],
+  )
+  const setReflectionNoteText = useCallback(
+    (text: string) => dispatch({ type: 'SET_REFLECTION_NOTE_TEXT', text }),
+    [],
+  )
   const setFooterEnabled = useCallback(
     (enabled: boolean) => dispatch({ type: 'SET_FOOTER_ENABLED', enabled }),
     [],
@@ -187,6 +259,13 @@ export function useReelConfig() {
     (ratio: ReelConfig['aspectRatio']) => dispatch({ type: 'SET_ASPECT_RATIO', ratio }),
     [],
   )
+  const applyPreset = useCallback(
+    (preset: ReelPreset) => {
+      const updated = applyPresetToConfig(config, preset)
+      dispatch({ type: 'APPLY_PRESET', preset: updated })
+    },
+    [config],
+  )
 
   return {
     config,
@@ -199,6 +278,8 @@ export function useReelConfig() {
     setEffectType,
     setEffectIntensity,
     setEffectSpeed,
+    setMosqueReverb,
+    setReverbIntensity,
     setArabicFont,
     setArabicSize,
     setTranslationFont,
@@ -211,6 +292,11 @@ export function useReelConfig() {
     setSurahNameLanguage,
     setAyahPauseDelay,
     setShowBasmalah,
+    setKaraokeHighlight,
+    setHighlightColor,
+    setSecondaryEditionId,
+    setShowReflectionNote,
+    setReflectionNoteText,
     setFooterEnabled,
     setFooterText,
     setFooterIcon,
@@ -219,5 +305,6 @@ export function useReelConfig() {
     setMotionType,
     setDuration,
     setAspectRatio,
+    applyPreset,
   }
 }

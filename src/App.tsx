@@ -27,6 +27,8 @@ function App() {
     setEffectType,
     setEffectIntensity,
     setEffectSpeed,
+    setMosqueReverb,
+    setReverbIntensity,
     setArabicFont,
     setArabicSize,
     setTranslationFont,
@@ -39,6 +41,11 @@ function App() {
     setSurahNameLanguage,
     setAyahPauseDelay,
     setShowBasmalah,
+    setKaraokeHighlight,
+    setHighlightColor,
+    setSecondaryEditionId,
+    setShowReflectionNote,
+    setReflectionNoteText,
     setFooterEnabled,
     setFooterText,
     setFooterIcon,
@@ -47,6 +54,7 @@ function App() {
     setMotionType,
     setDuration,
     setAspectRatio,
+    applyPreset,
   } = useReelConfig()
 
   const verseLoader = useVerseLoader({
@@ -111,8 +119,19 @@ function App() {
     const randomMotion = cinematicMotions[Math.floor(Math.random() * cinematicMotions.length)]
     setMotionType(randomMotion)
 
-    await verseLoader.loadRandom()
-  }, [setBackgroundUrl, setMotionType, verseLoader])
+    await verseLoader.loadRandom(undefined, config.text.secondaryEditionId)
+  }, [setBackgroundUrl, setMotionType, verseLoader, config.text.secondaryEditionId])
+
+  const handleCustomAudioUpload = useCallback(
+    (audioUrl: string) => {
+      if (config.verses.length > 0) {
+        const updated = config.verses.map((v, i) => (i === 0 ? { ...v, audioUrl } : v))
+        setVerses(updated)
+        verseLoader.setVerses(updated)
+      }
+    },
+    [config.verses, setVerses, verseLoader],
+  )
 
   return (
     <div className="app">
@@ -151,14 +170,25 @@ function App() {
             lockReciter={verseLoader.lockReciter}
             loading={verseLoader.loading}
             error={verseLoader.error}
-            onLoadRange={verseLoader.loadRange}
+            mosqueReverb={config.audio.mosqueReverb}
+            reverbIntensity={config.audio.reverbIntensity}
+            onLoadRange={(s, a, c, ed, r) =>
+              verseLoader.loadRange(s, a, c, ed, r, config.text.secondaryEditionId)
+            }
             onLoadRandom={handleRandomDiscovery}
-            onEditionChange={verseLoader.changeEdition}
-            onReciterChange={verseLoader.changeReciter}
+            onEditionChange={(ed) =>
+              verseLoader.changeEdition(ed, config.text.secondaryEditionId)
+            }
+            onReciterChange={(r) =>
+              verseLoader.changeReciter(r, config.text.secondaryEditionId)
+            }
             onRandomizeReciter={verseLoader.randomizeReciter}
             onToggleLockCount={verseLoader.setLockCount}
             onToggleLockReciter={verseLoader.setLockReciter}
             onCountChange={verseLoader.setFixedCount}
+            onMosqueReverb={setMosqueReverb}
+            onReverbIntensity={setReverbIntensity}
+            onUploadAudio={handleCustomAudioUpload}
           />
           <BackgroundPanel
             url={config.background.url}
@@ -180,6 +210,12 @@ function App() {
             surahNameLanguage={config.text.surahNameLanguage}
             ayahPauseDelay={config.text.ayahPauseDelay}
             showBasmalah={config.text.showBasmalah}
+            karaokeHighlight={config.text.karaokeHighlight}
+            highlightColor={config.text.highlightColor}
+            secondaryEditionId={config.text.secondaryEditionId}
+            showReflectionNote={config.text.showReflectionNote}
+            reflectionNoteText={config.text.reflectionNoteText}
+            onApplyPreset={applyPreset}
             onOverlayColor={setOverlayColor}
             onOverlayOpacity={setOverlayOpacity}
             onArabicFont={setArabicFont}
@@ -193,6 +229,14 @@ function App() {
             onSurahNameLanguage={setSurahNameLanguage}
             onAyahPauseDelay={setAyahPauseDelay}
             onShowBasmalah={setShowBasmalah}
+            onKaraokeHighlight={setKaraokeHighlight}
+            onHighlightColor={setHighlightColor}
+            onSecondaryEditionId={(id) => {
+              setSecondaryEditionId(id)
+              void verseLoader.changeSecondaryEdition(id)
+            }}
+            onShowReflectionNote={setShowReflectionNote}
+            onReflectionNoteText={setReflectionNoteText}
           />
           <FooterPanel
             enabled={config.footer.enabled}

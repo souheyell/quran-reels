@@ -33,7 +33,7 @@ export function previewSize(aspectRatio: ReelConfig['aspectRatio']): {
 export interface FrameParams {
   timeMs: number
   config: ReelConfig
-  image: HTMLImageElement | null
+  image: CanvasImageSource | null
   verse: Verse
   verseTimeMs: number
   slotDurationMs: number
@@ -304,11 +304,70 @@ function drawVerse(
     cursorY += basmalahH + basmalahGap
   }
 
-  // ── Render Arabic Text with Smooth Dissolve ────────────────
+  // ── Render Arabic Text with Smooth Dissolve & Karaoke Highlighting ─
+  const userDelayMs =
+    typeof text.ayahPauseDelay === 'number' && text.ayahPauseDelay >= 0
+      ? Math.round(text.ayahPauseDelay * 1000)
+      : 1600
+  const recitationDurationMs = Math.max(1000, slotDurationMs - userDelayMs)
+
   ctx.font = buildFont({ size: arabicLines.size, font: text.arabicFont })
-  ctx.globalAlpha = arabicAlpha
+  const allArabicWords = verse.arabic.trim().split(/\s+/).filter(Boolean)
+  const totalWords = allArabicWords.length || 1
+  const karaokeProgress = recitationDurationMs > 0 ? Math.min(1, Math.max(0, verseTimeMs / recitationDurationMs)) : 0
+  const activeWordIndex = Math.floor(karaokeProgress * totalWords)
+
+  let runningWordIndex = 0
   for (const line of arabicLines.lines) {
-    ctx.fillText(prepareText(line.text, arabicRtl), width / 2, cursorY)
+    if (!text.karaokeHighlight) {
+      ctx.fillStyle = text.textColor
+      ctx.globalAlpha = arabicAlpha
+      ctx.fillText(prepareText(line.text, arabicRtl), width / 2, cursorY)
+    } else {
+      // Karaoke word-by-word progressive illumination
+      const lineWords = line.text.trim().split(/\s+/).filter(Boolean)
+      const spaceWidth = ctx.measureText(' ').width
+      const measuredWords = lineWords.map((w) => ({
+        word: w,
+        width: ctx.measureText(prepareText(w, true)).width,
+      }))
+      const totalLineWidth =
+        measuredWords.reduce((sum, w) => sum + w.width, 0) +
+        Math.max(0, measuredWords.length - 1) * spaceWidth
+
+      ctx.save()
+      ctx.textAlign = 'left'
+      let startX = (width - totalLineWidth) / 2
+
+      // In RTL Arabic, lineWords[0] is rightmost; leftmost visually is lineWords[length - 1]
+      for (let i = lineWords.length - 1; i >= 0; i--) {
+        const wordGlobalIdx = runningWordIndex + i
+        const isPastOrActive = wordGlobalIdx <= activeWordIndex
+        const isActive = wordGlobalIdx === activeWordIndex
+
+        if (isPastOrActive) {
+          ctx.fillStyle = text.highlightColor || '#ffd700'
+          ctx.globalAlpha = arabicAlpha * (isActive ? 1.0 : 0.92)
+          if (text.showGlow) {
+            ctx.shadowColor = text.highlightColor || '#ffd700'
+            ctx.shadowBlur = isActive ? 18 : 8
+          }
+        } else {
+          ctx.fillStyle = text.textColor
+          ctx.globalAlpha = arabicAlpha * 0.52
+          if (text.showGlow) {
+            ctx.shadowColor = text.textColor
+            ctx.shadowBlur = 4
+          }
+        }
+
+        const item = measuredWords[i]
+        ctx.fillText(prepareText(item.word, true), startX, cursorY)
+        startX += item.width + spaceWidth
+      }
+      ctx.restore()
+      runningWordIndex += lineWords.length
+    }
     cursorY += arabicLines.size * 1.6
   }
 
@@ -316,11 +375,32 @@ function drawVerse(
   if (text.showTranslation && translationLines && translationBlock > 0) {
     cursorY += gap
     ctx.font = buildFont({ size: translationLines.size, font: text.translationFont })
+    ctx.fillStyle = text.textColor
     ctx.globalAlpha = translationAlpha
     const translationRtl = isRtl(verse.translation)
     for (const line of translationLines.lines) {
       ctx.fillText(prepareText(line.text, translationRtl), width / 2, cursorY)
       cursorY += translationLines.size * 1.5
+    }
+
+    // Secondary translation subtitle (if present)
+    if (verse.secondaryTranslation) {
+      const secRtl = isRtl(verse.secondaryTranslation)
+      const secFontSize = Math.max(10, Math.round(translationLines.size * 0.82))
+      ctx.font = `italic 400 ${secFontSize}px ${text.translationFont}`
+      ctx.fillStyle = text.textColor
+      ctx.globalAlpha = translationAlpha * 0.75
+      ctx.fillText(prepareText(verse.secondaryTranslation, secRtl), width / 2, cursorY + height * 0.008)
+      cursorY += secFontSize * 1.5
+    }
+
+    // Spiritual Reflection Note Card
+    if (text.showReflectionNote && text.reflectionNoteText?.trim()) {
+      const noteFontSize = Math.max(11, Math.round(height * 0.019))
+      ctx.font = `500 ${noteFontSize}px ${text.translationFont}`
+      ctx.fillStyle = text.highlightColor || '#ffd700'
+      ctx.globalAlpha = translationAlpha * 0.9
+      ctx.fillText(prepareText(`✨ ${text.reflectionNoteText.trim()}`, false), width / 2, cursorY + height * 0.02)
     }
   }
 
@@ -455,10 +535,14 @@ export function defaultConfig(): ReelConfig {
       intensity: 0.7,
       speed: 1.0,
     },
+    audio: {
+      mosqueReverb: false,
+      reverbIntensity: 0.45,
+    },
     text: {
       arabicFont: '"Scheherazade New", "Amiri", serif',
       arabicSize: 72,
-      translationFont: 'system-ui, sans-serif',
+      translationFont: '"Inter", sans-serif',
       translationSize: 40,
       textPosition: 'center',
       textColor: '#ffffff',
@@ -468,6 +552,11 @@ export function defaultConfig(): ReelConfig {
       surahNameLanguage: 'arabic',
       ayahPauseDelay: 1.6,
       showBasmalah: true,
+      karaokeHighlight: false,
+      highlightColor: '#ffd700',
+      secondaryEditionId: 'none',
+      showReflectionNote: false,
+      reflectionNoteText: 'Reflect upon the signs of Allah',
     },
     footer: {
       enabled: false,

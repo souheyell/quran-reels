@@ -79,19 +79,28 @@ export function useVerseLoader(options: UseVerseLoaderOptions) {
   )
 
   const loadRange = useCallback(
-    (surah: number, startAyat: number, count: number, edition?: string, reciter?: string) => {
+    (
+      surah: number,
+      startAyat: number,
+      count: number,
+      edition?: string,
+      reciter?: string,
+      secondaryEdition?: string,
+    ) => {
       const eid = edition ?? editionId
       const rid = reciter ?? reciterId
       if (edition) setEditionId(edition)
       if (reciter) setReciterId(reciter)
       setFixedCount(count)
-      return handleLoad((signal) => fetchVerses(surah, startAyat, count, eid, rid, signal))
+      return handleLoad((signal) =>
+        fetchVerses(surah, startAyat, count, eid, rid, signal, secondaryEdition),
+      )
     },
     [handleLoad, editionId, reciterId],
   )
 
   const loadRandom = useCallback(
-    (count?: number) => {
+    (count?: number, secondaryEdition?: string) => {
       let targetCount = 1
       if (lockCount) {
         targetCount = fixedCount > 0 ? fixedCount : 1
@@ -108,33 +117,48 @@ export function useVerseLoader(options: UseVerseLoaderOptions) {
         setReciterId(targetReciter)
       }
 
-      return handleLoad((signal) => fetchRandomVerses(targetCount, editionId, targetReciter, signal))
+      return handleLoad((signal) =>
+        fetchRandomVerses(targetCount, editionId, targetReciter, signal, secondaryEdition),
+      )
     },
     [handleLoad, editionId, reciterId, lockCount, lockReciter, fixedCount, verses.length],
   )
 
   const changeEdition = useCallback(
-    (newEditionId: string) => {
+    (newEditionId: string, secondaryEdition?: string) => {
       setEditionId(newEditionId)
       if (verses.length > 0) {
         const first = verses[0]
         const count = verses.length
         return handleLoad((signal) =>
-          fetchVerses(first.surah, first.ayat, count, newEditionId, reciterId, signal),
+          fetchVerses(first.surah, first.ayat, count, newEditionId, reciterId, signal, secondaryEdition),
         )
       }
     },
     [handleLoad, verses, reciterId],
   )
 
+  const changeSecondaryEdition = useCallback(
+    (newSecEditionId: string) => {
+      if (verses.length > 0) {
+        const first = verses[0]
+        const count = verses.length
+        return handleLoad((signal) =>
+          fetchVerses(first.surah, first.ayat, count, editionId, reciterId, signal, newSecEditionId),
+        )
+      }
+    },
+    [handleLoad, verses, editionId, reciterId],
+  )
+
   const changeReciter = useCallback(
-    (newReciterId: string) => {
+    (newReciterId: string, secondaryEdition?: string) => {
       setReciterId(newReciterId)
       if (verses.length > 0) {
         const first = verses[0]
         const count = verses.length
         return handleLoad((signal) =>
-          fetchVerses(first.surah, first.ayat, count, editionId, newReciterId, signal),
+          fetchVerses(first.surah, first.ayat, count, editionId, newReciterId, signal, secondaryEdition),
         )
       }
     },
@@ -155,6 +179,7 @@ export function useVerseLoader(options: UseVerseLoaderOptions) {
 
   return {
     verses,
+    setVerses,
     loading,
     error,
     editionId,
@@ -168,6 +193,7 @@ export function useVerseLoader(options: UseVerseLoaderOptions) {
     loadRange,
     loadRandom,
     changeEdition,
+    changeSecondaryEdition,
     changeReciter,
     randomizeReciter,
   }

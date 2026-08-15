@@ -91,7 +91,7 @@ export function getTransform(
 
 export function drawBackground(
   ctx: CanvasRenderingContext2D,
-  image: HTMLImageElement,
+  image: CanvasImageSource,
   width: number,
   height: number,
   transform: Transform,
@@ -108,8 +108,16 @@ export function drawBackground(
   ctx.translate(transform.x * width, transform.y * height)
   ctx.translate(-width / 2, -height / 2)
 
-  const imgW = image.width
-  const imgH = image.height
+  const imgW =
+    (image as HTMLImageElement).naturalWidth ||
+    (image as HTMLVideoElement).videoWidth ||
+    (image as HTMLCanvasElement).width ||
+    width
+  const imgH =
+    (image as HTMLImageElement).naturalHeight ||
+    (image as HTMLVideoElement).videoHeight ||
+    (image as HTMLCanvasElement).height ||
+    height
   const target = fit === 'blur-fill' ? 1.25 : 1
   const cover = Math.max(width / imgW, height / imgH) * target
   const drawW = imgW * cover
