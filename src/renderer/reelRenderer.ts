@@ -319,8 +319,18 @@ function drawFooterBranding(
   ctx.restore()
 }
 
+export interface FrameParams {
+  timeMs: number
+  config: ReelConfig
+  image: HTMLImageElement | null
+  verse: Verse
+  verseTimeMs: number
+  slotDurationMs: number
+  totalDurationMs?: number
+}
+
 export function renderFrame(ctx: CanvasRenderingContext2D, params: FrameParams): void {
-  const { config, image, verse, verseTimeMs, slotDurationMs } = params
+  const { config, image, verse, verseTimeMs, slotDurationMs, timeMs, totalDurationMs } = params
   const width = ctx.canvas.width
   const height = ctx.canvas.height
 
@@ -328,10 +338,8 @@ export function renderFrame(ctx: CanvasRenderingContext2D, params: FrameParams):
   ctx.fillStyle = '#000'
   ctx.fillRect(0, 0, width, height)
 
-  // Ken Burns uses per-verse time for proper cycling in multi-verse reels
-  const progress = slotDurationMs > 0 ? verseTimeMs / slotDurationMs : 0
-  const motionTimeMs = progress * config.motion.duration * 1000
-  const transform = getTransform(config.motion, motionTimeMs)
+  // Continuous background motion across entire video timeline (never resets between ayahs)
+  const transform = getTransform(config.motion, timeMs, totalDurationMs)
   if (image) {
     drawBackground(ctx, image, width, height, transform, config.background.fit)
   }

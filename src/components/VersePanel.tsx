@@ -6,6 +6,8 @@ interface VersePanelProps {
   verses: Verse[]
   editionId: string
   reciterId: string
+  lockCount: boolean
+  lockReciter: boolean
   loading: boolean
   error: string | null
   onLoadRange: (surah: number, startAyat: number, count: number, edition?: string, reciter?: string) => Promise<void>
@@ -13,6 +15,9 @@ interface VersePanelProps {
   onEditionChange: (editionId: string) => void
   onReciterChange: (reciterId: string) => void
   onRandomizeReciter?: () => void
+  onToggleLockCount: (locked: boolean) => void
+  onToggleLockReciter: (locked: boolean) => void
+  onCountChange?: (count: number) => void
 }
 
 const QUICK_PICKS: Array<[number, number, string]> = [
@@ -28,6 +33,8 @@ export function VersePanel({
   verses,
   editionId,
   reciterId,
+  lockCount,
+  lockReciter,
   loading,
   error,
   onLoadRange,
@@ -35,6 +42,9 @@ export function VersePanel({
   onEditionChange,
   onReciterChange,
   onRandomizeReciter,
+  onToggleLockCount,
+  onToggleLockReciter,
+  onCountChange,
 }: VersePanelProps) {
   const [surahInput, setSurahInput] = useState(String(verses[0]?.surah ?? 2))
   const [ayatInput, setAyatInput] = useState(String(verses[0]?.ayat ?? 255))
@@ -54,6 +64,7 @@ export function VersePanel({
     const ayat = Number(ayatInput)
     const count = Math.max(1, Math.min(Number(countInput) || 1, 30))
     if (!surah || !ayat) return
+    onCountChange?.(count)
     await onLoadRange(surah, ayat, count, editionId, reciterId)
   }
 
@@ -77,6 +88,7 @@ export function VersePanel({
   return (
     <section className="panel" id="verse-panel">
       <h2>Verse & Audio Reciter</h2>
+
       <div className="row">
         <label>
           Surah
@@ -104,17 +116,33 @@ export function VersePanel({
         </label>
         <label>
           Count
-          <input
-            id="count-input"
-            type="number"
-            min={1}
-            max={30}
-            value={countInput}
-            onChange={(e) => setCountInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
+          <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+            <input
+              id="count-input"
+              type="number"
+              min={1}
+              max={30}
+              value={countInput}
+              onChange={(e) => {
+                setCountInput(e.target.value)
+                const parsed = Number(e.target.value)
+                if (parsed > 0) onCountChange?.(parsed)
+              }}
+              onKeyDown={handleKeyDown}
+              style={{ flex: 1 }}
+            />
+            <button
+              type="button"
+              className={`btn ${lockCount ? 'primary' : ''}`}
+              style={{ padding: '0.45rem 0.55rem', fontSize: '0.8rem' }}
+              onClick={() => onToggleLockCount(!lockCount)}
+              title={lockCount ? 'Ayah count is LOCKED on random discovery' : 'Lock ayah count'}
+            >
+              {lockCount ? '🔒' : '🔓'}
+            </button>
+          </div>
         </label>
-        <button type="button" className="btn" onClick={loadRange} disabled={loading}>
+        <button type="button" className="btn" onClick={loadRange} disabled={loading} style={{ alignSelf: 'flex-end' }}>
           {loading ? 'Loading…' : 'Load'}
         </button>
       </div>
@@ -122,7 +150,7 @@ export function VersePanel({
       <div className="row">
         <label style={{ flex: 1 }}>
           Audio Reciter (Qari)
-          <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.2rem' }}>
+          <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.2rem' }}>
             <select
               id="reciter-select"
               value={reciterId}
@@ -141,12 +169,21 @@ export function VersePanel({
                 className="btn"
                 onClick={onRandomizeReciter}
                 title="Randomize Qari Reciter"
-                style={{ padding: '0.4rem 0.6rem' }}
+                style={{ padding: '0.4rem 0.55rem' }}
                 disabled={loading}
               >
                 🎲
               </button>
             )}
+            <button
+              type="button"
+              className={`btn ${lockReciter ? 'primary' : ''}`}
+              style={{ padding: '0.4rem 0.55rem', fontSize: '0.8rem' }}
+              onClick={() => onToggleLockReciter(!lockReciter)}
+              title={lockReciter ? 'Reciter is LOCKED on random discovery' : 'Lock selected Qari'}
+            >
+              {lockReciter ? '🔒' : '🔓'}
+            </button>
           </div>
         </label>
 
@@ -167,22 +204,25 @@ export function VersePanel({
         </label>
       </div>
 
-      <button
-        id="random-btn"
-        type="button"
-        className="btn"
-        onClick={() => void onLoadRandom()}
-        disabled={loading}
-        title="Discover random verse with a random Qari"
-      >
-        {loading ? (
-          <span className="loading-text">
-            <span className="spinner" /> Loading…
-          </span>
-        ) : (
-          '🎲 Random verse & Qari'
-        )}
-      </button>
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <button
+          id="random-btn"
+          type="button"
+          className="btn"
+          onClick={() => void onLoadRandom()}
+          disabled={loading}
+          style={{ flex: 1 }}
+          title="Discover random verse"
+        >
+          {loading ? (
+            <span className="loading-text">
+              <span className="spinner" /> Loading…
+            </span>
+          ) : (
+            `🎲 Random verse${!lockReciter ? ' & Qari' : ''}`
+          )}
+        </button>
+      </div>
 
       <div className="picks">
         {QUICK_PICKS.map(([s, a, label]) => (
@@ -195,6 +235,7 @@ export function VersePanel({
               setSurahInput(String(s))
               setAyatInput(String(a))
               setCountInput('1')
+              onCountChange?.(1)
               void onLoadRange(s, a, 1, editionId, reciterId)
             }}
           >
@@ -205,7 +246,10 @@ export function VersePanel({
 
       {error && <p className="error">{error}</p>}
       {verses.length > 0 && (
-        <p className="meta">Selected: {rangeLabel} · 🎙️ {currentReciter} · {verses[0]?.editionName}</p>
+        <p className="meta">
+          Selected: {rangeLabel} · 🎙️ {currentReciter} {lockReciter ? '(🔒 Locked)' : ''} · {verses[0]?.editionName}
+          {lockCount ? ` · (🔒 ${countInput} Ayahs locked)` : ''}
+        </p>
       )}
     </section>
   )

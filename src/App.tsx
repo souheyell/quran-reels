@@ -123,6 +123,8 @@ function App() {
             verses={config.verses}
             editionId={verseLoader.editionId}
             reciterId={verseLoader.reciterId}
+            lockCount={verseLoader.lockCount}
+            lockReciter={verseLoader.lockReciter}
             loading={verseLoader.loading}
             error={verseLoader.error}
             onLoadRange={verseLoader.loadRange}
@@ -130,6 +132,9 @@ function App() {
             onEditionChange={verseLoader.changeEdition}
             onReciterChange={verseLoader.changeReciter}
             onRandomizeReciter={verseLoader.randomizeReciter}
+            onToggleLockCount={verseLoader.setLockCount}
+            onToggleLockReciter={verseLoader.setLockReciter}
+            onCountChange={verseLoader.setFixedCount}
           />
           <BackgroundPanel
             url={config.background.url}

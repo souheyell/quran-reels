@@ -15,6 +15,10 @@ export function useVerseLoader(options: UseVerseLoaderOptions) {
   const [error, setError] = useState<string | null>(null)
   const [editionId, setEditionId] = useState(options.initialEditionId)
   const [reciterId, setReciterId] = useState(options.initialReciterId || DEFAULT_RECITER_ID)
+  const [lockCount, setLockCount] = useState(false)
+  const [lockReciter, setLockReciter] = useState(false)
+  const [fixedCount, setFixedCount] = useState(1)
+
   const activeRequestIdRef = useRef(0)
   const mountedRef = useRef(false)
 
@@ -62,6 +66,7 @@ export function useVerseLoader(options: UseVerseLoaderOptions) {
       const rid = reciter ?? reciterId
       if (edition) setEditionId(edition)
       if (reciter) setReciterId(reciter)
+      setFixedCount(count)
       return handleLoad((signal) => fetchVerses(surah, startAyat, count, eid, rid, signal))
     },
     [handleLoad, editionId, reciterId],
@@ -69,18 +74,25 @@ export function useVerseLoader(options: UseVerseLoaderOptions) {
 
   const loadRandom = useCallback(
     (count?: number) => {
-      const safeCount =
-        typeof count === 'number' && Number.isFinite(count) && count > 0
-          ? Math.floor(count)
-          : (verses.length > 0 ? verses.length : 1)
+      let targetCount = 1
+      if (lockCount) {
+        targetCount = fixedCount > 0 ? fixedCount : 1
+      } else if (typeof count === 'number' && Number.isFinite(count) && count > 0) {
+        targetCount = Math.floor(count)
+      } else if (verses.length > 0) {
+        targetCount = verses.length
+      }
 
-      // Randomize reciter along with the verse
-      const randomReciter = POPULAR_RECITERS[Math.floor(Math.random() * POPULAR_RECITERS.length)].id
-      setReciterId(randomReciter)
+      // If reciter is locked, keep the current reciterId. Otherwise, pick a random Qari.
+      let targetReciter = reciterId
+      if (!lockReciter) {
+        targetReciter = POPULAR_RECITERS[Math.floor(Math.random() * POPULAR_RECITERS.length)].id
+        setReciterId(targetReciter)
+      }
 
-      return handleLoad((signal) => fetchRandomVerses(safeCount, editionId, randomReciter, signal))
+      return handleLoad((signal) => fetchRandomVerses(targetCount, editionId, targetReciter, signal))
     },
-    [handleLoad, editionId, verses.length],
+    [handleLoad, editionId, reciterId, lockCount, lockReciter, fixedCount, verses.length],
   )
 
   const changeEdition = useCallback(
@@ -129,6 +141,12 @@ export function useVerseLoader(options: UseVerseLoaderOptions) {
     error,
     editionId,
     reciterId,
+    lockCount,
+    lockReciter,
+    fixedCount,
+    setLockCount,
+    setLockReciter,
+    setFixedCount,
     loadRange,
     loadRandom,
     changeEdition,

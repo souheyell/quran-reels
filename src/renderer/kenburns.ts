@@ -15,12 +15,27 @@ function easeInOut(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
 }
 
-export function getTransform(config: MotionConfig, timeMs: number): Transform {
+/**
+ * Calculate continuous Ken Burns transformation across the entire video reel duration.
+ * Keeps background motions intact and unbroken from ayat to ayat.
+ */
+export function getTransform(
+  config: MotionConfig,
+  timeMs: number,
+  totalDurationMs?: number,
+): Transform {
   if (config.type === 'static') {
     return { x: 0, y: 0, scale: 1 }
   }
 
-  const progress = Math.min(Math.max(timeMs / (config.duration * 1000), 0), 1)
+  const durationMs =
+    totalDurationMs && totalDurationMs > 0
+      ? totalDurationMs
+      : config.duration * 1000
+
+  // Seamless continuous progress across the entire reel
+  const clampedTime = Math.max(0, timeMs)
+  const progress = durationMs > 0 ? Math.min(Math.max(clampedTime / durationMs, 0), 1) : 0
   const e = easeInOut(progress)
   const scale = 1.08 + 0.12 * e
 
