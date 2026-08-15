@@ -28,6 +28,8 @@ function App() {
     setTextPosition,
     setTextColor,
     setShowGlow,
+    setShowTranslation,
+    setSurahHeaderPosition,
     setFooterEnabled,
     setFooterText,
     setFooterIcon,
@@ -135,6 +137,8 @@ function App() {
             translationSize={config.text.translationSize}
             textColor={config.text.textColor}
             showGlow={config.text.showGlow}
+            showTranslation={config.text.showTranslation}
+            surahHeaderPosition={config.text.surahHeaderPosition}
             onOverlayColor={setOverlayColor}
             onOverlayOpacity={setOverlayOpacity}
             onArabicFont={setArabicFont}
@@ -143,6 +147,8 @@ function App() {
             onTranslationSize={setTranslationSize}
             onTextColor={setTextColor}
             onShowGlow={setShowGlow}
+            onShowTranslation={setShowTranslation}
+            onSurahHeaderPosition={setSurahHeaderPosition}
           />
           <FooterPanel
             enabled={config.footer.enabled}

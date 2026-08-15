@@ -92,45 +92,24 @@ function drawVerse(
     ctx.font = buildFont({ size, font: text.arabicFont })
     return ctx.measureText(prepareText(s, arabicRtl)).width
   }
+  const maxArabicHeight = text.showTranslation ? height * 0.42 : height * 0.65
   const arabicLines = fitFontSize(
     verse.arabic,
     maxTextWidth,
-    height * 0.45,
+    maxArabicHeight,
     scaledArabicSize,
     arabicMeasure,
-    1.55,
+    1.6,
     Math.max(8, Math.floor(scaledArabicSize * 0.55)),
   )
 
-  const translationRtl = isRtl(verse.translation)
-  const translationMeasure = (s: string, size: number) => {
-    ctx.font = buildFont({ size, font: text.translationFont })
-    return ctx.measureText(prepareText(s, translationRtl)).width
-  }
-  const translationLines = fitFontSize(
-    verse.translation,
-    maxTextWidth,
-    height * 0.28,
-    scaledTranslationSize,
-    translationMeasure,
-    1.5,
-    Math.max(7, Math.floor(scaledTranslationSize * 0.5)),
-  )
-
-  const arabicBlock = arabicLines.lines.length * arabicLines.size * 1.55
-  const translationBlock = translationLines.lines.length * translationLines.size * 1.5
   const surahName = verse.surahName || `Surah ${verse.surah}`
   const reference = `${surahName} ${verse.surah}:${verse.ayat}`
-  const refBlock = height * 0.035
-  const gap = height * 0.045
-  const total = arabicBlock + translationBlock + refBlock + gap * 2
 
-  let cursorY: number
-  if (text.textPosition === 'lower-third') {
-    cursorY = lowerThirdY - total / 2
-  } else {
-    cursorY = centerY - total / 2
-  }
+  // Alphas
+  const arabicAlpha = fadeIn(verseTimeMs, 0, 300)
+  const translationAlpha = fadeIn(verseTimeMs, 100, 300)
+  const referenceAlpha = fadeIn(verseTimeMs, 80, 300)
 
   ctx.save()
   ctx.fillStyle = text.textColor
@@ -140,31 +119,77 @@ function drawVerse(
     ctx.shadowBlur = Math.round(24 * scale)
   }
 
-  // Immediate smooth fade in sync with audio recitation
-  const arabicAlpha = fadeIn(verseTimeMs, 0, 300)
-  const translationAlpha = fadeIn(verseTimeMs, 100, 300)
-  const referenceAlpha = fadeIn(verseTimeMs, 100, 300)
+  // ── Surah Name on Top (Default) ──────────────────────────
+  const showHeaderTop = text.surahHeaderPosition === 'top' || text.surahHeaderPosition === undefined
+  if (showHeaderTop) {
+    const topHeaderY = height * 0.08
+    const headerFontSize = Math.max(12, Math.round(height * 0.024))
+    ctx.font = `600 ${headerFontSize}px ${text.translationFont}`
+    ctx.globalAlpha = referenceAlpha * 0.9
+    ctx.fillText(reference.toUpperCase(), width / 2, topHeaderY)
+  }
 
-  // Arabic verse
+  // ── Calculate Main Content Layout ────────────────────────
+  const arabicBlock = arabicLines.lines.length * arabicLines.size * 1.6
+
+  let translationBlock = 0
+  let translationLines: ReturnType<typeof fitFontSize> | null = null
+
+  if (text.showTranslation && verse.translation) {
+    const translationRtl = isRtl(verse.translation)
+    const translationMeasure = (s: string, size: number) => {
+      ctx.font = buildFont({ size, font: text.translationFont })
+      return ctx.measureText(prepareText(s, translationRtl)).width
+    }
+    translationLines = fitFontSize(
+      verse.translation,
+      maxTextWidth,
+      height * 0.28,
+      scaledTranslationSize,
+      translationMeasure,
+      1.5,
+      Math.max(7, Math.floor(scaledTranslationSize * 0.5)),
+    )
+    translationBlock = translationLines.lines.length * translationLines.size * 1.5
+  }
+
+  const gap = text.showTranslation && translationBlock > 0 ? height * 0.04 : 0
+  const bottomRefBlock = text.surahHeaderPosition === 'bottom' ? height * 0.035 + height * 0.02 : 0
+  const totalHeight = arabicBlock + translationBlock + gap + bottomRefBlock
+
+  let cursorY: number
+  if (text.textPosition === 'lower-third') {
+    cursorY = lowerThirdY - totalHeight / 2
+  } else {
+    cursorY = centerY - totalHeight / 2
+  }
+
+  // ── Render Arabic Text ───────────────────────────────────
   ctx.font = buildFont({ size: arabicLines.size, font: text.arabicFont })
   ctx.globalAlpha = arabicAlpha
   for (const line of arabicLines.lines) {
     ctx.fillText(prepareText(line.text, arabicRtl), width / 2, cursorY)
-    cursorY += arabicLines.size * 1.55
+    cursorY += arabicLines.size * 1.6
   }
 
-  // Translation
-  ctx.font = buildFont({ size: translationLines.size, font: text.translationFont })
-  ctx.globalAlpha = translationAlpha
-  for (const line of translationLines.lines) {
-    ctx.fillText(prepareText(line.text, translationRtl), width / 2, cursorY)
-    cursorY += translationLines.size * 1.5
+  // ── Render Translation (if enabled) ──────────────────────
+  if (text.showTranslation && translationLines && translationBlock > 0) {
+    cursorY += gap
+    ctx.font = buildFont({ size: translationLines.size, font: text.translationFont })
+    ctx.globalAlpha = translationAlpha
+    const translationRtl = isRtl(verse.translation)
+    for (const line of translationLines.lines) {
+      ctx.fillText(prepareText(line.text, translationRtl), width / 2, cursorY)
+      cursorY += translationLines.size * 1.5
+    }
   }
 
-  // Reference
-  ctx.font = buildFont({ size: height * 0.035, font: text.translationFont })
-  ctx.globalAlpha = referenceAlpha
-  ctx.fillText(reference, width / 2, cursorY + height * 0.02)
+  // ── Render Bottom Reference (if selected) ────────────────
+  if (text.surahHeaderPosition === 'bottom') {
+    ctx.font = buildFont({ size: height * 0.032, font: text.translationFont })
+    ctx.globalAlpha = referenceAlpha
+    ctx.fillText(reference, width / 2, cursorY + height * 0.03)
+  }
 
   ctx.restore()
 }
@@ -271,6 +296,8 @@ export function defaultConfig(): ReelConfig {
       textPosition: 'center',
       textColor: '#ffffff',
       showGlow: true,
+      showTranslation: true,
+      surahHeaderPosition: 'top',
     },
     footer: {
       enabled: false,

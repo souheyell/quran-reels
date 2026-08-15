@@ -28,6 +28,10 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
       return { ...state, text: { ...state.text, textColor: action.color } }
     case 'SET_SHOW_GLOW':
       return { ...state, text: { ...state.text, showGlow: action.show } }
+    case 'SET_SHOW_TRANSLATION':
+      return { ...state, text: { ...state.text, showTranslation: action.show } }
+    case 'SET_SURAH_HEADER_POSITION':
+      return { ...state, text: { ...state.text, surahHeaderPosition: action.position } }
     case 'SET_FOOTER_ENABLED':
       return { ...state, footer: { ...state.footer, enabled: action.enabled } }
     case 'SET_FOOTER_TEXT':
@@ -99,6 +103,15 @@ export function useReelConfig() {
     (show: boolean) => dispatch({ type: 'SET_SHOW_GLOW', show }),
     [],
   )
+  const setShowTranslation = useCallback(
+    (show: boolean) => dispatch({ type: 'SET_SHOW_TRANSLATION', show }),
+    [],
+  )
+  const setSurahHeaderPosition = useCallback(
+    (position: ReelConfig['text']['surahHeaderPosition']) =>
+      dispatch({ type: 'SET_SURAH_HEADER_POSITION', position }),
+    [],
+  )
   const setFooterEnabled = useCallback(
     (enabled: boolean) => dispatch({ type: 'SET_FOOTER_ENABLED', enabled }),
     [],
@@ -148,6 +161,8 @@ export function useReelConfig() {
     setTextPosition,
     setTextColor,
     setShowGlow,
+    setShowTranslation,
+    setSurahHeaderPosition,
     setFooterEnabled,
     setFooterText,
     setFooterIcon,

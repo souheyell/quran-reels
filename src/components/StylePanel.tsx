@@ -1,3 +1,5 @@
+import type { ReelConfig } from '../types'
+
 interface StylePanelProps {
   overlayColor: string
   overlayOpacity: number
@@ -7,6 +9,8 @@ interface StylePanelProps {
   translationSize: number
   textColor: string
   showGlow: boolean
+  showTranslation: boolean
+  surahHeaderPosition: ReelConfig['text']['surahHeaderPosition']
   onOverlayColor: (v: string) => void
   onOverlayOpacity: (v: number) => void
   onArabicFont: (v: string) => void
@@ -15,6 +19,8 @@ interface StylePanelProps {
   onTranslationSize: (v: number) => void
   onTextColor: (v: string) => void
   onShowGlow: (v: boolean) => void
+  onShowTranslation: (v: boolean) => void
+  onSurahHeaderPosition: (v: ReelConfig['text']['surahHeaderPosition']) => void
 }
 
 export function StylePanel(props: StylePanelProps) {
@@ -44,6 +50,20 @@ export function StylePanel(props: StylePanelProps) {
           />
         </label>
       </div>
+
+      <label>
+        Surah Name Position
+        <select
+          id="surah-header-position-select"
+          value={props.surahHeaderPosition}
+          onChange={(e) => props.onSurahHeaderPosition(e.target.value as ReelConfig['text']['surahHeaderPosition'])}
+        >
+          <option value="top">Top Header (Recommended)</option>
+          <option value="bottom">Bottom of Verse</option>
+          <option value="none">Hidden</option>
+        </select>
+      </label>
+
       <label>
         Arabic font
         <select
@@ -56,6 +76,7 @@ export function StylePanel(props: StylePanelProps) {
           <option value='"Times New Roman", serif'>Times New Roman</option>
         </select>
       </label>
+
       <label>
         Arabic size {props.arabicSize}px
         <input
@@ -68,39 +89,58 @@ export function StylePanel(props: StylePanelProps) {
           onChange={(e) => props.onArabicSize(Number(e.target.value))}
         />
       </label>
-      <label>
-        Translation font
-        <select
-          id="translation-font-select"
-          value={props.translationFont}
-          onChange={(e) => props.onTranslationFont(e.target.value)}
-        >
-          <option value='system-ui, sans-serif'>System</option>
-          <option value='"Inter", sans-serif'>Inter</option>
-          <option value='"Times New Roman", serif'>Times New Roman</option>
-        </select>
-      </label>
-      <label>
-        Translation size {props.translationSize}px
-        <input
-          id="translation-size-input"
-          type="range"
-          min={20}
-          max={72}
-          step={2}
-          value={props.translationSize}
-          onChange={(e) => props.onTranslationSize(Number(e.target.value))}
-        />
-      </label>
+
       <label className="row-inline">
-        Text color
         <input
-          id="text-color-input"
-          type="color"
-          value={props.textColor}
-          onChange={(e) => props.onTextColor(e.target.value)}
+          id="show-translation-checkbox"
+          type="checkbox"
+          checked={props.showTranslation}
+          onChange={(e) => props.onShowTranslation(e.target.checked)}
         />
+        Show Translation on Video
       </label>
+
+      {props.showTranslation && (
+        <>
+          <label>
+            Translation font
+            <select
+              id="translation-font-select"
+              value={props.translationFont}
+              onChange={(e) => props.onTranslationFont(e.target.value)}
+            >
+              <option value='system-ui, sans-serif'>System</option>
+              <option value='"Inter", sans-serif'>Inter</option>
+              <option value='"Times New Roman", serif'>Times New Roman</option>
+            </select>
+          </label>
+          <label>
+            Translation size {props.translationSize}px
+            <input
+              id="translation-size-input"
+              type="range"
+              min={20}
+              max={72}
+              step={2}
+              value={props.translationSize}
+              onChange={(e) => props.onTranslationSize(Number(e.target.value))}
+            />
+          </label>
+        </>
+      )}
+
+      <div className="row">
+        <label className="color">
+          Text color
+          <input
+            id="text-color-input"
+            type="color"
+            value={props.textColor}
+            onChange={(e) => props.onTextColor(e.target.value)}
+          />
+        </label>
+      </div>
+
       <label className="row-inline">
         <input
           id="glow-checkbox"

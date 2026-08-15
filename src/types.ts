@@ -40,6 +40,8 @@ export interface ReelConfig {
     textPosition: 'center' | 'lower-third'
     textColor: string
     showGlow: boolean
+    showTranslation: boolean
+    surahHeaderPosition: 'top' | 'bottom' | 'none'
   }
   footer: {
     enabled: boolean
@@ -78,6 +80,8 @@ export type ConfigAction =
   | { type: 'SET_TEXT_POSITION'; position: ReelConfig['text']['textPosition'] }
   | { type: 'SET_TEXT_COLOR'; color: string }
   | { type: 'SET_SHOW_GLOW'; show: boolean }
+  | { type: 'SET_SHOW_TRANSLATION'; show: boolean }
+  | { type: 'SET_SURAH_HEADER_POSITION'; position: ReelConfig['text']['surahHeaderPosition'] }
   | { type: 'SET_FOOTER_ENABLED'; enabled: boolean }
   | { type: 'SET_FOOTER_TEXT'; text: string }
   | { type: 'SET_FOOTER_ICON'; icon: ReelConfig['footer']['icon'] }
