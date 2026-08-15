@@ -1,6 +1,6 @@
-import { useReducer, useCallback } from 'react'
+import { useReducer, useCallback, useEffect } from 'react'
 import type { ReelConfig, ConfigAction } from '../types'
-import { defaultConfig } from '../renderer/reelRenderer'
+import { loadSavedConfig, saveConfig } from '../lib/storage'
 
 function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
   switch (action.type) {
@@ -58,7 +58,12 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
 }
 
 export function useReelConfig() {
-  const [config, dispatch] = useReducer(configReducer, null, defaultConfig)
+  const [config, dispatch] = useReducer(configReducer, null, loadSavedConfig)
+
+  // Automatically persist config to localStorage on every change
+  useEffect(() => {
+    saveConfig(config)
+  }, [config])
 
   const setVerses = useCallback(
     (verses: ReelConfig['verses']) => dispatch({ type: 'SET_VERSES', verses }),

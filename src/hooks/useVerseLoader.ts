@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Verse } from '../types'
 import { fetchVerses, fetchRandomVerses, POPULAR_RECITERS, DEFAULT_RECITER_ID } from '../api/quran'
+import { loadSavedLoaderState, saveLoaderState } from '../lib/storage'
 
 interface UseVerseLoaderOptions {
   initialSurah: number
@@ -10,17 +11,34 @@ interface UseVerseLoaderOptions {
 }
 
 export function useVerseLoader(options: UseVerseLoaderOptions) {
+  const savedState = loadSavedLoaderState()
+
   const [verses, setVerses] = useState<Verse[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [editionId, setEditionId] = useState(options.initialEditionId)
-  const [reciterId, setReciterId] = useState(options.initialReciterId || DEFAULT_RECITER_ID)
-  const [lockCount, setLockCount] = useState(false)
-  const [lockReciter, setLockReciter] = useState(false)
-  const [fixedCount, setFixedCount] = useState(1)
+  const [editionId, setEditionId] = useState(
+    savedState.editionId || options.initialEditionId,
+  )
+  const [reciterId, setReciterId] = useState(
+    savedState.reciterId || options.initialReciterId || DEFAULT_RECITER_ID,
+  )
+  const [lockCount, setLockCount] = useState(savedState.lockCount ?? false)
+  const [lockReciter, setLockReciter] = useState(savedState.lockReciter ?? false)
+  const [fixedCount, setFixedCount] = useState(savedState.fixedCount ?? 1)
 
   const activeRequestIdRef = useRef(0)
   const mountedRef = useRef(false)
+
+  // Persist preferences to localStorage
+  useEffect(() => {
+    saveLoaderState({
+      editionId,
+      reciterId,
+      lockCount,
+      lockReciter,
+      fixedCount,
+    })
+  }, [editionId, reciterId, lockCount, lockReciter, fixedCount])
 
   const handleLoad = useCallback(
     async (fn: (signal: AbortSignal) => Promise<Verse[]>) => {
@@ -132,8 +150,8 @@ export function useVerseLoader(options: UseVerseLoaderOptions) {
   useEffect(() => {
     if (mountedRef.current) return
     mountedRef.current = true
-    void loadRange(options.initialSurah, options.initialAyat, 1)
-  }, [loadRange, options.initialSurah, options.initialAyat])
+    void loadRange(options.initialSurah, options.initialAyat, fixedCount || 1)
+  }, [loadRange, options.initialSurah, options.initialAyat, fixedCount])
 
   return {
     verses,
