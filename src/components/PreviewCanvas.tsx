@@ -161,19 +161,19 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
         return
       }
 
-      const currentIndex = indexRef.current
-      const verse = verses[currentIndex] || verses[0]
-      const slot = timeline.slots[currentIndex] || timeline.slots[0]
+      let currentIndex = indexRef.current
+      let activeVerse = verses[currentIndex] || verses[0]
+      let activeSlot = timeline.slots[currentIndex] || timeline.slots[0]
       const audio = audioRef.current
 
-      if (!slot || !verse) {
+      if (!activeSlot || !activeVerse) {
         rafRef.current = requestAnimationFrame(loop)
         return
       }
 
-      const isAudioActive = Boolean(verse.audioUrl && audio)
+      const isAudioActive = Boolean(activeVerse.audioUrl && audio)
       let verseTimeMs = 0
-      let totalSlotDurationMs = slot.durationMs
+      let totalSlotDurationMs = activeSlot.durationMs
 
       const isMultiAyah = verses.length > 1
       const isLastAyah = currentIndex === verses.length - 1
@@ -188,7 +188,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
           const audioDurationMs =
             Number.isFinite(audio.duration) && audio.duration > 0
               ? audio.duration * 1000
-              : slot.durationMs
+              : activeSlot.durationMs
 
           totalSlotDurationMs = audioDurationMs + pauseDurationMs
 
@@ -204,34 +204,47 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
               if (nextIndex === 0) {
                 loopBaseRef.current += timeline.totalMs
               }
+              // Immediately switch active verse reference for this frame to avoid 1-frame old-verse flash!
               advanceTo(nextIndex)
+              currentIndex = nextIndex
+              activeVerse = verses[nextIndex] || verses[0]
+              activeSlot = timeline.slots[nextIndex] || timeline.slots[0]
               verseTimeMs = 0
+              totalSlotDurationMs = activeSlot.durationMs
             }
           } else if (!audio.paused && audio.currentTime > 0) {
             verseTimeMs = audio.currentTime * 1000
           } else {
-            // Buffering or playing without audio track
+            // Buffering or muted fallback
             verseTimeMs = now - slotStartRef.current
             if (verseTimeMs >= totalSlotDurationMs) {
               const nextIndex = (currentIndex + 1) % verses.length
               advanceTo(nextIndex)
+              currentIndex = nextIndex
+              activeVerse = verses[nextIndex] || verses[0]
+              activeSlot = timeline.slots[nextIndex] || timeline.slots[0]
               verseTimeMs = 0
+              totalSlotDurationMs = activeSlot.durationMs
             }
           }
         } else {
           // Fallback without audio
           verseTimeMs = now - slotStartRef.current
-          totalSlotDurationMs = slot.durationMs
+          totalSlotDurationMs = activeSlot.durationMs
           if (verseTimeMs >= totalSlotDurationMs) {
             const nextIndex = (currentIndex + 1) % verses.length
             advanceTo(nextIndex)
+            currentIndex = nextIndex
+            activeVerse = verses[nextIndex] || verses[0]
+            activeSlot = timeline.slots[nextIndex] || timeline.slots[0]
             verseTimeMs = 0
+            totalSlotDurationMs = activeSlot.durationMs
           }
         }
       }
 
       const totalTimelineMs = Math.max(1, timeline.totalMs)
-      const currentGlobalMs = (slot.startMs + verseTimeMs) % totalTimelineMs
+      const currentGlobalMs = (activeSlot.startMs + verseTimeMs) % totalTimelineMs
       if (!isScrubbingRef.current) {
         setCurrentProgressMs(currentGlobalMs)
       }
@@ -240,7 +253,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
         timeMs: currentGlobalMs,
         config,
         image,
-        verse,
+        verse: activeVerse,
         verseTimeMs,
         slotDurationMs: totalSlotDurationMs,
         totalDurationMs: totalTimelineMs,
