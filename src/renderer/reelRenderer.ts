@@ -62,22 +62,41 @@ function fadeIn(timeMs: number, start: number, duration: number): number {
   return (timeMs - start) / duration
 }
 
-function getSurahDisplayTitle(
+function toArabicDigits(num: number | string): string {
+  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩']
+  return String(num).replace(/[0-9]/g, (d) => arabicDigits[Number(d)] ?? d)
+}
+
+function getSurahHeaderContent(
   verse: Verse,
   language: ReelConfig['text']['surahNameLanguage'] = 'arabic',
-): { text: string; isRtl: boolean } {
+): { title: string; subtitle: string; isRtl: boolean } {
   const arabicName = verse.surahArabicName || `سُورَةُ ${verse.surah}`
   const englishName = verse.surahName || `Surah ${verse.surah}`
-  const refNum = `${verse.surah}:${verse.ayat}`
+  const arabicAyahNum = toArabicDigits(verse.ayat)
 
   if (language === 'english') {
-    return { text: `${englishName.toUpperCase()} · ${refNum}`, isRtl: false }
+    return {
+      title: englishName.toUpperCase(),
+      subtitle: `Verse ${verse.ayat}`,
+      isRtl: false,
+    }
   }
+
   if (language === 'both') {
-    return { text: `${arabicName} (${englishName} ${refNum})`, isRtl: true }
+    return {
+      title: arabicName,
+      subtitle: `${englishName} · Ayah ${verse.ayat}`,
+      isRtl: true,
+    }
   }
+
   // Default 'arabic'
-  return { text: `${arabicName} · ${refNum}`, isRtl: true }
+  return {
+    title: arabicName,
+    subtitle: `الآية ${arabicAyahNum}`,
+    isRtl: true,
+  }
 }
 
 function drawVerse(
@@ -121,7 +140,7 @@ function drawVerse(
     Math.max(8, Math.floor(scaledArabicSize * 0.55)),
   )
 
-  const surahInfo = getSurahDisplayTitle(verse, text.surahNameLanguage || 'arabic')
+  const surahHeader = getSurahHeaderContent(verse, text.surahNameLanguage || 'arabic')
 
   // Alphas
   const arabicAlpha = fadeIn(verseTimeMs, 0, 300)
@@ -136,18 +155,27 @@ function drawVerse(
     ctx.shadowBlur = Math.round(24 * scale)
   }
 
-  // ── Surah Name on Top (Arabic Default) ───────────────────
+  // ── Surah in Arabic Calligraphy + Verses Number Just Down The Surah ──
   const showHeaderTop = text.surahHeaderPosition === 'top' || text.surahHeaderPosition === undefined
   if (showHeaderTop) {
-    const topHeaderY = height * 0.08
-    const headerFontSize = surahInfo.isRtl
-      ? Math.max(14, Math.round(height * 0.03))
-      : Math.max(12, Math.round(height * 0.024))
-    const headerFont = surahInfo.isRtl ? text.arabicFont : text.translationFont
+    const topHeaderY = height * 0.065
+    const titleFontSize = surahHeader.isRtl
+      ? Math.max(16, Math.round(height * 0.033))
+      : Math.max(13, Math.round(height * 0.025))
+    const titleFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
 
-    ctx.font = buildFont({ size: headerFontSize, font: headerFont })
-    ctx.globalAlpha = referenceAlpha * 0.95
-    ctx.fillText(prepareText(surahInfo.text, surahInfo.isRtl), width / 2, topHeaderY)
+    // Line 1: Surah in Calligraphy
+    ctx.font = buildFont({ size: titleFontSize, font: titleFont })
+    ctx.globalAlpha = referenceAlpha * 0.98
+    ctx.fillText(prepareText(surahHeader.title, surahHeader.isRtl), width / 2, topHeaderY)
+
+    // Line 2: Verse number directly under the Surah
+    const subtitleFontSize = Math.max(11, Math.round(height * 0.019))
+    const subtitleY = topHeaderY + titleFontSize * 1.15
+    const subtitleFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
+    ctx.font = buildFont({ size: subtitleFontSize, font: subtitleFont })
+    ctx.globalAlpha = referenceAlpha * 0.78
+    ctx.fillText(prepareText(surahHeader.subtitle, surahHeader.isRtl), width / 2, subtitleY)
   }
 
   // ── Calculate Main Content Layout ────────────────────────
@@ -175,7 +203,7 @@ function drawVerse(
   }
 
   const gap = text.showTranslation && translationBlock > 0 ? height * 0.04 : 0
-  const bottomRefBlock = text.surahHeaderPosition === 'bottom' ? height * 0.035 + height * 0.02 : 0
+  const bottomRefBlock = text.surahHeaderPosition === 'bottom' ? height * 0.04 + height * 0.02 : 0
   const totalHeight = arabicBlock + translationBlock + gap + bottomRefBlock
 
   let cursorY: number
@@ -207,14 +235,19 @@ function drawVerse(
 
   // ── Render Bottom Reference (if selected) ────────────────
   if (text.surahHeaderPosition === 'bottom') {
-    const bottomFontSize = surahInfo.isRtl
+    const bottomTitleSize = surahHeader.isRtl
       ? Math.max(14, Math.round(height * 0.03))
-      : Math.max(12, Math.round(height * 0.026))
-    const bottomFont = surahInfo.isRtl ? text.arabicFont : text.translationFont
+      : Math.max(12, Math.round(height * 0.024))
+    const bottomFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
 
-    ctx.font = buildFont({ size: bottomFontSize, font: bottomFont })
-    ctx.globalAlpha = referenceAlpha
-    ctx.fillText(prepareText(surahInfo.text, surahInfo.isRtl), width / 2, cursorY + height * 0.03)
+    ctx.font = buildFont({ size: bottomTitleSize, font: bottomFont })
+    ctx.globalAlpha = referenceAlpha * 0.95
+    ctx.fillText(prepareText(surahHeader.title, surahHeader.isRtl), width / 2, cursorY + height * 0.03)
+
+    const bottomSubSize = Math.max(10, Math.round(height * 0.018))
+    ctx.font = buildFont({ size: bottomSubSize, font: bottomFont })
+    ctx.globalAlpha = referenceAlpha * 0.75
+    ctx.fillText(prepareText(surahHeader.subtitle, surahHeader.isRtl), width / 2, cursorY + height * 0.03 + bottomTitleSize * 1.1)
   }
 
   ctx.restore()
