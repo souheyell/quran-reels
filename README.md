@@ -2,16 +2,50 @@
 
 A high-performance, studio-grade browser application for creating breathtaking Quran verse video reels for **Instagram Reels, TikTok, YouTube Shorts, and WhatsApp Status**. 
 
-Overlays sacred Quranic verses with authentic **Thuluth script vector calligraphy**, customizable Arabic typography, multi-lingual translations, 6 cinematic camera motions, synchronized high-fidelity audio from **25 classical and modern master Qaris**, and fast hardware-accelerated **1080p MP4** video export.
+Overlays sacred Quranic verses with authentic **Thuluth script vector calligraphy**, 1-click aesthetic themes, progressive word-by-word karaoke glow, dual multi-language subtitles, mosque sanctuary acoustic reverb, 5 atmospheric particle effects, 7 cinematic camera motions, and synchronized audio from **25 classical and modern master Qaris**.
 
 ---
 
 ## 🌟 Key Features
 
+### 🌟 1-Click Aesthetic Themes & Presets
+Instant, professional styling configurations tailored for high engagement on social platforms:
+- **🌟 Golden Medina**: Deep amber calligraphy, glowing fireflies, sunset mosque atmosphere, cinematic zoom.
+- **🌌 Midnight Reflection**: Cool cyan/silver glow, Amiri Quran font, gentle falling snow, starry cosmos night.
+- **🌿 Sacred Grove**: Crisp white Naskh, sunbeam dust motes, misty redwood forest canopy, ascending tilt.
+- **👑 Royal Cordoba**: Majestic Reem Kufi calligraphy, twinkling stars, Andalusian geometric elegance.
+- **🏜️ Desert Twilight**: Warm sand glow, Tajawal font, Sahara sunset dunes, meditative breathing pulse.
+- **🖤 Minimalist Dark**: Sleek monochrome, modern Cairo font, lower-third layout, clean canvas.
+
+---
+
+### 🔤 Word-by-Word Karaoke Highlighting
+- As the Qari recites each word, Arabic words illuminate progressively with a **soft golden or cyan glow** in sample-accurate synchronization with the recitation.
+- Recited words glow with high prominence, while upcoming words remain in soft elegant tone for maximum viewer retention.
+
+---
+
+### 📤 Custom Video/Image Backgrounds & Audio Upload
+- **Video Backgrounds**: Upload your own looped MP4/WebM drone footage (e.g., Kaaba aerials, drone nature footage).
+- **Custom Audio**: Upload your own local voiceover recordings or MP3 recitations with 1-click.
+
+---
+
+### 🕌 Mosque Sanctuary Acoustic Reverb
+- Web Audio API convolution impulse response simulator giving recitations the serene acoustic ambience and spatial resonance of a grand cathedral mosque (~2.4s reverberation tail).
+
+---
+
+### 🌍 Dual Multi-Language Subtitles & Reflection Cards
+- **Dual Subtitles**: Display two translations simultaneously (e.g. English + French / Urdu / Turkish / Indonesian / German).
+- **✨ Reflection Cards**: Add an optional spiritual reflection footnote (e.g., *"Reflect upon the signs of Allah"*) at the base of the verse.
+
+---
+
 ### 📜 Authentic Thuluth Vector Calligraphy & Basmalah Centerpiece
 - **114 Classical Surah Title Emblems**: Vector glyphs rendered in traditional Thuluth script with high-DPI canvas caching.
 - **Sacred Thuluth Basmalah Emblem (`﷽`)**: Majestic centerpiece opening banner for Ayah 1 of any Surah with automatic text cleansing.
-- **Surah Title Header Continuity**: Elegant top header displays the Surah emblem with Ayah number positioned underneath.
+- **Surah Title Header Continuity**: Top header displays the Surah emblem with Ayah number positioned underneath.
 
 ---
 
@@ -46,14 +80,12 @@ High-speed, sample-accurate audio recitations directly from the EveryAyah CDN:
 
 ---
 
-### 🖼️ 6 Themed Footage Categories with Live Refresh
-- 🕌 **Mosques & Architecture**: Grand illuminated domes, historic minarets, marble arches, courtyards.
-- 🏔️ **Mountains & Summits**: Misty alpine peaks, golden sunset ridges, snowy vistas.
-- 🌊 **Oceans & Shores**: Deep blue horizons, sunset coasts, crystal turquoise waters.
-- 🌲 **Forests & Redwoods**: Sunlit forest canopies, misty evergreens, woodland pathways.
-- 🏜️ **Deserts & Dunes**: Golden Arabian sand dunes, Sahara sunset, twilight sands.
-- 🌌 **Cosmos & Night Sky**: Milky Way galaxy, starry constellations, deep space horizons.
-- **🔄 1-Click Live Refresh**: Shuffle and rotate the stock library to discover new images dynamically.
+### ✨ 5 Atmospheric Particle Video Effects
+1. **✨ Golden Fireflies / Embers**: Glowing golden particles drifting upward with harmonic horizontal sway.
+2. **❄️ Gentle Slow Snow**: Soft snowflakes drifting and fluttering on the breeze.
+3. **☀️ Sunbeam Dust Motes**: Warm spiritual dust particles floating in cathedral sunbeams.
+4. **🌌 Twinkling Night Stars**: Subtle twinkling celestial stars with diamond flares.
+5. **🌧️ Soothing Gentle Rain**: Translucent angled rainfall streaks.
 
 ---
 
@@ -69,27 +101,6 @@ Continuous unbroken motion across the entire video reel (never resets between ay
 
 ---
 
-### 🎬 In-Editor Video Controls & Audio Timing Fix
-- **Interactive Scrubber Bar**: Seek anywhere in the video timeline with ayah tick markers.
-- **Transport Controls**: Play/Pause, Previous/Next Ayah, Restart, and Volume slider.
-- **Sample-Accurate Multi-Ayah Timing**: Each ayah finishes 100% before the pause and next ayah start.
-- **Zero-Flicker Dissolve Transitions**: Smooth cubic easing (`smoothStep`) fade-in and contemplation fade-out.
-- **Configurable Ayah Pause Delay Slider**: Set silence between ayahs from `0.0s` to `5.0s` (default `1.6s`).
-
----
-
-### 🖋️ 9 Classical Quranic & Contemporary Arabic Typefaces
-- **📜 Classical Quranic & Naskh**: *Scheherazade New* (Traditional Mushaf), *Amiri Quran* (Bulaq Heritage), *Noto Naskh Arabic* (Digital Crisp).
-- **✒️ Calligraphic & Artistic Scripts**: *Reem Kufi* (Majestic Kufic), *Aref Ruqaa* (Ottoman Calligraphy).
-- **📱 Modern Social Video Typography**: *Cairo* (Reels Display), *Tajawal* (Contemporary Sans), *Noto Sans Arabic* (Clean Minimalist), *Almarai* (Modern Geometric).
-
----
-
-### 💾 Automatic Continuous Settings Persistence
-- All selections (fonts, sizes, colors, overlay opacity, pause delay, Basmalah toggle, motion style, footer branding, and verse loader locks) are automatically saved to `localStorage` in real time.
-
----
-
 ### ⚡ Memory-Bounded 1080p MP4 Video Export
 - **Universal Hardware Acceleration**: Powered by WebCodecs `VideoEncoder` + `AudioEncoder` with `mp4-muxer`.
 - **Memory-Bounded Backpressure Control**: Caps encoder queue to <50MB RAM, completely preventing tab lag or flushing errors.
@@ -97,7 +108,6 @@ Continuous unbroken motion across the entire video reel (never resets between ay
   - `9:16`: Vertical Reels (`1080 × 1920`)
   - `1:1`: Square Post (`1080 × 1080`)
   - `16:9`: Landscape Video (`1920 × 1080`)
-- **AAC-LC Stereo Audio (44.1kHz)** muxed directly in exact synchronization with the recitation.
 
 ---
 
@@ -105,9 +115,10 @@ Continuous unbroken motion across the entire video reel (never resets between ay
 
 - **Framework**: React 19, TypeScript, Vite
 - **Rendering Engine**: HTML5 Canvas 2D with RTL Arabic typography & high-DPI scaling
-- **Media Pipeline**: WebCodecs `VideoEncoder` / `AudioEncoder`, Web Audio API, `mp4-muxer`
+- **Audio & Acoustics**: Web Audio API ConvolverNode (Mosque Reverb), WebCodecs AudioEncoder
+- **Video Pipeline**: WebCodecs `VideoEncoder`, `mp4-muxer`
 - **APIs & Data**: [Al-Quran Cloud API](https://alquran.cloud/api), [EveryAyah CDN](https://everyayah.com), [Unsplash](https://unsplash.com)
-- **Quality & Testing**: Vitest (31/31 unit tests passing), Oxlint (0 warnings), TypeScript Strict Mode
+- **Quality & Testing**: Vitest (42/42 unit tests passing), Oxlint (0 warnings), TypeScript Strict Mode
 
 ---
 
@@ -141,19 +152,10 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 |---------|-------------|
 | `npm run dev` | Start Vite development server with audio proxy |
 | `npm run typecheck` | Run TypeScript strict compiler checks (`tsc -b`) |
-| `npm test` | Run test suite with Vitest (31 unit tests) |
+| `npm test` | Run test suite with Vitest (42 unit tests) |
 | `npm run lint` | Fast linter with Oxlint (0 warnings) |
 | `npm run build` | Build optimized production bundle to `dist/` |
 | `npm run preview` | Preview production build locally |
-
----
-
-## 🌐 Netlify Deployment
-
-This repository includes a production-ready `netlify.toml` with:
-- **COOP / COEP Headers**: `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: credentialless` for hardware WebCodecs.
-- **Audio Proxy Redirects**: Proxying audio with complete CORS headers.
-- **SPA Fallback**: Single-page application client routing rules.
 
 ---
 
