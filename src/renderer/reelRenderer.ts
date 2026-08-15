@@ -2,7 +2,12 @@ import type { ReelConfig, Verse } from '../types'
 import { drawBackground, getTransform } from './kenburns'
 import { fitFontSize, isRtl, prepareText } from './textLayout'
 import { DEFAULT_BACKGROUND_URL } from '../api/unsplash'
-import { getSurahCalligraphyImage, loadSurahCalligraphy } from '../lib/surahCalligraphy'
+import {
+  getSurahCalligraphyImage,
+  loadSurahCalligraphy,
+  getBasmalahCalligraphyImage,
+  loadBasmalahCalligraphy,
+} from '../lib/surahCalligraphy'
 
 export const ASPECT_SIZES: Record<ReelConfig['aspectRatio'], { width: number; height: number }> = {
   '9:16': { width: 1440, height: 2560 },
@@ -234,13 +239,14 @@ function drawVerse(
     }
   }
 
-  // ── Dedicated Basmalah Banner for Ayah 1 ──────────────────
+  // ── Dedicated Thuluth Basmalah Banner for Ayah 1 ─────────
   const hasBasmalah =
     verse.ayat === 1 && verse.surah > 1 && verse.surah !== 9 && text.showBasmalah !== false
 
-  const basmalahSize = Math.max(14, Math.round(scaledArabicSize * 0.84))
-  const basmalahGap = height * 0.032
-  const basmalahBlock = hasBasmalah ? basmalahSize * 1.6 + basmalahGap : 0
+  const basmalahImg = hasBasmalah ? getBasmalahCalligraphyImage(text.textColor) : null
+  const basmalahH = height * 0.05
+  const basmalahGap = height * 0.035
+  const basmalahBlock = hasBasmalah ? basmalahH + basmalahGap : 0
 
   // ── Calculate Main Content Layout ────────────────────────
   const arabicBlock = arabicLines.lines.length * arabicLines.size * 1.6
@@ -277,13 +283,24 @@ function drawVerse(
     cursorY = centerY - totalHeight / 2
   }
 
-  // ── Render Dedicated Basmalah Calligraphy Banner ─────────
+  // ── Render Dedicated Thuluth Basmalah Calligraphy Banner ──
   if (hasBasmalah) {
-    const basmalahText = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ'
-    ctx.font = buildFont({ size: basmalahSize, font: text.arabicFont })
-    ctx.globalAlpha = arabicAlpha * 0.95
-    ctx.fillText(prepareText(basmalahText, true), width / 2, cursorY)
-    cursorY += basmalahSize * 1.6 + basmalahGap
+    if (basmalahImg && basmalahImg.complete && basmalahImg.naturalWidth > 0) {
+      // Draw Thuluth vector Basmalah emblem
+      const aspect = basmalahImg.naturalWidth / basmalahImg.naturalHeight || 5.0
+      const basmalahW = Math.min(width * 0.85, basmalahH * aspect)
+      const bX = (width - basmalahW) / 2
+      ctx.globalAlpha = arabicAlpha * 0.98
+      ctx.drawImage(basmalahImg, bX, cursorY, basmalahW, basmalahH)
+    } else {
+      // Fallback to text Basmalah in Arabic calligraphy font
+      void loadBasmalahCalligraphy(text.textColor)
+      const basmalahSize = Math.max(14, Math.round(scaledArabicSize * 0.84))
+      ctx.font = buildFont({ size: basmalahSize, font: text.arabicFont })
+      ctx.globalAlpha = arabicAlpha * 0.95
+      ctx.fillText(prepareText('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', true), width / 2, cursorY + basmalahH / 2)
+    }
+    cursorY += basmalahH + basmalahGap
   }
 
   // ── Render Arabic Text with Smooth Dissolve ────────────────
