@@ -11,6 +11,7 @@ interface StylePanelProps {
   showGlow: boolean
   showTranslation: boolean
   surahHeaderPosition: ReelConfig['text']['surahHeaderPosition']
+  surahNameLanguage: ReelConfig['text']['surahNameLanguage']
   onOverlayColor: (v: string) => void
   onOverlayOpacity: (v: number) => void
   onArabicFont: (v: string) => void
@@ -21,6 +22,7 @@ interface StylePanelProps {
   onShowGlow: (v: boolean) => void
   onShowTranslation: (v: boolean) => void
   onSurahHeaderPosition: (v: ReelConfig['text']['surahHeaderPosition']) => void
+  onSurahNameLanguage: (v: ReelConfig['text']['surahNameLanguage']) => void
 }
 
 export function StylePanel(props: StylePanelProps) {
@@ -51,18 +53,33 @@ export function StylePanel(props: StylePanelProps) {
         </label>
       </div>
 
-      <label>
-        Surah Name Position
-        <select
-          id="surah-header-position-select"
-          value={props.surahHeaderPosition}
-          onChange={(e) => props.onSurahHeaderPosition(e.target.value as ReelConfig['text']['surahHeaderPosition'])}
-        >
-          <option value="top">Top Header (Recommended)</option>
-          <option value="bottom">Bottom of Verse</option>
-          <option value="none">Hidden</option>
-        </select>
-      </label>
+      <div className="row">
+        <label>
+          Surah Header Language
+          <select
+            id="surah-language-select"
+            value={props.surahNameLanguage}
+            onChange={(e) => props.onSurahNameLanguage(e.target.value as ReelConfig['text']['surahNameLanguage'])}
+          >
+            <option value="arabic">Arabic (سُورَةُ ٱلْبَقَرَةِ)</option>
+            <option value="both">Arabic + English</option>
+            <option value="english">English Only</option>
+          </select>
+        </label>
+
+        <label>
+          Surah Header Position
+          <select
+            id="surah-header-position-select"
+            value={props.surahHeaderPosition}
+            onChange={(e) => props.onSurahHeaderPosition(e.target.value as ReelConfig['text']['surahHeaderPosition'])}
+          >
+            <option value="top">Top Header (Recommended)</option>
+            <option value="bottom">Bottom of Verse</option>
+            <option value="none">Hidden</option>
+          </select>
+        </label>
+      </div>
 
       <label>
         Arabic font

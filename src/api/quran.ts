@@ -149,6 +149,7 @@ export async function fetchVerses(
       surah: safeSurah,
       ayat,
       surahName: surahMeta?.englishName ?? `Surah ${safeSurah}`,
+      surahArabicName: surahMeta?.name ?? `سورة ${safeSurah}`,
       arabic,
       translation,
       editionId,

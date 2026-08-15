@@ -2,6 +2,7 @@ export interface Verse {
   surah: number
   ayat: number
   surahName: string
+  surahArabicName?: string
   arabic: string
   translation: string
   editionId: string
@@ -42,6 +43,7 @@ export interface ReelConfig {
     showGlow: boolean
     showTranslation: boolean
     surahHeaderPosition: 'top' | 'bottom' | 'none'
+    surahNameLanguage: 'arabic' | 'english' | 'both'
   }
   footer: {
     enabled: boolean
@@ -82,6 +84,7 @@ export type ConfigAction =
   | { type: 'SET_SHOW_GLOW'; show: boolean }
   | { type: 'SET_SHOW_TRANSLATION'; show: boolean }
   | { type: 'SET_SURAH_HEADER_POSITION'; position: ReelConfig['text']['surahHeaderPosition'] }
+  | { type: 'SET_SURAH_NAME_LANGUAGE'; language: ReelConfig['text']['surahNameLanguage'] }
   | { type: 'SET_FOOTER_ENABLED'; enabled: boolean }
   | { type: 'SET_FOOTER_TEXT'; text: string }
   | { type: 'SET_FOOTER_ICON'; icon: ReelConfig['footer']['icon'] }

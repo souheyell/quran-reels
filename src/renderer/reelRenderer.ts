@@ -62,6 +62,24 @@ function fadeIn(timeMs: number, start: number, duration: number): number {
   return (timeMs - start) / duration
 }
 
+function getSurahDisplayTitle(
+  verse: Verse,
+  language: ReelConfig['text']['surahNameLanguage'] = 'arabic',
+): { text: string; isRtl: boolean } {
+  const arabicName = verse.surahArabicName || `سُورَةُ ${verse.surah}`
+  const englishName = verse.surahName || `Surah ${verse.surah}`
+  const refNum = `${verse.surah}:${verse.ayat}`
+
+  if (language === 'english') {
+    return { text: `${englishName.toUpperCase()} · ${refNum}`, isRtl: false }
+  }
+  if (language === 'both') {
+    return { text: `${arabicName} (${englishName} ${refNum})`, isRtl: true }
+  }
+  // Default 'arabic'
+  return { text: `${arabicName} · ${refNum}`, isRtl: true }
+}
+
 function drawVerse(
   ctx: CanvasRenderingContext2D,
   config: ReelConfig,
@@ -103,8 +121,7 @@ function drawVerse(
     Math.max(8, Math.floor(scaledArabicSize * 0.55)),
   )
 
-  const surahName = verse.surahName || `Surah ${verse.surah}`
-  const reference = `${surahName} ${verse.surah}:${verse.ayat}`
+  const surahInfo = getSurahDisplayTitle(verse, text.surahNameLanguage || 'arabic')
 
   // Alphas
   const arabicAlpha = fadeIn(verseTimeMs, 0, 300)
@@ -119,14 +136,18 @@ function drawVerse(
     ctx.shadowBlur = Math.round(24 * scale)
   }
 
-  // ── Surah Name on Top (Default) ──────────────────────────
+  // ── Surah Name on Top (Arabic Default) ───────────────────
   const showHeaderTop = text.surahHeaderPosition === 'top' || text.surahHeaderPosition === undefined
   if (showHeaderTop) {
     const topHeaderY = height * 0.08
-    const headerFontSize = Math.max(12, Math.round(height * 0.024))
-    ctx.font = `600 ${headerFontSize}px ${text.translationFont}`
-    ctx.globalAlpha = referenceAlpha * 0.9
-    ctx.fillText(reference.toUpperCase(), width / 2, topHeaderY)
+    const headerFontSize = surahInfo.isRtl
+      ? Math.max(14, Math.round(height * 0.03))
+      : Math.max(12, Math.round(height * 0.024))
+    const headerFont = surahInfo.isRtl ? text.arabicFont : text.translationFont
+
+    ctx.font = buildFont({ size: headerFontSize, font: headerFont })
+    ctx.globalAlpha = referenceAlpha * 0.95
+    ctx.fillText(prepareText(surahInfo.text, surahInfo.isRtl), width / 2, topHeaderY)
   }
 
   // ── Calculate Main Content Layout ────────────────────────
@@ -186,9 +207,14 @@ function drawVerse(
 
   // ── Render Bottom Reference (if selected) ────────────────
   if (text.surahHeaderPosition === 'bottom') {
-    ctx.font = buildFont({ size: height * 0.032, font: text.translationFont })
+    const bottomFontSize = surahInfo.isRtl
+      ? Math.max(14, Math.round(height * 0.03))
+      : Math.max(12, Math.round(height * 0.026))
+    const bottomFont = surahInfo.isRtl ? text.arabicFont : text.translationFont
+
+    ctx.font = buildFont({ size: bottomFontSize, font: bottomFont })
     ctx.globalAlpha = referenceAlpha
-    ctx.fillText(reference, width / 2, cursorY + height * 0.03)
+    ctx.fillText(prepareText(surahInfo.text, surahInfo.isRtl), width / 2, cursorY + height * 0.03)
   }
 
   ctx.restore()
@@ -271,6 +297,7 @@ export function defaultConfig(): ReelConfig {
         surah: 2,
         ayat: 255,
         surahName: 'Al-Baqarah',
+        surahArabicName: 'سُورَةُ ٱلْبَقَرَةِ',
         arabic:
           'ٱللَّهُ لَآ إِلَٰهَ إِلَّا هُوَ ٱلْحَىُّ ٱلْقَيُّومُ ۚ لَا تَأْخُذُهُۥ سِنَةٌۭ وَلَا نَوْمٌۭ ۚ لَّهُۥ مَا فِى ٱلسَّمَٰوَٰتِ وَمَا فِى ٱلْأَرْضِ',
         translation:
@@ -298,6 +325,7 @@ export function defaultConfig(): ReelConfig {
       showGlow: true,
       showTranslation: true,
       surahHeaderPosition: 'top',
+      surahNameLanguage: 'arabic',
     },
     footer: {
       enabled: false,
