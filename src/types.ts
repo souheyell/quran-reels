@@ -55,7 +55,14 @@ export interface ReelConfig {
     fontSize: number
   }
   motion: {
-    type: 'kenburns-zoom' | 'kenburns-pan' | 'static'
+    type:
+      | 'kenburns-zoom'
+      | 'kenburns-zoom-out'
+      | 'kenburns-pan'
+      | 'kenburns-drift-up'
+      | 'kenburns-drift-diagonal'
+      | 'kenburns-pulse'
+      | 'static'
     duration: number
   }
   aspectRatio: '9:16' | '1:1' | '16:9'

@@ -1,30 +1,62 @@
+import type { ReelConfig } from '../types'
+
 interface MotionPanelProps {
-  motionType: 'kenburns-zoom' | 'kenburns-pan' | 'static'
+  motionType: ReelConfig['motion']['type']
   duration: number
-  onMotionType: (v: 'kenburns-zoom' | 'kenburns-pan' | 'static') => void
+  onMotionType: (v: ReelConfig['motion']['type']) => void
   onDuration: (v: number) => void
 }
 
+const MOTION_OPTIONS: Array<{ id: ReelConfig['motion']['type']; label: string }> = [
+  { id: 'kenburns-zoom', label: '🔍 Ken Burns Zoom In' },
+  { id: 'kenburns-zoom-out', label: '🔎 Ken Burns Zoom Out (Reveal)' },
+  { id: 'kenburns-pan', label: '↔️ Horizontal Pan Drift' },
+  { id: 'kenburns-drift-up', label: '⬆️ Ascending Tilt (Mountains/Minarets)' },
+  { id: 'kenburns-drift-diagonal', label: '↗️ Diagonal Cinematic Glide' },
+  { id: 'kenburns-pulse', label: '🌊 Contemplative Pulse' },
+  { id: 'static', label: '⏹️ Still Canvas (No Motion)' },
+]
+
 export function MotionPanel({ motionType, duration, onMotionType, onDuration }: MotionPanelProps) {
+  const handleRandomMotion = () => {
+    const activeMotions = MOTION_OPTIONS.filter((m) => m.id !== 'static')
+    const picked = activeMotions[Math.floor(Math.random() * activeMotions.length)]
+    onMotionType(picked.id)
+  }
+
   return (
     <section className="panel" id="motion-panel">
-      <h2>Motion Effect</h2>
+      <h2>Background Motion Effects</h2>
       <label>
-        Style
-        <select
-          id="motion-type-select"
-          value={motionType}
-          onChange={(e) =>
-            onMotionType(e.target.value as 'kenburns-zoom' | 'kenburns-pan' | 'static')
-          }
-        >
-          <option value="kenburns-zoom">Ken Burns zoom</option>
-          <option value="kenburns-pan">Ken Burns pan</option>
-          <option value="static">Static</option>
-        </select>
+        Cinematic Camera Motion
+        <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.2rem' }}>
+          <select
+            id="motion-type-select"
+            value={motionType}
+            onChange={(e) =>
+              onMotionType(e.target.value as ReelConfig['motion']['type'])
+            }
+            style={{ flex: 1 }}
+          >
+            {MOTION_OPTIONS.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn"
+            onClick={handleRandomMotion}
+            title="Randomize camera motion style"
+            style={{ padding: '0.4rem 0.6rem' }}
+          >
+            🎲
+          </button>
+        </div>
       </label>
       <label>
-        Duration {duration}s
+        Default Cycle Speed {duration}s
         <input
           id="duration-input"
           type="range"

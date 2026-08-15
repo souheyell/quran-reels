@@ -1,4 +1,6 @@
-export type MotionType = 'kenburns-zoom' | 'kenburns-pan' | 'static'
+import type { ReelConfig } from '../types'
+
+export type MotionType = ReelConfig['motion']['type']
 
 export interface Transform {
   x: number
@@ -17,7 +19,7 @@ function easeInOut(t: number): number {
 
 /**
  * Calculate continuous Ken Burns transformation across the entire video reel duration.
- * Keeps background motions intact and unbroken from ayat to ayat.
+ * Supports multiple cinematic motion techniques for nature and architecture footage.
  */
 export function getTransform(
   config: MotionConfig,
@@ -37,15 +39,54 @@ export function getTransform(
   const clampedTime = Math.max(0, timeMs)
   const progress = durationMs > 0 ? Math.min(Math.max(clampedTime / durationMs, 0), 1) : 0
   const e = easeInOut(progress)
-  const scale = 1.08 + 0.12 * e
 
-  if (config.type === 'kenburns-pan') {
-    const panX = Math.sin(e * Math.PI) * 0.04
-    const panY = Math.sin(e * Math.PI * 0.5) * 0.05
-    return { x: panX, y: panY, scale }
+  switch (config.type) {
+    case 'kenburns-zoom': {
+      // Gentle cinematic zoom in
+      const scale = 1.08 + 0.14 * e
+      return { x: 0, y: 0, scale }
+    }
+
+    case 'kenburns-zoom-out': {
+      // Reveal zoom out
+      const scale = 1.22 - 0.14 * e
+      return { x: 0, y: 0, scale }
+    }
+
+    case 'kenburns-pan': {
+      // Horizontal pan drift
+      const scale = 1.12
+      const panX = Math.sin(e * Math.PI) * 0.05
+      const panY = Math.sin(e * Math.PI * 0.5) * 0.02
+      return { x: panX, y: panY, scale }
+    }
+
+    case 'kenburns-drift-up': {
+      // Vertical ascending glide for tall minarets, mountains, and redwoods
+      const scale = 1.14
+      const panY = 0.04 - 0.08 * e
+      return { x: 0, y: panY, scale }
+    }
+
+    case 'kenburns-drift-diagonal': {
+      // Smooth diagonal cinematic drift with subtle zoom
+      const scale = 1.08 + 0.08 * e
+      const panX = -0.035 + 0.07 * e
+      const panY = 0.03 - 0.06 * e
+      return { x: panX, y: panY, scale }
+    }
+
+    case 'kenburns-pulse': {
+      // Contemplative subtle breathing motion
+      const scale = 1.1 + Math.sin(progress * Math.PI * 2) * 0.04
+      const panX = Math.cos(progress * Math.PI * 2) * 0.015
+      const panY = Math.sin(progress * Math.PI * 2) * 0.015
+      return { x: panX, y: panY, scale }
+    }
+
+    default:
+      return { x: 0, y: 0, scale: 1 }
   }
-
-  return { x: 0, y: 0, scale }
 }
 
 export function drawBackground(

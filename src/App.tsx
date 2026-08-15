@@ -12,6 +12,7 @@ import { MotionPanel } from './components/MotionPanel'
 import { FooterPanel } from './components/FooterPanel'
 import { PreviewCanvas } from './components/PreviewCanvas'
 import { getRandomStockImage } from './api/unsplash'
+import type { ReelConfig } from './types'
 import './App.css'
 
 function App() {
@@ -94,8 +95,20 @@ function App() {
   const handleRandomDiscovery = useCallback(async () => {
     const randomBg = getRandomStockImage()
     setBackgroundUrl(randomBg.full)
+
+    const cinematicMotions: ReelConfig['motion']['type'][] = [
+      'kenburns-zoom',
+      'kenburns-zoom-out',
+      'kenburns-pan',
+      'kenburns-drift-up',
+      'kenburns-drift-diagonal',
+      'kenburns-pulse',
+    ]
+    const randomMotion = cinematicMotions[Math.floor(Math.random() * cinematicMotions.length)]
+    setMotionType(randomMotion)
+
     await verseLoader.loadRandom()
-  }, [setBackgroundUrl, verseLoader])
+  }, [setBackgroundUrl, setMotionType, verseLoader])
 
   return (
     <div className="app">
