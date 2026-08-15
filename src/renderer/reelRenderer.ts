@@ -99,21 +99,15 @@ function toArabicDigits(num: number | string): string {
 function getSurahHeaderContent(
   verse: Verse,
   language: ReelConfig['text']['surahNameLanguage'] = 'arabic',
-  showBasmalah = true,
 ): { title: string; subtitle: string; isRtl: boolean } {
   const arabicName = verse.surahArabicName || `سُورَةُ ${verse.surah}`
   const englishName = verse.surahName || `Surah ${verse.surah}`
   const arabicAyahNum = toArabicDigits(verse.ayat)
 
-  const isFirstAyahWithBasmalah =
-    showBasmalah && verse.ayat === 1 && verse.surah !== 9 && verse.surah !== 1
-
   if (language === 'english') {
     return {
       title: englishName.toUpperCase(),
-      subtitle: isFirstAyahWithBasmalah
-        ? 'In the Name of Allah, the Most Gracious, the Most Merciful'
-        : `Verse ${verse.ayat}`,
+      subtitle: `Verse ${verse.ayat}`,
       isRtl: false,
     }
   }
@@ -121,9 +115,7 @@ function getSurahHeaderContent(
   if (language === 'both') {
     return {
       title: arabicName,
-      subtitle: isFirstAyahWithBasmalah
-        ? 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ'
-        : `${englishName} · Ayah ${verse.ayat}`,
+      subtitle: `${englishName} · Ayah ${verse.ayat}`,
       isRtl: true,
     }
   }
@@ -131,9 +123,7 @@ function getSurahHeaderContent(
   // Default 'arabic'
   return {
     title: arabicName,
-    subtitle: isFirstAyahWithBasmalah
-      ? 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ'
-      : `الآية ${arabicAyahNum}`,
+    subtitle: `الآية ${arabicAyahNum}`,
     isRtl: true,
   }
 }
@@ -182,7 +172,6 @@ function drawVerse(
   const surahHeader = getSurahHeaderContent(
     verse,
     text.surahNameLanguage || 'arabic',
-    text.showBasmalah !== false,
   )
 
   // Smooth cinematic alphas with zero flickering
@@ -217,7 +206,7 @@ function drawVerse(
       ctx.globalAlpha = 0.98
       ctx.drawImage(calligraphyImg, imgX, imgY, targetW, targetH)
 
-      // Verse Number or Basmalah directly underneath the Calligraphy
+      // Verse Number directly underneath the Calligraphy
       const subtitleFontSize = Math.max(11, Math.round(height * 0.019))
       const subtitleY = imgY + targetH + height * 0.018
       const subtitleFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
@@ -245,6 +234,14 @@ function drawVerse(
     }
   }
 
+  // ── Dedicated Basmalah Banner for Ayah 1 ──────────────────
+  const hasBasmalah =
+    verse.ayat === 1 && verse.surah > 1 && verse.surah !== 9 && text.showBasmalah !== false
+
+  const basmalahSize = Math.max(14, Math.round(scaledArabicSize * 0.84))
+  const basmalahGap = height * 0.032
+  const basmalahBlock = hasBasmalah ? basmalahSize * 1.6 + basmalahGap : 0
+
   // ── Calculate Main Content Layout ────────────────────────
   const arabicBlock = arabicLines.lines.length * arabicLines.size * 1.6
 
@@ -271,13 +268,22 @@ function drawVerse(
 
   const gap = text.showTranslation && translationBlock > 0 ? height * 0.04 : 0
   const bottomRefBlock = text.surahHeaderPosition === 'bottom' ? height * 0.04 + height * 0.02 : 0
-  const totalHeight = arabicBlock + translationBlock + gap + bottomRefBlock
+  const totalHeight = basmalahBlock + arabicBlock + translationBlock + gap + bottomRefBlock
 
   let cursorY: number
   if (text.textPosition === 'lower-third') {
     cursorY = lowerThirdY - totalHeight / 2
   } else {
     cursorY = centerY - totalHeight / 2
+  }
+
+  // ── Render Dedicated Basmalah Calligraphy Banner ─────────
+  if (hasBasmalah) {
+    const basmalahText = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ'
+    ctx.font = buildFont({ size: basmalahSize, font: text.arabicFont })
+    ctx.globalAlpha = arabicAlpha * 0.95
+    ctx.fillText(prepareText(basmalahText, true), width / 2, cursorY)
+    cursorY += basmalahSize * 1.6 + basmalahGap
   }
 
   // ── Render Arabic Text with Smooth Dissolve ────────────────

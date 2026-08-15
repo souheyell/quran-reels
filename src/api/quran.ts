@@ -132,8 +132,14 @@ export async function fetchVerses(
   const endAyat = safeStart + safeCount - 1
   const verses: Verse[] = []
 
+  const BASMALAH_PREFIX_REGEX = /^(?:[\ufeff\s]*بِسْمِ\s+ٱ?لل[َّٰـ]*هِ\s+ٱلرَّحْم[َٰـ]*نِ\s+ٱلرَّحِيمِ\s*)/u
+
   for (let ayat = safeStart; ayat <= endAyat; ayat++) {
-    const arabic = arabicData?.ayahs?.find((a) => a.numberInSurah === ayat)?.text ?? ''
+    const rawArabic = arabicData?.ayahs?.find((a) => a.numberInSurah === ayat)?.text ?? ''
+    const arabic =
+      ayat === 1 && safeSurah > 1
+        ? rawArabic.replace(BASMALAH_PREFIX_REGEX, '').trim()
+        : rawArabic.replace(/^\ufeff/, '').trim()
     const translation = translationData?.ayahs?.find((a) => a.numberInSurah === ayat)?.text ?? ''
 
     let audioUrl: string | null = null
