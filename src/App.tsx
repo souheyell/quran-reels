@@ -27,8 +27,6 @@ function App() {
     setEffectType,
     setEffectIntensity,
     setEffectSpeed,
-    setMosqueReverb,
-    setReverbIntensity,
     setArabicFont,
     setArabicSize,
     setTranslationFont,
@@ -170,8 +168,6 @@ function App() {
             lockReciter={verseLoader.lockReciter}
             loading={verseLoader.loading}
             error={verseLoader.error}
-            mosqueReverb={config.audio.mosqueReverb}
-            reverbIntensity={config.audio.reverbIntensity}
             onLoadRange={(s, a, c, ed, r) =>
               verseLoader.loadRange(s, a, c, ed, r, config.text.secondaryEditionId)
             }
@@ -186,8 +182,6 @@ function App() {
             onToggleLockCount={verseLoader.setLockCount}
             onToggleLockReciter={verseLoader.setLockReciter}
             onCountChange={verseLoader.setFixedCount}
-            onMosqueReverb={setMosqueReverb}
-            onReverbIntensity={setReverbIntensity}
             onUploadAudio={handleCustomAudioUpload}
           />
           <BackgroundPanel

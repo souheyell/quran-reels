@@ -43,10 +43,6 @@ export function loadSavedConfig(): ReelConfig {
         ...base.effects,
         ...parsed.effects,
       },
-      audio: {
-        ...base.audio,
-        ...parsed.audio,
-      },
       text: {
         ...base.text,
         ...parsed.text,

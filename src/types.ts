@@ -49,10 +49,6 @@ export interface ReelConfig {
     intensity: number
     speed: number
   }
-  audio: {
-    mosqueReverb: boolean
-    reverbIntensity: number
-  }
   text: {
     arabicFont: string
     arabicSize: number
@@ -99,6 +95,13 @@ export interface Edition {
   language: string
 }
 
+export interface Reciter {
+  id: string
+  name: string
+  arabicName?: string
+  subfolder?: string
+}
+
 export const ARABIC_EDITION_ID = 'quran-uthmani'
 
 // ── Config reducer actions ──────────────────────────────────────────────
@@ -112,8 +115,6 @@ export type ConfigAction =
   | { type: 'SET_EFFECT_TYPE'; effectType: AtmosphericEffectType }
   | { type: 'SET_EFFECT_INTENSITY'; intensity: number }
   | { type: 'SET_EFFECT_SPEED'; speed: number }
-  | { type: 'SET_MOSQUE_REVERB'; enabled: boolean }
-  | { type: 'SET_REVERB_INTENSITY'; intensity: number }
   | { type: 'SET_ARABIC_FONT'; font: string }
   | { type: 'SET_ARABIC_SIZE'; size: number }
   | { type: 'SET_TRANSLATION_FONT'; font: string }

@@ -2,7 +2,7 @@
 
 A high-performance, studio-grade browser application for creating breathtaking Quran verse video reels for **Instagram Reels, TikTok, YouTube Shorts, and WhatsApp Status**. 
 
-Overlays sacred Quranic verses with authentic **Thuluth script vector calligraphy**, 1-click aesthetic themes, progressive word-by-word karaoke glow, dual multi-language subtitles, mosque sanctuary acoustic reverb, 5 atmospheric particle effects, 7 cinematic camera motions, and synchronized audio from **25 classical and modern master Qaris**.
+Overlays sacred Quranic verses with authentic **Thuluth script vector calligraphy**, 1-click aesthetic themes, progressive word-by-word karaoke glow, dual multi-language subtitles, custom media uploads, 5 atmospheric particle effects, 7 cinematic camera motions, and synchronized audio from **25 classical and modern master Qaris**.
 
 ---
 
@@ -28,11 +28,6 @@ Instant, professional styling configurations tailored for high engagement on soc
 ### 📤 Custom Video/Image Backgrounds & Audio Upload
 - **Video Backgrounds**: Upload your own looped MP4/WebM drone footage (e.g., Kaaba aerials, drone nature footage).
 - **Custom Audio**: Upload your own local voiceover recordings or MP3 recitations with 1-click.
-
----
-
-### 🕌 Mosque Sanctuary Acoustic Reverb
-- Web Audio API convolution impulse response simulator giving recitations the serene acoustic ambience and spatial resonance of a grand cathedral mosque (~2.4s reverberation tail).
 
 ---
 
@@ -115,10 +110,10 @@ Continuous unbroken motion across the entire video reel (never resets between ay
 
 - **Framework**: React 19, TypeScript, Vite
 - **Rendering Engine**: HTML5 Canvas 2D with RTL Arabic typography & high-DPI scaling
-- **Audio & Acoustics**: Web Audio API ConvolverNode (Mosque Reverb), WebCodecs AudioEncoder
+- **Audio Pipeline**: Native HTML5 Audio, WebCodecs AudioEncoder
 - **Video Pipeline**: WebCodecs `VideoEncoder`, `mp4-muxer`
 - **APIs & Data**: [Al-Quran Cloud API](https://alquran.cloud/api), [EveryAyah CDN](https://everyayah.com), [Unsplash](https://unsplash.com)
-- **Quality & Testing**: Vitest (42/42 unit tests passing), Oxlint (0 warnings), TypeScript Strict Mode
+- **Quality & Testing**: Vitest (41/41 unit tests passing), Oxlint (0 warnings), TypeScript Strict Mode
 
 ---
 
@@ -152,7 +147,7 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 |---------|-------------|
 | `npm run dev` | Start Vite development server with audio proxy |
 | `npm run typecheck` | Run TypeScript strict compiler checks (`tsc -b`) |
-| `npm test` | Run test suite with Vitest (42 unit tests) |
+| `npm test` | Run test suite with Vitest (41 unit tests) |
 | `npm run lint` | Fast linter with Oxlint (0 warnings) |
 | `npm run build` | Build optimized production bundle to `dist/` |
 | `npm run preview` | Preview production build locally |

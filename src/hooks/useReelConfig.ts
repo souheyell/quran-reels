@@ -21,10 +21,6 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
       return { ...state, effects: { ...state.effects, intensity: action.intensity } }
     case 'SET_EFFECT_SPEED':
       return { ...state, effects: { ...state.effects, speed: action.speed } }
-    case 'SET_MOSQUE_REVERB':
-      return { ...state, audio: { ...state.audio, mosqueReverb: action.enabled } }
-    case 'SET_REVERB_INTENSITY':
-      return { ...state, audio: { ...state.audio, reverbIntensity: action.intensity } }
     case 'SET_ARABIC_FONT':
       return { ...state, text: { ...state.text, arabicFont: action.font } }
     case 'SET_ARABIC_SIZE':
@@ -91,10 +87,6 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
           ...state.effects,
           ...action.preset.effects,
         },
-        audio: {
-          ...state.audio,
-          ...action.preset.audio,
-        },
         text: {
           ...state.text,
           ...action.preset.text,
@@ -145,14 +137,6 @@ export function useReelConfig() {
   )
   const setEffectSpeed = useCallback(
     (speed: number) => dispatch({ type: 'SET_EFFECT_SPEED', speed }),
-    [],
-  )
-  const setMosqueReverb = useCallback(
-    (enabled: boolean) => dispatch({ type: 'SET_MOSQUE_REVERB', enabled }),
-    [],
-  )
-  const setReverbIntensity = useCallback(
-    (intensity: number) => dispatch({ type: 'SET_REVERB_INTENSITY', intensity }),
     [],
   )
   const setArabicFont = useCallback(
@@ -278,8 +262,6 @@ export function useReelConfig() {
     setEffectType,
     setEffectIntensity,
     setEffectSpeed,
-    setMosqueReverb,
-    setReverbIntensity,
     setArabicFont,
     setArabicSize,
     setTranslationFont,

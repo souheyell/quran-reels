@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReelConfig } from '../types'
 import { previewSize, renderFrame } from '../renderer/reelRenderer'
 import type { Timeline } from '../renderer/timeline'
-import { reverbAudio } from '../lib/reverbAudio'
 
 interface PreviewCanvasProps {
   config: ReelConfig
@@ -39,9 +38,8 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   const soundOnRef = useRef(soundOn)
   const visibleRef = useRef(!document.hidden)
   const isScrubbingRef = useRef(isScrubbing)
-  const isReverbActive = Boolean(config.audio?.mosqueReverb)
 
-  // Preview renders at 1/3 resolution
+  // Preview renders at high DPI preview scale
   const { width, height } = previewSize(config.aspectRatio)
   const verses = config.verses
   const currentVerse = verses[indexRef.current] || verses[0]
@@ -90,7 +88,6 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       audio.pause()
       audio.src = ''
       audioRef.current = null
-      reverbAudio.stop()
     }
   }, [])
 
@@ -126,101 +123,37 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       const audio = audioRef.current
       audioEndedTimeRef.current = null
 
+      if (!audio) return
+
       if (!verse?.audioUrl) {
-        if (audio) {
-          audio.pause()
-          audio.src = ''
-        }
-        reverbAudio.stop()
+        audio.pause()
+        audio.src = ''
         setAudioLoading(false)
         return
       }
 
       const targetUrl = verse.audioUrl
-      const currentVol = soundOnRef.current ? volume : 0
-      const intensity = config.audio?.reverbIntensity ?? 0.45
-
-      if (config.audio?.mosqueReverb) {
-        if (audio) {
-          audio.pause()
-        }
-        if (playingRef.current) {
-          setAudioLoading(true)
-          void reverbAudio
-            .play(targetUrl, seekTimeSeconds, currentVol, intensity, () => {
-              audioEndedTimeRef.current = performance.now()
-            })
-            .then((success) => {
-              setAudioLoading(false)
-              if (!success && audio) {
-                // Seamless fallback to standard audio if decode fails
-                audio.src = targetUrl
-                audio.currentTime = seekTimeSeconds
-                if (soundOnRef.current) void audio.play()
-              }
-            })
-        }
+      if (audio.src !== targetUrl) {
+        audio.src = targetUrl
+        audio.currentTime = seekTimeSeconds
+        audio.load()
       } else {
-        reverbAudio.stop()
-        if (audio) {
-          if (audio.src !== targetUrl) {
-            audio.src = targetUrl
-            audio.currentTime = seekTimeSeconds
-            audio.load()
-          } else {
-            audio.currentTime = seekTimeSeconds
-          }
+        audio.currentTime = seekTimeSeconds
+      }
 
-          if (playingRef.current && soundOnRef.current) {
-            audio
-              .play()
-              .then(() => {
-                setAutoplayBlocked(false)
-              })
-              .catch(() => {
-                setAutoplayBlocked(true)
-              })
-          }
-        }
+      if (playingRef.current && soundOnRef.current) {
+        audio
+          .play()
+          .then(() => {
+            setAutoplayBlocked(false)
+          })
+          .catch(() => {
+            setAutoplayBlocked(true)
+          })
       }
     },
-    [verses, config.audio?.mosqueReverb, config.audio?.reverbIntensity, volume],
+    [verses],
   )
-
-  // Switch between Reverb and Standard Audio smoothly in real time
-  useEffect(() => {
-    const audio = audioRef.current
-    const verse = verses[indexRef.current]
-    if (!verse?.audioUrl) return
-
-    if (config.audio?.mosqueReverb) {
-      if (audio && !audio.paused) {
-        const sec = audio.currentTime
-        audio.pause()
-        if (playing && soundOn) {
-          void reverbAudio.play(
-            verse.audioUrl,
-            sec,
-            volume,
-            config.audio.reverbIntensity ?? 0.45,
-            () => {
-              audioEndedTimeRef.current = performance.now()
-            },
-          )
-        }
-      } else {
-        reverbAudio.setIntensity(config.audio.reverbIntensity ?? 0.45)
-      }
-    } else {
-      if (reverbAudio.getIsPlaying()) {
-        const sec = reverbAudio.pause()
-        if (audio && playing && soundOn) {
-          audio.currentTime = sec
-          void audio.play()
-        }
-      }
-    }
-  }, [config.audio?.mosqueReverb, config.audio?.reverbIntensity, verses, playing, soundOn, volume])
 
   // Advance to verse index
   const advanceTo = useCallback(
@@ -265,7 +198,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
         return
       }
 
-      const isAudioActive = Boolean(activeVerse.audioUrl)
+      const isAudioActive = Boolean(activeVerse.audioUrl && audio)
       let verseTimeMs = 0
       let totalSlotDurationMs = activeSlot.durationMs
 
@@ -278,18 +211,15 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       const pauseDurationMs = isMultiAyah && !isLastAyah ? userDelayMs : 0
 
       if (!isScrubbingRef.current) {
-        if (isAudioActive) {
+        if (isAudioActive && audio) {
           const audioDurationMs =
-            audio && Number.isFinite(audio.duration) && audio.duration > 0
+            Number.isFinite(audio.duration) && audio.duration > 0
               ? audio.duration * 1000
               : activeSlot.durationMs
 
           totalSlotDurationMs = audioDurationMs + pauseDurationMs
 
-          const isReverbPlaying = isReverbActive && reverbAudio.getIsPlaying()
-          const isNativeAudioEnded = audio?.ended || audioEndedTimeRef.current !== null
-
-          if (isNativeAudioEnded || (!isReverbPlaying && !playingRef.current && audioEndedTimeRef.current !== null)) {
+          if (audio.ended || audioEndedTimeRef.current !== null) {
             if (audioEndedTimeRef.current === null) {
               audioEndedTimeRef.current = now
             }
@@ -308,9 +238,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
               verseTimeMs = 0
               totalSlotDurationMs = activeSlot.durationMs
             }
-          } else if (isReverbActive) {
-            verseTimeMs = reverbAudio.getCurrentTime() * 1000
-          } else if (audio && !audio.paused && audio.currentTime > 0) {
+          } else if (!audio.paused && audio.currentTime > 0) {
             verseTimeMs = audio.currentTime * 1000
           } else {
             verseTimeMs = now - slotStartRef.current
@@ -373,67 +301,33 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     config,
     image,
     advanceTo,
-    isReverbActive,
   ])
 
   // Pause / resume audio when play state changes
   useEffect(() => {
     const audio = audioRef.current
-    if (config.audio?.mosqueReverb) {
-      if (!playing || !soundOn) {
-        reverbAudio.pause()
-      } else if (verses[indexRef.current]?.audioUrl && !reverbAudio.getIsPlaying()) {
-        const offset = (currentProgressMs - (timeline.slots[indexRef.current]?.startMs || 0)) / 1000
-        void reverbAudio.play(
-          verses[indexRef.current].audioUrl!,
-          Math.max(0, offset),
-          volume,
-          config.audio.reverbIntensity ?? 0.45,
-          () => {
-            audioEndedTimeRef.current = performance.now()
-          },
-        )
-      }
-    } else if (audio) {
-      if (playing && soundOn) {
-        audio.play().catch(() => setAutoplayBlocked(true))
-      } else {
-        audio.pause()
-      }
+    if (!audio) return
+
+    if (playing && soundOn) {
+      audio.play().catch(() => setAutoplayBlocked(true))
+    } else {
+      audio.pause()
     }
-  }, [playing, soundOn, config.audio?.mosqueReverb, config.audio?.reverbIntensity, verses, currentProgressMs, timeline.slots, volume])
+  }, [playing, soundOn])
 
   // Handle volume changes
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume
     }
-    reverbAudio.setVolume(soundOn ? volume : 0)
-  }, [volume, soundOn])
+  }, [volume])
 
   // Toggle play/pause
   const togglePlay = () => {
     const nextPlaying = !playing
     setPlaying(nextPlaying)
     const audio = audioRef.current
-    const verse = verses[indexRef.current]
-
-    if (config.audio?.mosqueReverb) {
-      if (nextPlaying && soundOn && verse?.audioUrl) {
-        const offset = (currentProgressMs - (timeline.slots[indexRef.current]?.startMs || 0)) / 1000
-        void reverbAudio.play(
-          verse.audioUrl,
-          Math.max(0, offset),
-          volume,
-          config.audio.reverbIntensity ?? 0.45,
-          () => {
-            audioEndedTimeRef.current = performance.now()
-          },
-        )
-      } else {
-        reverbAudio.pause()
-      }
-    } else if (audio) {
+    if (audio) {
       if (nextPlaying && soundOn) {
         audio.play().catch(() => setAutoplayBlocked(true))
       } else {
@@ -447,23 +341,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     const nextSound = !soundOn
     setSoundOn(nextSound)
     const audio = audioRef.current
-    const verse = verses[indexRef.current]
-
-    if (config.audio?.mosqueReverb) {
-      reverbAudio.setVolume(nextSound ? volume : 0)
-      if (nextSound && playing && verse?.audioUrl && !reverbAudio.getIsPlaying()) {
-        const offset = (currentProgressMs - (timeline.slots[indexRef.current]?.startMs || 0)) / 1000
-        void reverbAudio.play(
-          verse.audioUrl,
-          Math.max(0, offset),
-          volume,
-          config.audio.reverbIntensity ?? 0.45,
-          () => {
-            audioEndedTimeRef.current = performance.now()
-          },
-        )
-      }
-    } else if (audio) {
+    if (audio) {
       if (nextSound && playing) {
         audio.play().catch(() => setAutoplayBlocked(true))
       } else {
@@ -494,21 +372,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   // Enable audio on user click if autoplay was blocked
   const handleEnableAudio = () => {
     const audio = audioRef.current
-    const verse = verses[indexRef.current]
-    if (config.audio?.mosqueReverb && verse?.audioUrl) {
-      setAutoplayBlocked(false)
-      setSoundOn(true)
-      setPlaying(true)
-      void reverbAudio.play(
-        verse.audioUrl,
-        0,
-        volume,
-        config.audio.reverbIntensity ?? 0.45,
-        () => {
-          audioEndedTimeRef.current = performance.now()
-        },
-      )
-    } else if (audio) {
+    if (audio) {
       audio
         .play()
         .then(() => {
@@ -631,19 +495,6 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
           </div>
 
           <div className="transport-right">
-            {isReverbActive && (
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  color: '#ffd700',
-                  background: 'rgba(255, 215, 0, 0.15)',
-                  padding: '0.15rem 0.4rem',
-                  borderRadius: '4px',
-                }}
-              >
-                🕌 Sanctuary Reverb
-              </span>
-            )}
             <button
               type="button"
               className="btn transport-btn"

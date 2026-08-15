@@ -10,8 +10,6 @@ interface VersePanelProps {
   lockReciter: boolean
   loading: boolean
   error: string | null
-  mosqueReverb?: boolean
-  reverbIntensity?: number
   onLoadRange: (surah: number, startAyat: number, count: number, edition?: string, reciter?: string) => Promise<void>
   onLoadRandom: () => Promise<void>
   onEditionChange: (editionId: string) => void
@@ -20,8 +18,6 @@ interface VersePanelProps {
   onToggleLockCount: (locked: boolean) => void
   onToggleLockReciter: (locked: boolean) => void
   onCountChange?: (count: number) => void
-  onMosqueReverb?: (enabled: boolean) => void
-  onReverbIntensity?: (intensity: number) => void
   onUploadAudio?: (audioUrl: string) => void
 }
 
@@ -42,8 +38,6 @@ export function VersePanel({
   lockReciter,
   loading,
   error,
-  mosqueReverb = false,
-  reverbIntensity = 0.45,
   onLoadRange,
   onLoadRandom,
   onEditionChange,
@@ -52,8 +46,6 @@ export function VersePanel({
   onToggleLockCount,
   onToggleLockReciter,
   onCountChange,
-  onMosqueReverb,
-  onReverbIntensity,
   onUploadAudio,
 }: VersePanelProps) {
   const [surahInput, setSurahInput] = useState(String(verses[0]?.surah ?? 2))
@@ -98,39 +90,18 @@ export function VersePanel({
     verses.length === 1
       ? `${surahName} ${verses[0].surah}:${verses[0].ayat}`
       : verses.length > 1
-        ? `${surahName} ${verses[0].surah}:${verses[0].ayat} – ${verses[verses.length - 1].ayat} (${verses.length})`
-        : ''
+        ? `${surahName} ${verses[0].surah}:${verses[0].ayat}–${verses[verses.length - 1].ayat}`
+        : 'None'
 
-  const currentReciter = POPULAR_RECITERS.find((r) => r.id === reciterId)?.name || 'Mishary Rashid Alafasy'
+  const currentReciter =
+    POPULAR_RECITERS.find((r) => r.id === reciterId)?.name || reciterId
 
   return (
-    <section className="panel" id="verse-panel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>Verse & Audio Reciter</h2>
-        {onUploadAudio && (
-          <div>
-            <button
-              type="button"
-              className="btn"
-              onClick={() => audioFileInputRef.current?.click()}
-              title="Upload custom MP3 audio or voiceover"
-              style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
-            >
-              🎵 Upload Audio
-            </button>
-            <input
-              ref={audioFileInputRef}
-              type="file"
-              accept="audio/*,.mp3,.wav,.m4a,.aac"
-              onChange={handleAudioUpload}
-              style={{ display: 'none' }}
-            />
-          </div>
-        )}
-      </div>
+    <section className="panel">
+      <h2>Verse & Reciter</h2>
 
       <div className="row">
-        <label>
+        <label style={{ flex: 1 }}>
           Surah
           <input
             id="surah-input"
@@ -142,8 +113,8 @@ export function VersePanel({
             onKeyDown={handleKeyDown}
           />
         </label>
-        <label>
-          Start ayat
+        <label style={{ flex: 1 }}>
+          Ayat
           <input
             id="ayat-input"
             type="number"
@@ -154,9 +125,9 @@ export function VersePanel({
             onKeyDown={handleKeyDown}
           />
         </label>
-        <label>
-          Count
-          <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+        <label style={{ flex: 1 }}>
+          Ayahs Count
+          <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
             <input
               id="count-input"
               type="number"
@@ -166,20 +137,18 @@ export function VersePanel({
               onChange={(e) => {
                 const val = e.target.value
                 setCountInput(val)
-                const n = Number(val)
-                if (n >= 1 && n <= 30) {
-                  onCountChange?.(n)
-                }
+                const num = Number(val)
+                if (num > 0) onCountChange?.(num)
               }}
               onKeyDown={handleKeyDown}
               style={{ flex: 1 }}
             />
             <button
               type="button"
-              className={`btn ${lockCount ? 'primary' : ''}`}
-              style={{ padding: '0.4rem 0.55rem', fontSize: '0.8rem' }}
+              className={`btn chip-lock ${lockCount ? 'locked' : ''}`}
               onClick={() => onToggleLockCount(!lockCount)}
-              title={lockCount ? 'Ayah count is LOCKED on random discovery' : 'Lock Ayah count'}
+              title={lockCount ? 'Lock ayahs count during discovery' : 'Unlock ayahs count'}
+              style={{ padding: '0.4rem 0.5rem' }}
             >
               {lockCount ? '🔒' : '🔓'}
             </button>
@@ -187,65 +156,80 @@ export function VersePanel({
         </label>
       </div>
 
-      <button
-        id="load-btn"
-        type="button"
-        className="btn primary"
-        onClick={() => void loadRange()}
-        disabled={loading}
-      >
-        {loading ? (
-          <span className="loading-text">
-            <span className="spinner" /> Loading…
-          </span>
-        ) : (
-          'Load Verse Range'
+      <div className="row" style={{ marginTop: '0.2rem' }}>
+        <button
+          id="load-btn"
+          type="button"
+          className="btn primary"
+          onClick={() => void loadRange()}
+          disabled={loading}
+          style={{ flex: 1 }}
+        >
+          {loading ? (
+            <span className="loading-text">
+              <span className="spinner" /> Loading…
+            </span>
+          ) : (
+            'Load Verse'
+          )}
+        </button>
+
+        {onUploadAudio && (
+          <>
+            <input
+              type="file"
+              ref={audioFileInputRef}
+              accept="audio/*"
+              style={{ display: 'none' }}
+              onChange={handleAudioUpload}
+            />
+            <button
+              type="button"
+              className="btn"
+              onClick={() => audioFileInputRef.current?.click()}
+              title="Upload custom audio recitation or voiceover"
+              style={{ padding: '0.5rem 0.75rem' }}
+            >
+              🎙️ Custom Audio
+            </button>
+          </>
         )}
-      </button>
+      </div>
 
       <div className="row">
         <label style={{ flex: 1 }}>
-          Audio Reciter (Qari)
-          <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.2rem' }}>
+          Reciter (Qari)
+          <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', marginTop: '0.2rem' }}>
             <select
               id="reciter-select"
               value={reciterId}
               onChange={(e) => onReciterChange(e.target.value)}
               style={{ flex: 1 }}
             >
-              <optgroup label="👑 Golden Age & Classical Masters">
-                {POPULAR_RECITERS.filter((r) => r.name.startsWith('👑') || r.name.includes('Haram') || r.name.includes('Madinah') || r.name.includes('Akhdar')).map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="✨ Contemporary Masters & Imams">
-                {POPULAR_RECITERS.filter((r) => !r.name.startsWith('👑') && !r.name.includes('Haram') && !r.name.includes('Madinah') && !r.name.includes('Akhdar')).map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </optgroup>
+              {POPULAR_RECITERS.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name} ({r.arabicName})
+                </option>
+              ))}
             </select>
             {onRandomizeReciter && (
               <button
                 type="button"
                 className="btn"
-                onClick={onRandomizeReciter}
-                title="Randomize Qari Reciter"
-                style={{ padding: '0.4rem 0.55rem' }}
+                onClick={() => onRandomizeReciter()}
                 disabled={loading}
+                title="Pick random Qari"
+                style={{ padding: '0.4rem 0.6rem' }}
               >
                 🎲
               </button>
             )}
             <button
               type="button"
-              className={`btn ${lockReciter ? 'primary' : ''}`}
-              style={{ padding: '0.4rem 0.55rem', fontSize: '0.8rem' }}
+              className={`btn chip-lock ${lockReciter ? 'locked' : ''}`}
               onClick={() => onToggleLockReciter(!lockReciter)}
-              title={lockReciter ? 'Reciter is LOCKED on random discovery' : 'Lock selected Qari'}
+              title={lockReciter ? 'Lock chosen Qari during discovery' : 'Unlock Qari to discover other reciters'}
+              style={{ padding: '0.4rem 0.5rem' }}
             >
               {lockReciter ? '🔒' : '🔓'}
             </button>
@@ -268,34 +252,6 @@ export function VersePanel({
           </select>
         </label>
       </div>
-
-      {onMosqueReverb && (
-        <div className="row" style={{ alignItems: 'center', marginTop: '0.2rem' }}>
-          <label className="row-inline" style={{ flex: 1 }}>
-            <input
-              id="mosque-reverb-checkbox"
-              type="checkbox"
-              checked={mosqueReverb}
-              onChange={(e) => onMosqueReverb(e.target.checked)}
-            />
-            🕌 Mosque Sanctuary Acoustic Reverb
-          </label>
-          {mosqueReverb && onReverbIntensity && (
-            <label style={{ margin: 0, width: '110px' }}>
-              Mix {Math.round(reverbIntensity * 100)}%
-              <input
-                id="reverb-intensity-input"
-                type="range"
-                min={0.1}
-                max={0.9}
-                step={0.05}
-                value={reverbIntensity}
-                onChange={(e) => onReverbIntensity(Number(e.target.value))}
-              />
-            </label>
-          )}
-        </div>
-      )}
 
       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
         <button

@@ -535,10 +535,6 @@ export function defaultConfig(): ReelConfig {
       intensity: 0.7,
       speed: 1.0,
     },
-    audio: {
-      mosqueReverb: false,
-      reverbIntensity: 0.45,
-    },
     text: {
       arabicFont: '"Scheherazade New", "Amiri", serif',
       arabicSize: 72,
