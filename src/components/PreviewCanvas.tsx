@@ -16,6 +16,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   const indexRef = useRef(0)
   const slotStartRef = useRef(0)
   const loopBaseRef = useRef(0)
+  const audioEndedTimeRef = useRef<number | null>(null)
 
   const [playing, setPlaying] = useState(true)
   const [soundOn, setSoundOn] = useState(true)
@@ -57,6 +58,10 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       setAutoplayBlocked(false)
     }
 
+    audio.onended = () => {
+      audioEndedTimeRef.current = performance.now()
+    }
+
     audio.onloadedmetadata = () => {
       setAudioLoading(false)
     }
@@ -78,6 +83,8 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     (index: number) => {
       const verse = verses[index]
       const audio = audioRef.current
+      audioEndedTimeRef.current = null
+
       if (!audio) return
 
       if (!verse?.audioUrl) {
@@ -87,7 +94,6 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
         return
       }
 
-      // Use direct CDN URL for instant playback
       const targetUrl = verse.audioUrl
       if (audio.src !== targetUrl) {
         audio.src = targetUrl
@@ -103,7 +109,6 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
             setAutoplayBlocked(false)
           })
           .catch(() => {
-            // Autoplay blocked by browser policy until user gesture
             setAutoplayBlocked(true)
           })
       }
@@ -116,6 +121,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     (nextIndex: number) => {
       indexRef.current = nextIndex
       slotStartRef.current = performance.now()
+      audioEndedTimeRef.current = null
       loadAndPlayVerse(nextIndex)
     },
     [loadAndPlayVerse],
@@ -126,10 +132,11 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     indexRef.current = 0
     loopBaseRef.current = 0
     slotStartRef.current = performance.now()
+    audioEndedTimeRef.current = null
     loadAndPlayVerse(0)
   }, [verses, loadAndPlayVerse])
 
-  // Main render loop — smoothly runs every frame without hanging
+  // Main render loop
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -152,41 +159,57 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
         return
       }
 
-      // Check if audio is actively playing
-      const isAudioPlaying =
-        audio &&
-        !audio.paused &&
-        !audio.ended &&
-        audio.currentTime > 0 &&
-        soundOnRef.current
-
+      const isAudioActive = Boolean(verse.audioUrl && audio)
       let verseTimeMs = 0
-      const wallTimeMs = now - slotStartRef.current
+      let totalSlotDurationMs = slot.durationMs
 
-      if (isAudioPlaying && audio) {
-        verseTimeMs = audio.currentTime * 1000
-      } else {
-        verseTimeMs = wallTimeMs
-      }
-
-      // Slot duration includes the 1.6s contemplation pause
-      const rawAudioMs =
-        audio && Number.isFinite(audio.duration) && audio.duration > 0
-          ? audio.duration * 1000
-          : slot.durationMs
       const isMultiAyah = verses.length > 1
       const isLastAyah = currentIndex === verses.length - 1
-      const pauseMs = isMultiAyah && !isLastAyah ? 1600 : 0
-      const totalSlotMs = Math.max(slot.durationMs, rawAudioMs + pauseMs)
+      const pauseDurationMs = isMultiAyah && !isLastAyah ? 1600 : 0
 
-      // Check if current verse plus pause has finished
-      if (wallTimeMs >= totalSlotMs || verseTimeMs >= totalSlotMs) {
-        const nextIndex = (currentIndex + 1) % verses.length
-        if (nextIndex === 0) {
-          loopBaseRef.current += timeline.totalMs
+      if (isAudioActive && audio) {
+        const audioDurationMs =
+          Number.isFinite(audio.duration) && audio.duration > 0
+            ? audio.duration * 1000
+            : slot.durationMs
+
+        totalSlotDurationMs = audioDurationMs + pauseDurationMs
+
+        if (audio.ended || audioEndedTimeRef.current !== null) {
+          if (audioEndedTimeRef.current === null) {
+            audioEndedTimeRef.current = now
+          }
+          const pauseElapsedMs = Math.max(0, now - audioEndedTimeRef.current)
+          verseTimeMs = audioDurationMs + pauseElapsedMs
+
+          if (pauseElapsedMs >= pauseDurationMs) {
+            const nextIndex = (currentIndex + 1) % verses.length
+            if (nextIndex === 0) {
+              loopBaseRef.current += timeline.totalMs
+            }
+            advanceTo(nextIndex)
+            verseTimeMs = 0
+          }
+        } else if (!audio.paused && audio.currentTime > 0) {
+          verseTimeMs = audio.currentTime * 1000
+        } else {
+          // Buffering or muted
+          verseTimeMs = now - slotStartRef.current
+          if (verseTimeMs >= totalSlotDurationMs) {
+            const nextIndex = (currentIndex + 1) % verses.length
+            advanceTo(nextIndex)
+            verseTimeMs = 0
+          }
         }
-        advanceTo(nextIndex)
-        verseTimeMs = 0
+      } else {
+        // Fallback without audio
+        verseTimeMs = now - slotStartRef.current
+        totalSlotDurationMs = slot.durationMs
+        if (verseTimeMs >= totalSlotDurationMs) {
+          const nextIndex = (currentIndex + 1) % verses.length
+          advanceTo(nextIndex)
+          verseTimeMs = 0
+        }
       }
 
       const timeMs = loopBaseRef.current + slot.startMs + verseTimeMs
@@ -196,7 +219,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
         image,
         verse,
         verseTimeMs,
-        slotDurationMs: totalSlotMs,
+        slotDurationMs: totalSlotDurationMs,
       })
 
       rafRef.current = requestAnimationFrame(loop)
@@ -218,154 +241,133 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     if (!audio) return
 
     if (playing && soundOn) {
-      audio.play()
-        .then(() => setAutoplayBlocked(false))
-        .catch(() => setAutoplayBlocked(true))
+      if (audio.src && audio.paused) {
+        audio.play().catch(() => {
+          setAutoplayBlocked(true)
+        })
+      }
     } else {
       audio.pause()
     }
-  }, [soundOn, playing])
+  }, [playing, soundOn])
 
+  // Toggle play/pause
   const togglePlay = () => {
-    setPlaying((p) => {
-      const next = !p
-      const audio = audioRef.current
-      if (audio) {
-        if (next && soundOnRef.current) {
-          audio.play()
-            .then(() => setAutoplayBlocked(false))
-            .catch(() => {})
-        } else {
-          audio.pause()
-        }
-      }
-      slotStartRef.current = performance.now()
-      return next
-    })
-  }
-
-  const toggleSound = () => {
-    setSoundOn((s) => {
-      const next = !s
-      const audio = audioRef.current
-      if (audio) {
-        if (next && playingRef.current) {
-          audio.play()
-            .then(() => setAutoplayBlocked(false))
-            .catch(() => {})
-        } else {
-          audio.pause()
-        }
-      }
-      return next
-    })
-  }
-
-  const handleCanvasClick = () => {
+    const nextPlaying = !playing
+    setPlaying(nextPlaying)
     const audio = audioRef.current
-    if (autoplayBlocked || !playing) {
-      setPlaying(true)
-      if (audio && soundOn) {
-        audio.play().then(() => setAutoplayBlocked(false)).catch(() => {})
+    if (audio) {
+      if (nextPlaying && soundOn) {
+        audio.play().catch(() => setAutoplayBlocked(true))
+      } else {
+        audio.pause()
       }
-      return
     }
-    togglePlay()
   }
 
-  const hasAudio = Boolean(currentVerse?.audioUrl)
+  // Toggle sound
+  const toggleSound = () => {
+    const nextSound = !soundOn
+    setSoundOn(nextSound)
+    const audio = audioRef.current
+    if (audio) {
+      if (nextSound && playing) {
+        audio.play().catch(() => setAutoplayBlocked(true))
+      } else {
+        audio.pause()
+      }
+    }
+  }
+
+  // Enable audio on user click if autoplay was blocked
+  const handleEnableAudio = () => {
+    const audio = audioRef.current
+    if (audio) {
+      audio.play()
+        .then(() => {
+          setAutoplayBlocked(false)
+          setSoundOn(true)
+          setPlaying(true)
+        })
+        .catch((e) => console.warn('Could not enable audio:', e))
+    }
+  }
 
   return (
-    <div className="preview-wrap">
+    <div className="preview-container">
       <div
-        className="canvas-container"
-        onClick={handleCanvasClick}
-        style={{ cursor: 'pointer', position: 'relative' }}
+        className="preview-wrapper"
+        style={{
+          aspectRatio: config.aspectRatio.replace(':', '/'),
+        }}
       >
         <canvas
           ref={canvasRef}
           width={width}
           height={height}
-          style={{
-            aspectRatio: `${width} / ${height}`,
-            maxHeight: '70vh',
-            maxWidth: '100%',
-            height: 'auto',
-            width: 'auto',
-            display: 'block',
-          }}
+          className="preview-canvas"
         />
-        {autoplayBlocked && soundOn && hasAudio && (
-          <div className="autoplay-hint">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="5,3 19,12 5,21" />
-            </svg>
-            <span>Click to enable sound</span>
+
+        {audioLoading && (
+          <div className="audio-badge">
+            <span className="spinner" /> Loading audio…
           </div>
         )}
+
+        {autoplayBlocked && (
+          <button
+            type="button"
+            className="autoplay-banner"
+            onClick={handleEnableAudio}
+          >
+            🔊 Click to enable audio playback
+          </button>
+        )}
+
+        <div className="preview-overlay-controls">
+          <button
+            type="button"
+            className="control-btn"
+            onClick={togglePlay}
+            title={playing ? 'Pause' : 'Play'}
+          >
+            {playing ? '⏸' : '▶'}
+          </button>
+          <button
+            type="button"
+            className={`control-btn ${soundOn ? 'active' : ''}`}
+            onClick={toggleSound}
+            title={soundOn ? 'Mute' : 'Unmute'}
+          >
+            {soundOn ? '🔊' : '🔇'}
+          </button>
+          <button
+            type="button"
+            className="control-btn"
+            onClick={() => {
+              const next = (indexRef.current + 1) % verses.length
+              advanceTo(next)
+            }}
+            title="Next verse"
+          >
+            ⏭
+          </button>
+        </div>
       </div>
 
-      <div className="preview-controls">
-        <button
-          id="play-pause-btn"
-          type="button"
-          className="btn icon-btn"
-          onClick={togglePlay}
-          title={playing ? 'Pause' : 'Play'}
-        >
-          {playing ? (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="6" y="4" width="4" height="16" rx="1" />
-              <rect x="14" y="4" width="4" height="16" rx="1" />
-            </svg>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="6,3 20,12 6,21" />
-            </svg>
-          )}
-          {playing ? 'Pause' : 'Play'}
-        </button>
-
-        <button
-          id="sound-toggle-btn"
-          type="button"
-          className="btn icon-btn"
-          onClick={toggleSound}
-          disabled={!hasAudio}
-          title={soundOn ? 'Mute sound' : 'Enable sound'}
-        >
-          {soundOn ? (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <polygon points="11,5 6,9 2,9 2,15 6,15 11,19" fill="currentColor" />
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-            </svg>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <polygon points="11,5 6,9 2,9 2,15 6,15 11,19" fill="currentColor" />
-              <line x1="23" y1="9" x2="17" y2="15" />
-              <line x1="17" y1="9" x2="23" y2="15" />
-            </svg>
-          )}
-          {soundOn ? 'Sound on' : 'Sound off'}
-        </button>
-
-        {hasAudio && (
-          <div className="audio-status-pill">
-            {audioLoading ? (
-              <span className="audio-status loading">
-                <span className="spinner small" /> Loading audio…
-              </span>
-            ) : soundOn && playing ? (
-              <span className="audio-status active">
-                <span className="sound-wave" /> Recitation playing
-              </span>
-            ) : (
-              <span className="audio-status">
-                Recitation ready
-              </span>
-            )}
-          </div>
+      <div className="preview-meta">
+        <span>{config.aspectRatio}</span>
+        <span>·</span>
+        <span>
+          Ayah {currentVerse.ayat} of {verses[0]?.surahName || `Surah ${currentVerse.surah}`}
+        </span>
+        {verses.length > 1 && (
+          <>
+            <span>·</span>
+            <span>
+              {indexRef.current + 1} / {verses.length}
+            </span>
+          </>
         )}
       </div>
     </div>

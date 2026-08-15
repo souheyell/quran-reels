@@ -1,7 +1,7 @@
 import type { ReelConfig } from '../types'
 import { ASPECT_SIZES, renderFrame } from '../renderer/reelRenderer'
-import type { Timeline } from '../renderer/timeline'
-import { activeSlot } from '../renderer/timeline'
+import type { Timeline, VerseSlot } from '../renderer/timeline'
+import { activeSlot, DEFAULT_AYAH_GAP_MS } from '../renderer/timeline'
 import { proxyAudioUrl } from './audio'
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer'
 
@@ -53,30 +53,41 @@ async function findSupportedVideoCodec(
   return 'avc1.640033'
 }
 
+interface PreparedMedia {
+  timeline: Timeline
+  audioBuffer: AudioBuffer | null
+}
+
 /**
- * Decode and assemble all verse audio files into a single synchronized AudioBuffer.
+ * Fetch and decode actual audio files for each verse, measuring exact durations
+ * and assembling a synchronized audio buffer with 1.6s pause between each ayah.
  */
-async function assembleReelAudio(
+async function prepareAudioAndTimeline(
   config: ReelConfig,
-  timeline: Timeline,
   sampleRate = 44100,
-): Promise<AudioBuffer | null> {
-  if (typeof AudioContext === 'undefined') return null
+): Promise<PreparedMedia> {
+  const fallbackDurationMs = config.motion.duration * 1000
+  const verses = config.verses
 
-  const hasAudio = config.verses.some((v) => Boolean(v.audioUrl))
-  if (!hasAudio) return null
+  if (verses.length === 0) {
+    return {
+      timeline: { slots: [], totalMs: 0 },
+      audioBuffer: null,
+    }
+  }
 
-  const totalSamples = Math.ceil((timeline.totalMs / 1000) * sampleRate)
-  if (totalSamples <= 0) return null
+  const audioCtx = typeof AudioContext !== 'undefined' ? new AudioContext({ sampleRate }) : null
+  const decodedBuffers: (AudioBuffer | null)[] = []
+  const verseDurationsMs: number[] = []
 
-  const audioCtx = new AudioContext({ sampleRate })
-  const combinedBuffer = audioCtx.createBuffer(2, totalSamples, sampleRate)
-  let loadedAny = false
-
-  for (let i = 0; i < config.verses.length; i++) {
-    const verse = config.verses[i]
-    const slot = timeline.slots[i]
-    if (!verse?.audioUrl || !slot) continue
+  // 1. Fetch and decode audio for every verse to get the EXACT millisecond duration
+  for (let i = 0; i < verses.length; i++) {
+    const verse = verses[i]
+    if (!verse?.audioUrl || !audioCtx) {
+      decodedBuffers.push(null)
+      verseDurationsMs.push(fallbackDurationMs)
+      continue
+    }
 
     try {
       const proxiedUrl = proxyAudioUrl(verse.audioUrl) || verse.audioUrl
@@ -91,46 +102,93 @@ async function assembleReelAudio(
             break
           }
         } catch {
-          // Fall through to next URL
+          // Try next URL fallback
         }
       }
 
       if (!arrayBuffer) {
-        console.warn('Could not fetch audio array buffer for:', verse.audioUrl)
+        decodedBuffers.push(null)
+        verseDurationsMs.push(fallbackDurationMs)
         continue
       }
 
       const decoded = await audioCtx.decodeAudioData(arrayBuffer)
-      loadedAny = true
+      decodedBuffers.push(decoded)
+      // Exact recitation duration from decoded audio buffer
+      verseDurationsMs.push(Math.round(decoded.duration * 1000))
+    } catch (err) {
+      console.warn('Failed to decode verse audio for export:', verse.audioUrl, err)
+      decodedBuffers.push(null)
+      verseDurationsMs.push(fallbackDurationMs)
+    }
+  }
+
+  // 2. Build the exact timeline with 1.6s pause between each ayah
+  let cursor = 0
+  const slots: VerseSlot[] = []
+  const gapMs = verses.length > 1 ? DEFAULT_AYAH_GAP_MS : 0
+
+  for (let i = 0; i < verses.length; i++) {
+    const verse = verses[i]
+    const recitationMs = verseDurationsMs[i]
+    const isLast = i === verses.length - 1
+    const pauseMs = isLast ? 0 : gapMs
+    const slotDurationMs = recitationMs + pauseMs
+
+    slots.push({
+      verse,
+      startMs: cursor,
+      endMs: cursor + slotDurationMs,
+      durationMs: slotDurationMs,
+    })
+
+    cursor += slotDurationMs
+  }
+
+  const timeline: Timeline = { slots, totalMs: cursor }
+
+  // 3. Assemble the combined AudioBuffer with sample-accurate placement
+  let combinedBuffer: AudioBuffer | null = null
+  const hasAnyAudio = decodedBuffers.some((b) => b !== null)
+
+  if (audioCtx && hasAnyAudio && cursor > 0) {
+    const totalSamples = Math.ceil((cursor / 1000) * sampleRate)
+    combinedBuffer = audioCtx.createBuffer(2, totalSamples, sampleRate)
+
+    for (let i = 0; i < verses.length; i++) {
+      const decoded = decodedBuffers[i]
+      const slot = slots[i]
+      if (!decoded || !slot) continue
 
       const startSample = Math.round((slot.startMs / 1000) * sampleRate)
       const copyLen = Math.min(decoded.length, totalSamples - startSample)
 
       for (let ch = 0; ch < 2; ch++) {
         const dest = combinedBuffer.getChannelData(ch)
-        const src = decoded.numberOfChannels > ch
-          ? decoded.getChannelData(ch)
-          : decoded.getChannelData(0) // mono to stereo
+        const src =
+          decoded.numberOfChannels > ch
+            ? decoded.getChannelData(ch)
+            : decoded.getChannelData(0) // mono to stereo
+
         for (let s = 0; s < copyLen; s++) {
           dest[startSample + s] = src[s]
         }
       }
-    } catch (err) {
-      console.warn('Failed to load audio for export:', verse.audioUrl, err)
     }
   }
 
-  void audioCtx.close()
-  return loadedAny ? combinedBuffer : null
+  if (audioCtx) void audioCtx.close()
+  return { timeline, audioBuffer: combinedBuffer }
 }
 
 /**
  * Export a reel as MP4 with hardware-accelerated H.264 video AND AAC audio.
+ * Guarantees that every ayah finishes completely with a 1.6s pause before the next ayah.
  */
 export function exportMp4(
   config: ReelConfig,
   image: HTMLImageElement | null,
-  timeline: Timeline,
+  _initialTimeline: Timeline,
   onProgress?: (fraction: number) => void,
   fps = 30,
 ): Mp4ExportHandle {
@@ -139,8 +197,6 @@ export function exportMp4(
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('OffscreenCanvas 2D context unavailable')
 
-  const durationMs = timeline.totalMs
-  const totalFrames = Math.ceil((durationMs / 1000) * fps)
   const videoBitrate = 12_000_000
   const sampleRate = 44100
 
@@ -149,14 +205,16 @@ export function exportMp4(
   const done = new Promise<Blob>((resolve, reject) => {
     Promise.all([
       findSupportedVideoCodec(width, height, videoBitrate, fps),
-      assembleReelAudio(config, timeline, sampleRate),
+      prepareAudioAndTimeline(config, sampleRate),
     ])
-      .then(([videoCodec, audioBuffer]) => {
+      .then(([videoCodec, { timeline, audioBuffer }]) => {
         if (cancelled) {
           reject(new Error('Export cancelled'))
           return
         }
 
+        const durationMs = timeline.totalMs
+        const totalFrames = Math.ceil((durationMs / 1000) * fps)
         const hasAudio = audioBuffer !== null && typeof AudioEncoder !== 'undefined'
 
         const muxer = new Muxer({
