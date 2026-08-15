@@ -11,15 +11,11 @@ export interface Mp4ExportHandle {
 }
 
 const CANDIDATE_CODECS = [
-  'avc1.640033', // High Profile Level 5.1 (supports up to 4K)
-  'avc1.4d0033', // Main Profile Level 5.1
-  'avc1.420033', // Baseline Profile Level 5.1
-  'avc1.640032', // High Profile Level 5.0
-  'avc1.4d0032', // Main Profile Level 5.0
-  'avc1.420032', // Baseline Profile Level 5.0
+  'avc1.4d002a', // Main Profile Level 4.2 (Universal 1080p standard)
   'avc1.64002a', // High Profile Level 4.2
-  'avc1.4d002a', // Main Profile Level 4.2
   'avc1.42002a', // Baseline Profile Level 4.2
+  'avc1.640033', // High Profile Level 5.1
+  'avc1.4d0033', // Main Profile Level 5.1
   'avc1.42001f', // Baseline Profile Level 3.1
 ]
 
@@ -30,7 +26,7 @@ async function findSupportedVideoCodec(
   framerate: number,
 ): Promise<string> {
   if (typeof VideoEncoder === 'undefined' || !VideoEncoder.isConfigSupported) {
-    return 'avc1.640033'
+    return 'avc1.4d002a'
   }
 
   for (const codec of CANDIDATE_CODECS) {
@@ -50,7 +46,7 @@ async function findSupportedVideoCodec(
     }
   }
 
-  return 'avc1.640033'
+  return 'avc1.4d002a'
 }
 
 interface PreparedMedia {
@@ -60,7 +56,7 @@ interface PreparedMedia {
 
 /**
  * Fetch and decode actual audio files for each verse, measuring exact durations
- * and assembling a synchronized audio buffer with 1.6s pause between each ayah.
+ * and assembling a synchronized audio buffer with configurable pause between each ayah.
  */
 async function prepareAudioAndTimeline(
   config: ReelConfig,
@@ -107,14 +103,12 @@ async function prepareAudioAndTimeline(
       }
 
       if (!arrayBuffer) {
-        decodedBuffers.push(null)
-        verseDurationsMs.push(fallbackDurationMs)
-        continue
+        throw new Error(`Failed to fetch audio for ${verse.surah}:${verse.ayat}`)
       }
 
       const decoded = await audioCtx.decodeAudioData(arrayBuffer)
       decodedBuffers.push(decoded)
-      // Exact recitation duration from decoded audio buffer
+      // Exactly how long the reciter actually speaks (in ms)
       verseDurationsMs.push(Math.round(decoded.duration * 1000))
     } catch (err) {
       console.warn('Failed to decode verse audio for export:', verse.audioUrl, err)
@@ -162,46 +156,87 @@ async function prepareAudioAndTimeline(
     for (let i = 0; i < verses.length; i++) {
       const decoded = decodedBuffers[i]
       const slot = slots[i]
-      if (!decoded || !slot) continue
+      if (!decoded) continue
 
-      const startSample = Math.round((slot.startMs / 1000) * sampleRate)
-      const copyLen = Math.min(decoded.length, totalSamples - startSample)
+      const startSample = Math.floor((slot.startMs / 1000) * sampleRate)
+      const numChannels = Math.min(2, decoded.numberOfChannels)
+      const numSamples = Math.min(decoded.length, totalSamples - startSample)
 
-      for (let ch = 0; ch < 2; ch++) {
-        const dest = combinedBuffer.getChannelData(ch)
-        const src =
-          decoded.numberOfChannels > ch
-            ? decoded.getChannelData(ch)
-            : decoded.getChannelData(0) // mono to stereo
+      for (let ch = 0; ch < numChannels; ch++) {
+        const srcData = decoded.getChannelData(ch)
+        const dstData = combinedBuffer.getChannelData(ch)
+        for (let s = 0; s < numSamples; s++) {
+          dstData[startSample + s] = srcData[s]
+        }
+      }
 
-        for (let s = 0; s < copyLen; s++) {
-          dest[startSample + s] = src[s]
+      // If source audio was mono, duplicate to right channel
+      if (decoded.numberOfChannels === 1) {
+        const srcData = decoded.getChannelData(0)
+        const dstRight = combinedBuffer.getChannelData(1)
+        for (let s = 0; s < numSamples; s++) {
+          dstRight[startSample + s] = srcData[s]
         }
       }
     }
   }
 
-  if (audioCtx) void audioCtx.close()
+  if (audioCtx) {
+    void audioCtx.close()
+  }
+
   return { timeline, audioBuffer: combinedBuffer }
 }
 
 /**
- * Export a reel as MP4 with hardware-accelerated H.264 video AND AAC audio.
- * Guarantees that every ayah finishes completely with a 1.6s pause before the next ayah.
+ * Helper to wait for encoder backpressure to clear.
+ */
+function waitForBackpressure(
+  encoder: VideoEncoder | AudioEncoder,
+  maxQueue = 3,
+): Promise<void> {
+  if (encoder.encodeQueueSize <= maxQueue) {
+    return Promise.resolve()
+  }
+
+  return new Promise<void>((resolve) => {
+    let resolved = false
+    const onDequeue = () => {
+      if (!resolved && encoder.encodeQueueSize <= maxQueue) {
+        resolved = true
+        encoder.removeEventListener('dequeue', onDequeue)
+        resolve()
+      }
+    }
+    encoder.addEventListener('dequeue', onDequeue)
+    // Fallback timeout in case event is missed
+    setTimeout(() => {
+      if (!resolved) {
+        resolved = true
+        encoder.removeEventListener('dequeue', onDequeue)
+        resolve()
+      }
+    }, 25)
+  })
+}
+
+/**
+ * Export reel to MP4 using hardware-accelerated WebCodecs + mp4-muxer.
+ * Memory-bounded backpressure control prevents browser lag and flushing errors.
  */
 export function exportMp4(
   config: ReelConfig,
   image: HTMLImageElement | null,
-  _initialTimeline: Timeline,
-  onProgress?: (fraction: number) => void,
+  _timeline?: Timeline,
+  onProgress?: (p: number) => void,
   fps = 30,
 ): Mp4ExportHandle {
   const { width, height } = ASPECT_SIZES[config.aspectRatio]
   const canvas = new OffscreenCanvas(width, height)
-  const ctx = canvas.getContext('2d')
+  const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true })
   if (!ctx) throw new Error('OffscreenCanvas 2D context unavailable')
 
-  const videoBitrate = 12_000_000
+  const videoBitrate = 7_500_000 // 7.5 Mbps: Crystal clear 1080p, ultra-reliable encoder throughput
   const sampleRate = 44100
 
   let cancelled = false
@@ -211,14 +246,14 @@ export function exportMp4(
       findSupportedVideoCodec(width, height, videoBitrate, fps),
       prepareAudioAndTimeline(config, sampleRate),
     ])
-      .then(([videoCodec, { timeline, audioBuffer }]) => {
+      .then(async ([videoCodec, { timeline, audioBuffer }]) => {
         if (cancelled) {
           reject(new Error('Export cancelled'))
           return
         }
 
         const durationMs = timeline.totalMs
-        const totalFrames = Math.ceil((durationMs / 1000) * fps)
+        const totalFrames = Math.max(1, Math.ceil((durationMs / 1000) * fps))
         const hasAudio = audioBuffer !== null && typeof AudioEncoder !== 'undefined'
 
         const muxer = new Muxer({
@@ -241,11 +276,21 @@ export function exportMp4(
           firstTimestampBehavior: 'offset',
         })
 
+        let encoderError: Error | null = null
+
         const videoEncoder = new VideoEncoder({
           output: (chunk, meta) => {
-            if (!cancelled) muxer.addVideoChunk(chunk, meta)
+            if (!cancelled) {
+              try {
+                muxer.addVideoChunk(chunk, meta)
+              } catch (e) {
+                console.warn('Muxer video chunk error:', e)
+              }
+            }
           },
-          error: (e) => reject(e),
+          error: (e) => {
+            encoderError = e instanceof Error ? e : new Error(String(e))
+          },
         })
 
         videoEncoder.configure({
@@ -254,16 +299,24 @@ export function exportMp4(
           height,
           bitrate: videoBitrate,
           framerate: fps,
+          hardwareAcceleration: 'prefer-hardware',
         })
 
         let audioEncoder: AudioEncoder | null = null
 
+        // Encode audio track smoothly with backpressure control
         if (hasAudio && audioBuffer) {
           audioEncoder = new AudioEncoder({
             output: (chunk, meta) => {
-              if (!cancelled) muxer.addAudioChunk(chunk, meta)
+              if (!cancelled) {
+                try {
+                  muxer.addAudioChunk(chunk, meta)
+                } catch (e) {
+                  console.warn('Muxer audio chunk error:', e)
+                }
+              }
             },
-            error: (e) => console.warn('AudioEncoder error:', e),
+            error: (e) => console.warn('AudioEncoder warning:', e),
           })
 
           audioEncoder.configure({
@@ -273,7 +326,6 @@ export function exportMp4(
             bitrate: 128_000,
           })
 
-          // Encode audio track in chunks of 2048 samples
           const totalSamples = audioBuffer.length
           const chunkSize = 2048
           const leftChannel = audioBuffer.getChannelData(0)
@@ -281,6 +333,11 @@ export function exportMp4(
 
           for (let offset = 0; offset < totalSamples; offset += chunkSize) {
             if (cancelled) break
+
+            while (audioEncoder.encodeQueueSize > 8 && !cancelled) {
+              await waitForBackpressure(audioEncoder, 4)
+            }
+
             const numFrames = Math.min(chunkSize, totalSamples - offset)
             const planarData = new Float32Array(numFrames * 2)
 
@@ -303,63 +360,93 @@ export function exportMp4(
           }
         }
 
-        let frameIndex = 0
+        // Encode video frames sequentially with backpressure check to prevent GPU memory saturation
+        try {
+          for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
+            if (cancelled || encoderError) {
+              break
+            }
 
-        function encodeNextFrame() {
+            // Yield if encoder has too many queued frames
+            while (videoEncoder.encodeQueueSize > 3 && !cancelled && !encoderError) {
+              await waitForBackpressure(videoEncoder, 2)
+            }
+
+            if (cancelled || encoderError) break
+
+            const timeMs = (frameIndex / fps) * 1000
+            const slot = activeSlot(timeline, timeMs)
+
+            if (slot) {
+              renderFrame(ctx as unknown as CanvasRenderingContext2D, {
+                timeMs,
+                config,
+                image,
+                verse: slot.verse,
+                verseTimeMs: timeMs - slot.startMs,
+                slotDurationMs: slot.durationMs,
+                totalDurationMs: durationMs,
+              })
+            }
+
+            const timestamp = Math.round(frameIndex * (1_000_000 / fps))
+            const frame = new VideoFrame(canvas, { timestamp })
+            const keyFrame = frameIndex % (fps * 2) === 0
+            videoEncoder.encode(frame, { keyFrame })
+            frame.close()
+
+            onProgress?.((frameIndex + 1) / totalFrames)
+
+            // Periodic micro-yield every 15 frames to keep UI responsive
+            if (frameIndex % 15 === 0) {
+              await new Promise((r) => setTimeout(r, 0))
+            }
+          }
+
           if (cancelled) {
-            videoEncoder.close()
-            audioEncoder?.close()
+            try {
+              videoEncoder.close()
+              audioEncoder?.close()
+            } catch {
+              // Ignore close error on cancelled
+            }
             reject(new Error('Export cancelled'))
             return
           }
 
-          if (frameIndex >= totalFrames) {
-            const promises: Promise<void>[] = [videoEncoder.flush()]
-            if (audioEncoder) promises.push(audioEncoder.flush())
-
-            Promise.all(promises)
-              .then(() => {
-                muxer.finalize()
-                const target = muxer.target as ArrayBufferTarget
-                const blob = new Blob([target.buffer], { type: 'video/mp4' })
-                resolve(blob)
-              })
-              .catch(reject)
-            return
+          if (encoderError) {
+            throw encoderError
           }
 
-          const timeMs = (frameIndex / fps) * 1000
-          const slot = activeSlot(timeline, timeMs)
-
-          if (slot) {
-            renderFrame(ctx as unknown as CanvasRenderingContext2D, {
-              timeMs,
-              config,
-              image,
-              verse: slot.verse,
-              verseTimeMs: timeMs - slot.startMs,
-              slotDurationMs: slot.durationMs,
-            })
+          // Flush encoders cleanly
+          const flushPromises: Promise<void>[] = [videoEncoder.flush()]
+          if (audioEncoder) {
+            flushPromises.push(audioEncoder.flush())
           }
 
-          const timestamp = Math.round(frameIndex * (1_000_000 / fps))
-          const frame = new VideoFrame(canvas, { timestamp })
-          const keyFrame = frameIndex % (fps * 2) === 0
-          videoEncoder.encode(frame, { keyFrame })
-          frame.close()
+          await Promise.all(flushPromises)
 
-          frameIndex++
-          onProgress?.(frameIndex / totalFrames)
+          muxer.finalize()
+          const target = muxer.target as ArrayBufferTarget
+          const blob = new Blob([target.buffer], { type: 'video/mp4' })
 
-          // Yield to event loop every 4 frames
-          if (frameIndex % 4 === 0) {
-            setTimeout(encodeNextFrame, 0)
-          } else {
-            encodeNextFrame()
+          try {
+            videoEncoder.close()
+            audioEncoder?.close()
+          } catch {
+            // Ignore close
           }
+
+          resolve(blob)
+        } catch (err) {
+          try {
+            videoEncoder.close()
+            audioEncoder?.close()
+          } catch {
+            // Ignore close
+          }
+          reject(err instanceof Error ? err : new Error(String(err)))
         }
-
-        encodeNextFrame()
       })
       .catch(reject)
   })
@@ -376,3 +463,5 @@ export function exportMp4(
 export function supportsWebCodecs(): boolean {
   return typeof VideoEncoder !== 'undefined' && typeof VideoFrame !== 'undefined'
 }
+
+export const exportToMp4 = exportMp4

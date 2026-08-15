@@ -10,13 +10,13 @@ import {
 } from '../lib/surahCalligraphy'
 
 export const ASPECT_SIZES: Record<ReelConfig['aspectRatio'], { width: number; height: number }> = {
-  '9:16': { width: 1440, height: 2560 },
-  '1:1': { width: 1440, height: 1440 },
-  '16:9': { width: 2560, height: 1440 },
+  '9:16': { width: 1080, height: 1920 },
+  '1:1': { width: 1080, height: 1080 },
+  '16:9': { width: 1920, height: 1080 },
 }
 
-/** Preview renders at 1/3 resolution to reduce GPU load */
-export const PREVIEW_SCALE = 1 / 3
+/** Preview renders at 0.4x scale for crisp UI and fast rendering */
+export const PREVIEW_SCALE = 0.4
 
 export function previewSize(aspectRatio: ReelConfig['aspectRatio']): {
   width: number
