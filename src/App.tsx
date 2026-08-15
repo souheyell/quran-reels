@@ -32,6 +32,8 @@ function App() {
     setShowTranslation,
     setSurahHeaderPosition,
     setSurahNameLanguage,
+    setAyahPauseDelay,
+    setShowBasmalah,
     setFooterEnabled,
     setFooterText,
     setFooterIcon,
@@ -71,9 +73,14 @@ function App() {
   }, [config.background.url, loadBg])
 
   const fallbackMs = config.motion.duration * 1000
+  const ayahPauseMs =
+    typeof config.text?.ayahPauseDelay === 'number' && config.text.ayahPauseDelay >= 0
+      ? Math.round(config.text.ayahPauseDelay * 1000)
+      : 1600
+
   const timeline = useMemo(() => {
-    return buildTimeline(config.verses, null, fallbackMs)
-  }, [config.verses, fallbackMs])
+    return buildTimeline(config.verses, null, fallbackMs, ayahPauseMs)
+  }, [config.verses, fallbackMs, ayahPauseMs])
 
   const {
     exporting,
@@ -154,6 +161,8 @@ function App() {
             showTranslation={config.text.showTranslation}
             surahHeaderPosition={config.text.surahHeaderPosition}
             surahNameLanguage={config.text.surahNameLanguage}
+            ayahPauseDelay={config.text.ayahPauseDelay}
+            showBasmalah={config.text.showBasmalah}
             onOverlayColor={setOverlayColor}
             onOverlayOpacity={setOverlayOpacity}
             onArabicFont={setArabicFont}
@@ -165,6 +174,8 @@ function App() {
             onShowTranslation={setShowTranslation}
             onSurahHeaderPosition={setSurahHeaderPosition}
             onSurahNameLanguage={setSurahNameLanguage}
+            onAyahPauseDelay={setAyahPauseDelay}
+            onShowBasmalah={setShowBasmalah}
           />
           <FooterPanel
             enabled={config.footer.enabled}

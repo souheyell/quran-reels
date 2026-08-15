@@ -123,10 +123,14 @@ async function prepareAudioAndTimeline(
     }
   }
 
-  // 2. Build the exact timeline with 1.6s pause between each ayah
+  // 2. Build the exact timeline with configurable pause between each ayah
   let cursor = 0
   const slots: VerseSlot[] = []
-  const gapMs = verses.length > 1 ? DEFAULT_AYAH_GAP_MS : 0
+  const userPauseMs =
+    typeof config.text?.ayahPauseDelay === 'number' && config.text.ayahPauseDelay >= 0
+      ? Math.round(config.text.ayahPauseDelay * 1000)
+      : DEFAULT_AYAH_GAP_MS
+  const gapMs = verses.length > 1 ? userPauseMs : 0
 
   for (let i = 0; i < verses.length; i++) {
     const verse = verses[i]

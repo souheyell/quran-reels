@@ -34,6 +34,10 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
       return { ...state, text: { ...state.text, surahHeaderPosition: action.position } }
     case 'SET_SURAH_NAME_LANGUAGE':
       return { ...state, text: { ...state.text, surahNameLanguage: action.language } }
+    case 'SET_AYAH_PAUSE_DELAY':
+      return { ...state, text: { ...state.text, ayahPauseDelay: action.delay } }
+    case 'SET_SHOW_BASMALAH':
+      return { ...state, text: { ...state.text, showBasmalah: action.show } }
     case 'SET_FOOTER_ENABLED':
       return { ...state, footer: { ...state.footer, enabled: action.enabled } }
     case 'SET_FOOTER_TEXT':
@@ -119,6 +123,14 @@ export function useReelConfig() {
       dispatch({ type: 'SET_SURAH_NAME_LANGUAGE', language }),
     [],
   )
+  const setAyahPauseDelay = useCallback(
+    (delay: number) => dispatch({ type: 'SET_AYAH_PAUSE_DELAY', delay }),
+    [],
+  )
+  const setShowBasmalah = useCallback(
+    (show: boolean) => dispatch({ type: 'SET_SHOW_BASMALAH', show }),
+    [],
+  )
   const setFooterEnabled = useCallback(
     (enabled: boolean) => dispatch({ type: 'SET_FOOTER_ENABLED', enabled }),
     [],
@@ -171,6 +183,8 @@ export function useReelConfig() {
     setShowTranslation,
     setSurahHeaderPosition,
     setSurahNameLanguage,
+    setAyahPauseDelay,
+    setShowBasmalah,
     setFooterEnabled,
     setFooterText,
     setFooterIcon,

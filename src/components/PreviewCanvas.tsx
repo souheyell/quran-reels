@@ -177,7 +177,11 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
 
       const isMultiAyah = verses.length > 1
       const isLastAyah = currentIndex === verses.length - 1
-      const pauseDurationMs = isMultiAyah && !isLastAyah ? 1600 : 0
+      const userDelayMs =
+        typeof config.text?.ayahPauseDelay === 'number' && config.text.ayahPauseDelay >= 0
+          ? Math.round(config.text.ayahPauseDelay * 1000)
+          : 1600
+      const pauseDurationMs = isMultiAyah && !isLastAyah ? userDelayMs : 0
 
       if (!isScrubbingRef.current) {
         if (isAudioActive && audio) {

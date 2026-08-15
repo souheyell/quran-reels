@@ -71,15 +71,21 @@ function toArabicDigits(num: number | string): string {
 function getSurahHeaderContent(
   verse: Verse,
   language: ReelConfig['text']['surahNameLanguage'] = 'arabic',
+  showBasmalah = true,
 ): { title: string; subtitle: string; isRtl: boolean } {
   const arabicName = verse.surahArabicName || `سُورَةُ ${verse.surah}`
   const englishName = verse.surahName || `Surah ${verse.surah}`
   const arabicAyahNum = toArabicDigits(verse.ayat)
 
+  const isFirstAyahWithBasmalah =
+    showBasmalah && verse.ayat === 1 && verse.surah !== 9 && verse.surah !== 1
+
   if (language === 'english') {
     return {
       title: englishName.toUpperCase(),
-      subtitle: `Verse ${verse.ayat}`,
+      subtitle: isFirstAyahWithBasmalah
+        ? 'In the Name of Allah, the Most Gracious, the Most Merciful'
+        : `Verse ${verse.ayat}`,
       isRtl: false,
     }
   }
@@ -87,7 +93,9 @@ function getSurahHeaderContent(
   if (language === 'both') {
     return {
       title: arabicName,
-      subtitle: `${englishName} · Ayah ${verse.ayat}`,
+      subtitle: isFirstAyahWithBasmalah
+        ? 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ'
+        : `${englishName} · Ayah ${verse.ayat}`,
       isRtl: true,
     }
   }
@@ -95,7 +103,9 @@ function getSurahHeaderContent(
   // Default 'arabic'
   return {
     title: arabicName,
-    subtitle: `الآية ${arabicAyahNum}`,
+    subtitle: isFirstAyahWithBasmalah
+      ? 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ'
+      : `الآية ${arabicAyahNum}`,
     isRtl: true,
   }
 }
@@ -141,7 +151,11 @@ function drawVerse(
     Math.max(8, Math.floor(scaledArabicSize * 0.55)),
   )
 
-  const surahHeader = getSurahHeaderContent(verse, text.surahNameLanguage || 'arabic')
+  const surahHeader = getSurahHeaderContent(
+    verse,
+    text.surahNameLanguage || 'arabic',
+    text.showBasmalah !== false,
+  )
 
   // Alphas
   const arabicAlpha = fadeIn(verseTimeMs, 0, 300)
@@ -391,6 +405,8 @@ export function defaultConfig(): ReelConfig {
       showTranslation: true,
       surahHeaderPosition: 'top',
       surahNameLanguage: 'arabic',
+      ayahPauseDelay: 1.6,
+      showBasmalah: true,
     },
     footer: {
       enabled: false,

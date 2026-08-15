@@ -12,6 +12,8 @@ interface StylePanelProps {
   showTranslation: boolean
   surahHeaderPosition: ReelConfig['text']['surahHeaderPosition']
   surahNameLanguage: ReelConfig['text']['surahNameLanguage']
+  ayahPauseDelay: number
+  showBasmalah: boolean
   onOverlayColor: (v: string) => void
   onOverlayOpacity: (v: number) => void
   onArabicFont: (v: string) => void
@@ -23,6 +25,8 @@ interface StylePanelProps {
   onShowTranslation: (v: boolean) => void
   onSurahHeaderPosition: (v: ReelConfig['text']['surahHeaderPosition']) => void
   onSurahNameLanguage: (v: ReelConfig['text']['surahNameLanguage']) => void
+  onAyahPauseDelay: (v: number) => void
+  onShowBasmalah: (v: boolean) => void
 }
 
 export function StylePanel(props: StylePanelProps) {
@@ -80,6 +84,29 @@ export function StylePanel(props: StylePanelProps) {
           </select>
         </label>
       </div>
+
+      <label className="row-inline" style={{ marginTop: '0.2rem' }}>
+        <input
+          id="show-basmalah-checkbox"
+          type="checkbox"
+          checked={props.showBasmalah}
+          onChange={(e) => props.onShowBasmalah(e.target.checked)}
+        />
+        Start Ayah 1 with Basmalah (بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ)
+      </label>
+
+      <label>
+        Ayah Pause Delay: {props.ayahPauseDelay.toFixed(1)}s
+        <input
+          id="ayah-pause-delay-input"
+          type="range"
+          min={0.0}
+          max={5.0}
+          step={0.2}
+          value={props.ayahPauseDelay}
+          onChange={(e) => props.onAyahPauseDelay(Number(e.target.value))}
+        />
+      </label>
 
       <label>
         Arabic font

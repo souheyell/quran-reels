@@ -44,6 +44,8 @@ export interface ReelConfig {
     showTranslation: boolean
     surahHeaderPosition: 'top' | 'bottom' | 'none'
     surahNameLanguage: 'arabic' | 'english' | 'both'
+    ayahPauseDelay: number
+    showBasmalah: boolean
   }
   footer: {
     enabled: boolean
@@ -85,6 +87,8 @@ export type ConfigAction =
   | { type: 'SET_SHOW_TRANSLATION'; show: boolean }
   | { type: 'SET_SURAH_HEADER_POSITION'; position: ReelConfig['text']['surahHeaderPosition'] }
   | { type: 'SET_SURAH_NAME_LANGUAGE'; language: ReelConfig['text']['surahNameLanguage'] }
+  | { type: 'SET_AYAH_PAUSE_DELAY'; delay: number }
+  | { type: 'SET_SHOW_BASMALAH'; show: boolean }
   | { type: 'SET_FOOTER_ENABLED'; enabled: boolean }
   | { type: 'SET_FOOTER_TEXT'; text: string }
   | { type: 'SET_FOOTER_ICON'; icon: ReelConfig['footer']['icon'] }
