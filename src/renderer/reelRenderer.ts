@@ -2,6 +2,7 @@ import type { ReelConfig, Verse } from '../types'
 import { drawBackground, getTransform } from './kenburns'
 import { fitFontSize, isRtl, prepareText } from './textLayout'
 import { DEFAULT_BACKGROUND_URL } from '../api/unsplash'
+import { getSurahCalligraphyImage, loadSurahCalligraphy } from '../lib/surahCalligraphy'
 
 export const ASPECT_SIZES: Record<ReelConfig['aspectRatio'], { width: number; height: number }> = {
   '9:16': { width: 1440, height: 2560 },
@@ -155,27 +156,50 @@ function drawVerse(
     ctx.shadowBlur = Math.round(24 * scale)
   }
 
-  // ── Surah in Arabic Calligraphy + Verses Number Just Down The Surah ──
+  // ── Surah in Thuluth Calligraphy + Verse Number Just Down The Surah ──
   const showHeaderTop = text.surahHeaderPosition === 'top' || text.surahHeaderPosition === undefined
   if (showHeaderTop) {
-    const topHeaderY = height * 0.065
-    const titleFontSize = surahHeader.isRtl
-      ? Math.max(16, Math.round(height * 0.033))
-      : Math.max(13, Math.round(height * 0.025))
-    const titleFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
+    const topHeaderY = height * 0.075
+    const isArabicMode = text.surahNameLanguage === 'arabic' || text.surahNameLanguage === undefined
+    const calligraphyImg = isArabicMode ? getSurahCalligraphyImage(verse.surah, text.textColor) : null
 
-    // Line 1: Surah in Calligraphy
-    ctx.font = buildFont({ size: titleFontSize, font: titleFont })
-    ctx.globalAlpha = referenceAlpha * 0.98
-    ctx.fillText(prepareText(surahHeader.title, surahHeader.isRtl), width / 2, topHeaderY)
+    if (calligraphyImg && calligraphyImg.complete && calligraphyImg.naturalWidth > 0) {
+      // Draw Authentic Thuluth Vector Calligraphy
+      const targetH = height * 0.05
+      const aspect = calligraphyImg.naturalWidth / calligraphyImg.naturalHeight || 1.5
+      const targetW = targetH * aspect
+      const imgX = (width - targetW) / 2
+      const imgY = topHeaderY - targetH / 2
 
-    // Line 2: Verse number directly under the Surah
-    const subtitleFontSize = Math.max(11, Math.round(height * 0.019))
-    const subtitleY = topHeaderY + titleFontSize * 1.15
-    const subtitleFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
-    ctx.font = buildFont({ size: subtitleFontSize, font: subtitleFont })
-    ctx.globalAlpha = referenceAlpha * 0.78
-    ctx.fillText(prepareText(surahHeader.subtitle, surahHeader.isRtl), width / 2, subtitleY)
+      ctx.globalAlpha = referenceAlpha * 0.98
+      ctx.drawImage(calligraphyImg, imgX, imgY, targetW, targetH)
+
+      // Verse Number directly underneath the Calligraphy
+      const subtitleFontSize = Math.max(11, Math.round(height * 0.019))
+      const subtitleY = imgY + targetH + height * 0.018
+      const subtitleFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
+      ctx.font = buildFont({ size: subtitleFontSize, font: subtitleFont })
+      ctx.globalAlpha = referenceAlpha * 0.8
+      ctx.fillText(prepareText(surahHeader.subtitle, surahHeader.isRtl), width / 2, subtitleY)
+    } else {
+      // Fallback to text calligraphy while image loads
+      if (isArabicMode) void loadSurahCalligraphy(verse.surah, text.textColor)
+      const titleFontSize = surahHeader.isRtl
+        ? Math.max(16, Math.round(height * 0.033))
+        : Math.max(13, Math.round(height * 0.025))
+      const titleFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
+
+      ctx.font = buildFont({ size: titleFontSize, font: titleFont })
+      ctx.globalAlpha = referenceAlpha * 0.98
+      ctx.fillText(prepareText(surahHeader.title, surahHeader.isRtl), width / 2, topHeaderY)
+
+      const subtitleFontSize = Math.max(11, Math.round(height * 0.019))
+      const subtitleY = topHeaderY + titleFontSize * 1.15
+      const subtitleFont = surahHeader.isRtl ? text.arabicFont : text.translationFont
+      ctx.font = buildFont({ size: subtitleFontSize, font: subtitleFont })
+      ctx.globalAlpha = referenceAlpha * 0.78
+      ctx.fillText(prepareText(surahHeader.subtitle, surahHeader.isRtl), width / 2, subtitleY)
+    }
   }
 
   // ── Calculate Main Content Layout ────────────────────────
