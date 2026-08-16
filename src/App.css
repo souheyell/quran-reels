@@ -750,3 +750,64 @@ input[type='checkbox'] {
   }
 }
 
+.motion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.45rem;
+}
+
+.motion-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.55rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  color: var(--color-text);
+  text-align: left;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.motion-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--color-border-hover);
+}
+
+.motion-card.active {
+  background: rgba(255, 215, 0, 0.12);
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+
+.motion-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.motion-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.motion-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.motion-desc {
+  font-size: 0.68rem;
+  color: var(--color-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
