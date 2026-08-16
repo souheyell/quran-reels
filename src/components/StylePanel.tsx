@@ -59,7 +59,7 @@ export function StylePanel(props: StylePanelProps) {
 
       <h2>Text & Overlay Style</h2>
       <div className="row">
-        <label className="color">
+        <label className="color" style={{ width: '80px', flexShrink: 0 }}>
           Overlay
           <input
             id="overlay-color-input"
@@ -68,7 +68,7 @@ export function StylePanel(props: StylePanelProps) {
             onChange={(e) => props.onOverlayColor(e.target.value)}
           />
         </label>
-        <label>
+        <label style={{ flex: 1 }}>
           Tint {Math.round(props.overlayOpacity * 100)}%
           <input
             id="overlay-opacity-input"
@@ -182,8 +182,8 @@ export function StylePanel(props: StylePanelProps) {
           🔤 Word-by-Word Karaoke Glow
         </label>
         {props.karaokeHighlight && (
-          <label className="color" style={{ margin: 0 }}>
-            Glow
+          <label className="color" style={{ width: '80px', flexShrink: 0 }}>
+            Glow Color
             <input
               id="highlight-color-input"
               type="color"
@@ -252,9 +252,18 @@ export function StylePanel(props: StylePanelProps) {
         </>
       )}
 
-      <div className="row">
-        <label className="color">
-          Text color
+      <div className="row" style={{ alignItems: 'center' }}>
+        <label className="row-inline" style={{ flex: 1 }}>
+          <input
+            id="glow-checkbox"
+            type="checkbox"
+            checked={props.showGlow}
+            onChange={(e) => props.onShowGlow(e.target.checked)}
+          />
+          ✨ Text Glow & Drop Shadow
+        </label>
+        <label className="color" style={{ width: '80px', flexShrink: 0 }}>
+          Text Color
           <input
             id="text-color-input"
             type="color"
@@ -263,16 +272,6 @@ export function StylePanel(props: StylePanelProps) {
           />
         </label>
       </div>
-
-      <label className="row-inline">
-        <input
-          id="glow-checkbox"
-          type="checkbox"
-          checked={props.showGlow}
-          onChange={(e) => props.onShowGlow(e.target.checked)}
-        />
-        Text glow / shadow
-      </label>
     </section>
   )
 }

@@ -1,11 +1,14 @@
-export interface CuratedImage {
+export interface CuratedMedia {
   id: string
   category: StockCategory
   title: string
-  source: 'Unsplash' | 'Pexels' | 'Pixabay' | 'Wikimedia'
+  source: 'Unsplash' | 'Pexels' | 'Pixabay' | 'Wikimedia' | 'Coverr' | 'Mixkit'
   full: string
   thumb: string
+  mediaType: 'image' | 'video'
 }
+
+export type CuratedImage = CuratedMedia
 
 export const STOCK_CATEGORIES = [
   'Mosques & Holy Sites',
@@ -20,15 +23,16 @@ export const STOCK_CATEGORIES = [
 
 export type StockCategory = (typeof STOCK_CATEGORIES)[number]
 
-interface RawPhoto {
+interface RawMedia {
   id: string
   title: string
-  source: 'Unsplash' | 'Pexels' | 'Pixabay' | 'Wikimedia'
+  source: 'Unsplash' | 'Pexels' | 'Pixabay' | 'Wikimedia' | 'Coverr' | 'Mixkit'
   customFull?: string
   customThumb?: string
+  mediaType?: 'image' | 'video'
 }
 
-const PHOTO_DATABASE: Record<StockCategory, RawPhoto[]> = {
+const PHOTO_DATABASE: Record<StockCategory, RawMedia[]> = {
   'Mosques & Holy Sites': [
     { id: 'photo-1564769625905-50e93615e769', title: 'Grand Mosque Dome & Minarets', source: 'Unsplash' },
     { id: 'photo-1584551246679-0daf3d275d0f', title: 'Islamic Archway Light', source: 'Unsplash' },
@@ -110,19 +114,67 @@ const PHOTO_DATABASE: Record<StockCategory, RawPhoto[]> = {
   ],
 }
 
+export const STOCK_VIDEO_LOOPS: CuratedMedia[] = [
+  {
+    id: 'video-clouds-timelapse',
+    category: 'Sunsets & Golden Hour',
+    title: 'Majestic Clouds Timelapse',
+    source: 'Mixkit',
+    full: 'https://assets.mixkit.co/videos/preview/mixkit-clouds-and-blue-sky-2408-large.mp4',
+    thumb: 'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?auto=format&fit=crop&w=300&h=400&q=70',
+    mediaType: 'video',
+  },
+  {
+    id: 'video-stars-space',
+    category: 'Cosmos & Galaxies',
+    title: 'Starry Space Nebula Loop',
+    source: 'Mixkit',
+    full: 'https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-1610-large.mp4',
+    thumb: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=300&h=400&q=70',
+    mediaType: 'video',
+  },
+  {
+    id: 'video-waterfall-stream',
+    category: 'Oceans & Waterfalls',
+    title: 'Mountain Waterfall Cascade',
+    source: 'Mixkit',
+    full: 'https://assets.mixkit.co/videos/preview/mixkit-waterfall-in-forest-2213-large.mp4',
+    thumb: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=300&h=400&q=70',
+    mediaType: 'video',
+  },
+  {
+    id: 'video-ocean-sunset',
+    category: 'Sunsets & Golden Hour',
+    title: 'Sunset Ocean Waves',
+    source: 'Mixkit',
+    full: 'https://assets.mixkit.co/videos/preview/mixkit-sunset-over-the-ocean-horizon-1189-large.mp4',
+    thumb: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&h=400&q=70',
+    mediaType: 'video',
+  },
+  {
+    id: 'video-rain-nature',
+    category: 'Rain & Atmospheric Fog',
+    title: 'Rain on Leaves Loop',
+    source: 'Mixkit',
+    full: 'https://assets.mixkit.co/videos/preview/mixkit-heavy-rain-drops-falling-on-leaves-42589-large.mp4',
+    thumb: 'https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?auto=format&fit=crop&w=300&h=400&q=70',
+    mediaType: 'video',
+  },
+]
+
 function makeUnsplashUrl(photoId: string, width: number, height: number): string {
   return `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=${width}&h=${height}&q=85`
 }
 
 /**
- * Retrieve curated stock images with dynamic seed shuffling support for refreshing.
+ * Retrieve curated stock images and videos with dynamic seed shuffling support for refreshing.
  */
 export function getImagesForCategory(
   category: StockCategory,
   shuffleSeed = 0,
   width = 1080,
   height = 1920,
-): CuratedImage[] {
+): CuratedMedia[] {
   const items = [...(PHOTO_DATABASE[category] || PHOTO_DATABASE['Mosques & Holy Sites'])]
 
   // If shuffleSeed > 0, rotate items to provide fresh variety
@@ -139,18 +191,19 @@ export function getImagesForCategory(
     title: item.title,
     source: item.source,
     full: item.customFull || makeUnsplashUrl(item.id, width, height),
-    thumb: item.customThumb || makeUnsplashUrl(item.id, 450, 800),
+    thumb: item.customThumb || makeUnsplashUrl(item.id, 240, 320),
+    mediaType: item.mediaType || 'image',
   }))
 }
 
 /**
- * Filter images by keyword across all categories.
+ * Filter images and videos by keyword across all categories.
  */
-export function searchStockImages(query: string, width = 1080, height = 1920): CuratedImage[] {
+export function searchStockImages(query: string, width = 1080, height = 1920): CuratedMedia[] {
   const q = query.trim().toLowerCase()
   if (!q) return getImagesForCategory('Mosques & Holy Sites', 0, width, height)
 
-  const all: CuratedImage[] = []
+  const all: CuratedMedia[] = []
   for (const cat of STOCK_CATEGORIES) {
     const images = getImagesForCategory(cat, 0, width, height)
     for (const img of images) {
@@ -163,13 +216,19 @@ export function searchStockImages(query: string, width = 1080, height = 1920): C
     }
   }
 
+  for (const v of STOCK_VIDEO_LOOPS) {
+    if (v.title.toLowerCase().includes(q) || v.category.toLowerCase().includes(q)) {
+      all.unshift(v)
+    }
+  }
+
   return all.length > 0 ? all : getImagesForCategory('Mosques & Holy Sites', 0, width, height)
 }
 
 /**
  * Select a random stock image across all available categories and photo sources.
  */
-export function getRandomStockImage(width = 1080, height = 1920): CuratedImage {
+export function getRandomStockImage(width = 1080, height = 1920): CuratedMedia {
   const categories = STOCK_CATEGORIES
   const randomCat = categories[Math.floor(Math.random() * categories.length)]
   const images = getImagesForCategory(randomCat, Math.floor(Math.random() * 10), width, height)

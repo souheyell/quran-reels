@@ -48,6 +48,7 @@ export interface ReelConfig {
   background: {
     url: string
     fit: 'cover-crop' | 'blur-fill'
+    mediaType?: 'image' | 'video'
   }
   overlay: {
     color: string
@@ -125,7 +126,7 @@ export const ARABIC_EDITION_ID = 'quran-uthmani'
 
 export type ConfigAction =
   | { type: 'SET_VERSES'; verses: Verse[] }
-  | { type: 'SET_BACKGROUND_URL'; url: string }
+  | { type: 'SET_BACKGROUND_URL'; url: string; mediaType?: 'image' | 'video' }
   | { type: 'SET_BACKGROUND_FIT'; fit: ReelConfig['background']['fit'] }
   | { type: 'SET_OVERLAY_COLOR'; color: string }
   | { type: 'SET_OVERLAY_OPACITY'; opacity: number }

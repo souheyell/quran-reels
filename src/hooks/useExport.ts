@@ -5,7 +5,7 @@ import { exportVideo, exportPng, downloadBlob, downloadDataUrl } from '../lib/ex
 
 export function useExport(
   config: ReelConfig,
-  image: HTMLImageElement | null,
+  image: CanvasImageSource | null,
   timeline: Timeline,
 ) {
   const [exporting, setExporting] = useState(false)

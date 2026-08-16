@@ -1,16 +1,19 @@
 import { useState, useRef } from 'react'
 import {
   STOCK_CATEGORIES,
+  STOCK_VIDEO_LOOPS,
   getImagesForCategory,
   getRandomStockImage,
   searchStockImages,
   type StockCategory,
+  type CuratedMedia,
 } from '../api/unsplash'
 
 interface BackgroundPanelProps {
   url: string
   fit: 'cover-crop' | 'blur-fill'
-  onUrlChange: (url: string) => void
+  mediaType?: 'image' | 'video'
+  onUrlChange: (url: string, mediaType?: 'image' | 'video') => void
   onFitChange: (fit: 'cover-crop' | 'blur-fill') => void
 }
 
@@ -25,21 +28,46 @@ const CATEGORY_ICONS: Record<StockCategory, string> = {
   'Rain & Atmospheric Fog': '🌧️',
 }
 
-export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: BackgroundPanelProps) {
+type MediaFilter = 'all' | 'photos' | 'videos'
+
+export function BackgroundPanel({
+  url,
+  fit,
+  mediaType,
+  onUrlChange,
+  onFitChange,
+}: BackgroundPanelProps) {
   const [selectedCategory, setSelectedCategory] = useState<StockCategory>('Mosques & Holy Sites')
+  const [mediaFilter, setMediaFilter] = useState<MediaFilter>('photos')
   const [searchQuery, setSearchQuery] = useState('')
   const [shuffleSeed, setShuffleSeed] = useState(0)
+  const [customFileName, setCustomFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const images = searchQuery.trim()
+  const photos = searchQuery.trim()
     ? searchStockImages(searchQuery)
     : getImagesForCategory(selectedCategory, shuffleSeed)
+
+  let displayedMedia: CuratedMedia[] = []
+  if (mediaFilter === 'videos') {
+    displayedMedia = searchQuery.trim()
+      ? STOCK_VIDEO_LOOPS.filter(
+          (v) =>
+            v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            v.category.toLowerCase().includes(searchQuery.toLowerCase()),
+        )
+      : STOCK_VIDEO_LOOPS
+  } else if (mediaFilter === 'photos') {
+    displayedMedia = photos.filter((m) => m.mediaType !== 'video')
+  } else {
+    displayedMedia = [...STOCK_VIDEO_LOOPS, ...photos]
+  }
 
   const handleRandomBackground = () => {
     setSearchQuery('')
     const randomImg = getRandomStockImage()
     setSelectedCategory(randomImg.category)
-    onUrlChange(randomImg.full)
+    onUrlChange(randomImg.full, randomImg.mediaType)
   }
 
   const handleRefreshGallery = () => {
@@ -49,56 +77,85 @@ export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: Backgrou
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    const isVideo = file.type.startsWith('video/')
     const objectUrl = URL.createObjectURL(file)
-    onUrlChange(objectUrl)
+    setCustomFileName(file.name)
+    onUrlChange(objectUrl, isVideo ? 'video' : 'image')
   }
+
+  const isCurrentCustom = url.startsWith('blob:')
 
   return (
     <section className="panel" id="background-panel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-        <h2 style={{ margin: 0 }}>Stock Footage & Backgrounds</h2>
-        <div style={{ display: 'flex', gap: '0.3rem' }}>
+      <div className="panel-header-row">
+        <h2>Stock Footage & Backgrounds</h2>
+        <div className="panel-actions">
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             onClick={() => fileInputRef.current?.click()}
-            title="Upload your own background image or video"
-            style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+            title="Upload custom video (MP4/WebM) or image"
           >
-            📤 Upload
+            📤 Upload Video / Photo
           </button>
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,video/mp4,video/webm"
+            accept="video/mp4,video/webm,video/quicktime,image/*"
             onChange={handleFileUpload}
             style={{ display: 'none' }}
           />
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             onClick={handleRefreshGallery}
-            title="Shuffle and refresh stock photos"
-            style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+            title="Shuffle stock media"
           >
             🔄 Refresh
           </button>
         </div>
       </div>
 
-      <div style={{ marginBottom: '0.4rem' }}>
+      {/* Media Type Sub-Filter Tabs */}
+      <div className="media-filter-bar">
+        <button
+          type="button"
+          className={`filter-tab ${mediaFilter === 'photos' ? 'active' : ''}`}
+          onClick={() => setMediaFilter('photos')}
+        >
+          📷 4K Photos ({photos.length})
+        </button>
+        <button
+          type="button"
+          className={`filter-tab ${mediaFilter === 'videos' ? 'active' : ''}`}
+          onClick={() => setMediaFilter('videos')}
+        >
+          🎬 Video Loops ({STOCK_VIDEO_LOOPS.length})
+        </button>
+        <button
+          type="button"
+          className={`filter-tab ${mediaFilter === 'all' ? 'active' : ''}`}
+          onClick={() => setMediaFilter('all')}
+        >
+          ✨ All Media
+        </button>
+      </div>
+
+      {/* Search Input */}
+      <div className="search-wrap">
         <input
           id="bg-search-input"
           type="search"
-          placeholder="🔍 Search footage (e.g. Kaaba, waterfall, sunset, stars)..."
+          placeholder="🔍 Search footage (Kaaba, stars, clouds, sunset)..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          style={{ width: '100%', fontSize: '0.82rem' }}
+          className="search-input"
         />
       </div>
 
-      {!searchQuery && (
-        <div className="picks" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+      {/* Category Chips (when not searching and on photos) */}
+      {!searchQuery && mediaFilter !== 'videos' && (
+        <div className="picks category-chips">
           {STOCK_CATEGORIES.map((cat) => (
             <button
               key={cat}
@@ -106,8 +163,8 @@ export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: Backgrou
               className={`chip ${selectedCategory === cat ? 'active' : ''}`}
               onClick={() => {
                 setSelectedCategory(cat)
-                const firstImg = getImagesForCategory(cat, shuffleSeed)[0]
-                if (firstImg) onUrlChange(firstImg.full)
+                const first = getImagesForCategory(cat, shuffleSeed)[0]
+                if (first) onUrlChange(first.full, first.mediaType)
               }}
             >
               {CATEGORY_ICONS[cat]} {cat}
@@ -115,40 +172,73 @@ export function BackgroundPanel({ url, fit, onUrlChange, onFitChange }: Backgrou
           ))}
           <button
             type="button"
-            className="chip"
+            className="chip chip-accent"
             onClick={handleRandomBackground}
-            title="Pick a random photo across all categories"
+            title="Pick a random backdrop"
           >
             🎲 Random
           </button>
         </div>
       )}
 
-      <div className="thumbs">
-        {images.map((item) => (
+      {/* Uploaded File Banner (if active) */}
+      {isCurrentCustom && (
+        <div className="custom-media-banner">
+          <div className="custom-media-info">
+            <span className="custom-badge">
+              {mediaType === 'video' ? '🎬 Custom Video Active' : '📷 Custom Photo Active'}
+            </span>
+            <span className="custom-name">{customFileName || 'Uploaded file'}</span>
+          </div>
           <button
-            key={item.id}
             type="button"
-            className={`thumb ${item.full === url ? 'active' : ''}`}
-            title={`${item.title} (${item.source})`}
-            onClick={() => onUrlChange(item.full)}
+            className="btn btn-xs"
+            onClick={() => fileInputRef.current?.click()}
           >
-            <img src={item.thumb} alt={item.title} loading="lazy" />
+            Change
           </button>
-        ))}
+        </div>
+      )}
+
+      {/* Media Thumbnails Grid */}
+      <div className="thumbs-container">
+        <div className="thumbs">
+          {displayedMedia.map((item) => {
+            const isSelected = item.full === url
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`thumb ${isSelected ? 'active' : ''}`}
+                title={`${item.title} (${item.source})`}
+                onClick={() => onUrlChange(item.full, item.mediaType)}
+              >
+                <img src={item.thumb} alt={item.title} loading="lazy" />
+                <div className="thumb-overlay">
+                  <span className="thumb-badge">
+                    {item.mediaType === 'video' ? '🎬 Video' : '📷'}
+                  </span>
+                </div>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      <label>
-        Fit Style
-        <select
-          id="bg-fit-select"
-          value={fit}
-          onChange={(e) => onFitChange(e.target.value as 'cover-crop' | 'blur-fill')}
-        >
-          <option value="cover-crop">Cover (crop to frame)</option>
-          <option value="blur-fill">Blurred fill</option>
-        </select>
-      </label>
+      {/* Controls Row: Fit Style */}
+      <div className="row" style={{ marginTop: '0.4rem' }}>
+        <label style={{ flex: 1 }}>
+          Fit & Scaling
+          <select
+            id="bg-fit-select"
+            value={fit}
+            onChange={(e) => onFitChange(e.target.value as 'cover-crop' | 'blur-fill')}
+          >
+            <option value="cover-crop">Cover (Crop to fill 9:16 frame)</option>
+            <option value="blur-fill">Blurred Mirror Fill (Letterbox)</option>
+          </select>
+        </label>
+      </div>
     </section>
   )
 }

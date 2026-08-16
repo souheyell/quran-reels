@@ -5,7 +5,7 @@ import type { Timeline } from '../renderer/timeline'
 
 interface PreviewCanvasProps {
   config: ReelConfig
-  image: HTMLImageElement | null
+  image: HTMLImageElement | HTMLVideoElement | null
   timeline: Timeline
 }
 
@@ -94,16 +94,23 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   // Custom Video Background Loop Support
   useEffect(() => {
     const isVideo =
-      config.background.url.endsWith('.mp4') ||
-      config.background.url.endsWith('.webm') ||
-      config.background.url.startsWith('blob:')
+      image instanceof HTMLVideoElement ||
+      config.background.mediaType === 'video' ||
+      /\.(mp4|webm|mov|m4v)($|\?)/i.test(config.background.url)
+
     if (isVideo) {
+      if (image instanceof HTMLVideoElement) {
+        videoRef.current = image
+        if (playing) image.play().catch(() => {})
+        return
+      }
       const v = document.createElement('video')
       v.src = config.background.url
       v.autoplay = true
       v.loop = true
       v.muted = true
       v.playsInline = true
+      v.crossOrigin = 'anonymous'
       v.play().catch(() => {})
       videoRef.current = v
       return () => {
@@ -114,7 +121,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     } else {
       videoRef.current = null
     }
-  }, [config.background.url])
+  }, [config.background.url, config.background.mediaType, image, playing])
 
   // Load and play audio for a specific verse index
   const loadAndPlayVerse = useCallback(

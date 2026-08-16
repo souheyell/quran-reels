@@ -3,7 +3,7 @@ import { useReelConfig } from './hooks/useReelConfig'
 import { useVerseLoader } from './hooks/useVerseLoader'
 import { useExport } from './hooks/useExport'
 import { buildTimeline } from './renderer/timeline'
-import { loadImage } from './lib/imageCache'
+import { loadMedia } from './lib/imageCache'
 import { VersePanel } from './components/VersePanel'
 import { BackgroundPanel } from './components/BackgroundPanel'
 import { StylePanel } from './components/StylePanel'
@@ -70,7 +70,7 @@ function App() {
     initialEditionId: 'en.sahih',
   })
 
-  const [image, setImage] = useState<HTMLImageElement | null>(null)
+  const [image, setImage] = useState<HTMLImageElement | HTMLVideoElement | null>(null)
   const [showAbout, setShowAbout] = useState(false)
   const [activeTab, setActiveTab] = useState<StudioTab>('all')
 
@@ -81,18 +81,19 @@ function App() {
     }
   }, [verseLoader.verses, setVerses])
 
-  // Load background image with caching
-  const loadBg = useCallback((url: string) => {
-    loadImage(
+  // Load background image or video with caching
+  const loadBg = useCallback((url: string, mediaType?: 'image' | 'video') => {
+    loadMedia(
       url,
-      (img) => setImage(img),
+      mediaType,
+      (media) => setImage(media),
       () => setImage(null),
     )
   }, [])
 
   useEffect(() => {
-    loadBg(config.background.url)
-  }, [config.background.url, loadBg])
+    loadBg(config.background.url, config.background.mediaType)
+  }, [config.background.url, config.background.mediaType, loadBg])
 
   const fallbackMs = config.motion.duration * 1000
   const ayahPauseMs =
@@ -311,6 +312,7 @@ function App() {
               <BackgroundPanel
                 url={config.background.url}
                 fit={config.background.fit}
+                mediaType={config.background.mediaType}
                 onUrlChange={setBackgroundUrl}
                 onFitChange={setBackgroundFit}
               />

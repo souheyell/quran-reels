@@ -64,7 +64,7 @@ function setupAudioCapture(
 
 export function exportWebM(
   config: ReelConfig,
-  image: HTMLImageElement | null,
+  image: CanvasImageSource | null,
   timeline: Timeline,
   onProgress?: (fraction: number) => void,
   fps = 30,
@@ -156,7 +156,7 @@ export function exportWebM(
  */
 export function exportVideo(
   config: ReelConfig,
-  image: HTMLImageElement | null,
+  image: CanvasImageSource | null,
   timeline: Timeline,
   onProgress?: (fraction: number) => void,
   fps = 30,
@@ -172,7 +172,7 @@ export function exportVideo(
 
 export function exportPng(
   config: ReelConfig,
-  image: HTMLImageElement | null,
+  image: CanvasImageSource | null,
   timeline: Timeline,
 ): string | null {
   const { width, height } = ASPECT_SIZES[config.aspectRatio]

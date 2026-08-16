@@ -14,7 +14,14 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
     case 'SET_VERSES':
       return { ...state, verses: action.verses }
     case 'SET_BACKGROUND_URL':
-      return { ...state, background: { ...state.background, url: action.url } }
+      return {
+        ...state,
+        background: {
+          ...state.background,
+          url: action.url,
+          mediaType: action.mediaType ?? state.background.mediaType,
+        },
+      }
     case 'SET_BACKGROUND_FIT':
       return { ...state, background: { ...state.background, fit: action.fit } }
     case 'SET_OVERLAY_COLOR':
@@ -134,7 +141,8 @@ export function useReelConfig() {
     [],
   )
   const setBackgroundUrl = useCallback(
-    (url: string) => dispatch({ type: 'SET_BACKGROUND_URL', url }),
+    (url: string, mediaType?: 'image' | 'video') =>
+      dispatch({ type: 'SET_BACKGROUND_URL', url, mediaType }),
     [],
   )
   const setBackgroundFit = useCallback(

@@ -226,7 +226,7 @@ function waitForBackpressure(
  */
 export function exportMp4(
   config: ReelConfig,
-  image: HTMLImageElement | null,
+  image: CanvasImageSource | null,
   _timeline?: Timeline,
   onProgress?: (p: number) => void,
   fps = 30,
@@ -376,6 +376,10 @@ export function exportMp4(
 
             const timeMs = (frameIndex / fps) * 1000
             const slot = activeSlot(timeline, timeMs)
+
+            if (image && typeof HTMLVideoElement !== 'undefined' && image instanceof HTMLVideoElement && image.duration > 0) {
+              image.currentTime = (timeMs / 1000) % image.duration
+            }
 
             if (slot) {
               renderFrame(ctx as unknown as CanvasRenderingContext2D, {
