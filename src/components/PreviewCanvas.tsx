@@ -149,14 +149,18 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       }
 
       if (playingRef.current && soundOnRef.current) {
-        audio
-          .play()
-          .then(() => {
-            setAutoplayBlocked(false)
-          })
-          .catch(() => {
-            setAutoplayBlocked(true)
-          })
+        const playPromise = audio.play()
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setAutoplayBlocked(false)
+            })
+            .catch((err) => {
+              if (err instanceof DOMException && err.name === 'NotAllowedError') {
+                setAutoplayBlocked(true)
+              }
+            })
+        }
       }
     },
     [verses],
@@ -334,9 +338,21 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     const nextPlaying = !playing
     setPlaying(nextPlaying)
     const audio = audioRef.current
+    const verse = verses[indexRef.current] || verses[0]
     if (audio) {
       if (nextPlaying && soundOn) {
-        audio.play().catch(() => setAutoplayBlocked(true))
+        if (verse?.audioUrl && (!audio.src || audio.src === '')) {
+          audio.src = verse.audioUrl
+          audio.load()
+        }
+        const p = audio.play()
+        if (p !== undefined) {
+          p.then(() => setAutoplayBlocked(false)).catch((err) => {
+            if (err instanceof DOMException && err.name === 'NotAllowedError') {
+              setAutoplayBlocked(true)
+            }
+          })
+        }
       } else {
         audio.pause()
       }
@@ -348,9 +364,21 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     const nextSound = !soundOn
     setSoundOn(nextSound)
     const audio = audioRef.current
+    const verse = verses[indexRef.current] || verses[0]
     if (audio) {
       if (nextSound && playing) {
-        audio.play().catch(() => setAutoplayBlocked(true))
+        if (verse?.audioUrl && (!audio.src || audio.src === '')) {
+          audio.src = verse.audioUrl
+          audio.load()
+        }
+        const p = audio.play()
+        if (p !== undefined) {
+          p.then(() => setAutoplayBlocked(false)).catch((err) => {
+            if (err instanceof DOMException && err.name === 'NotAllowedError') {
+              setAutoplayBlocked(true)
+            }
+          })
+        }
       } else {
         audio.pause()
       }
@@ -377,17 +405,30 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   }
 
   // Enable audio on user click if autoplay was blocked
-  const handleEnableAudio = () => {
+  const handleEnableAudio = (e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    setAutoplayBlocked(false)
+    setSoundOn(true)
+    setPlaying(true)
+
     const audio = audioRef.current
-    if (audio) {
-      audio
-        .play()
-        .then(() => {
-          setAutoplayBlocked(false)
-          setSoundOn(true)
-          setPlaying(true)
-        })
-        .catch((e) => console.warn('Could not enable audio:', e))
+    const verse = verses[indexRef.current] || verses[0]
+    if (audio && verse?.audioUrl) {
+      if (!audio.src || audio.src !== verse.audioUrl) {
+        audio.src = verse.audioUrl
+      }
+      audio.volume = volume > 0 ? volume : 0.9
+      audio.load()
+      const playPromise = audio.play()
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setAutoplayBlocked(false)
+          })
+          .catch((err) => {
+            console.warn('Playback error after enable click:', err)
+          })
+      }
     }
   }
 
@@ -400,6 +441,14 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
         className="preview-wrapper"
         style={{
           aspectRatio: config.aspectRatio.replace(':', '/'),
+          cursor: 'pointer',
+        }}
+        onClick={() => {
+          if (autoplayBlocked) {
+            handleEnableAudio()
+          } else {
+            togglePlay()
+          }
         }}
       >
         <canvas
@@ -417,7 +466,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
 
         {autoplayBlocked && (
           <div className="autoplay-overlay" onClick={handleEnableAudio}>
-            <button type="button" className="btn primary">
+            <button type="button" className="btn primary" onClick={handleEnableAudio}>
               ▶ Tap to Enable Recitation Audio
             </button>
           </div>

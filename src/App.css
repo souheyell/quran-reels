@@ -1933,9 +1933,17 @@
 
 @media (max-width: 900px) {
   .studio-layout {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     height: auto;
     overflow: visible;
+  }
+
+  .studio-main {
+    order: -1;
+    padding: 0.75rem 0.5rem;
+    background: radial-gradient(circle at center, rgba(18, 26, 43, 0.9) 0%, rgba(7, 10, 18, 0.98) 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .studio-sidebar {
