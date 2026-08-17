@@ -92,15 +92,28 @@ function cleanBasmalahFromText(arabic: string): string {
 export function getSurahHeader(
   verse: Verse,
   lang: ReelConfig['text']['surahNameLanguage'],
+  allVerses?: Verse[],
 ): { title: string; subtitle: string; isRtl: boolean } {
   const arabic = verse.surahArabicName || `سورة ${verse.surahName}`
-  const english = `${verse.surahName} · Verse ${verse.ayat}`
-  const bothSubtitle = `Surah ${verse.surahName} · Ayah ${verse.ayat}`
+
+  let ayatLabel = `Ayah ${verse.ayat}`
+  let arabicAyatLabel = `الآية ${verse.ayat}`
+  if (allVerses && allVerses.length > 1) {
+    const firstAyat = allVerses[0].ayat
+    const lastAyat = allVerses[allVerses.length - 1].ayat
+    if (firstAyat !== lastAyat) {
+      ayatLabel = `Ayahs ${firstAyat}–${lastAyat}`
+      arabicAyatLabel = `الآيات ${firstAyat}–${lastAyat}`
+    }
+  }
+
+  const english = `${verse.surahName} · ${ayatLabel}`
+  const bothSubtitle = `Surah ${verse.surahName} · ${ayatLabel}`
 
   if (lang === 'arabic') {
     return {
       title: arabic,
-      subtitle: `الآية ${verse.ayat}`,
+      subtitle: arabicAyatLabel,
       isRtl: true,
     }
   }
@@ -211,11 +224,11 @@ export function drawVerse(
     startY = height * 0.52
   }
 
-  const surahHeader = getSurahHeader(verse, text.surahNameLanguage)
+  const surahHeader = getSurahHeader(verse, text.surahNameLanguage, config.verses)
   const isBasmalahSpecial = isFirstAyahOfSurah && text.showBasmalah
   const baseAyahTimeMs = isBasmalahSpecial ? Math.max(0, verseTimeMs - 2200) : verseTimeMs
 
-  // Smooth fadeIn and fadeOut easing
+  // Smooth fadeIn and fadeOut easing for verse content
   const fadeIn = Math.min(1, Math.max(0, baseAyahTimeMs / 700))
   const fadeOut =
     slotDurationMs > 800
@@ -241,10 +254,11 @@ export function drawVerse(
     basmalahAlpha = bFadeIn * bFadeOut
   }
 
-  const subtitleAlpha = fadeIn * fadeOut
+  // Surah header remains still and constant across transitions
+  const headerAlpha = 0.95
   const arabicRtl = true
 
-  // ── Render Top Surah Header (Continuity) ─────────────────
+  // ── Render Top Surah Header (Continuity & Still Title) ──
   if (text.surahHeaderPosition === 'top') {
     const topMarginY = Math.round(height * 0.1)
     const calligraphyImg = getSurahCalligraphyImage(verse.surah)
@@ -258,7 +272,7 @@ export function drawVerse(
       const emblemTargetW = emblemTargetH * aspect
 
       ctx.save()
-      ctx.globalAlpha = subtitleAlpha * 0.95
+      ctx.globalAlpha = headerAlpha
       ctx.drawImage(
         calligraphyImg,
         (width - emblemTargetW) / 2,
@@ -271,9 +285,15 @@ export function drawVerse(
       const ayahNumSize = Math.max(10, Math.round(height * 0.016))
       ctx.font = buildFont({ size: ayahNumSize, font: text.translationFont })
       ctx.fillStyle = text.textColor
-      ctx.globalAlpha = subtitleAlpha * 0.8
+      ctx.globalAlpha = headerAlpha * 0.85
+
+      const isMultiVerse = config.verses && config.verses.length > 1
+      const ayahRangeLabel = isMultiVerse
+        ? `Ayahs ${config.verses[0].ayat}–${config.verses[config.verses.length - 1].ayat}`
+        : `Ayah ${verse.ayat}`
+
       ctx.fillText(
-        prepareText(`Ayah ${verse.ayat}`, false),
+        prepareText(ayahRangeLabel, false),
         width / 2,
         topMarginY + emblemTargetH * 0.65,
       )
@@ -285,12 +305,12 @@ export function drawVerse(
 
       ctx.font = buildFont({ size: topTitleSize, font: topFont })
       ctx.fillStyle = text.textColor
-      ctx.globalAlpha = subtitleAlpha * 0.95
+      ctx.globalAlpha = headerAlpha
       ctx.fillText(prepareText(surahHeader.title, surahHeader.isRtl), width / 2, topMarginY)
 
       const subFontSize = Math.max(11, Math.round(height * 0.018))
       ctx.font = buildFont({ size: subFontSize, font: text.translationFont })
-      ctx.globalAlpha = subtitleAlpha * 0.75
+      ctx.globalAlpha = headerAlpha * 0.8
       ctx.fillText(
         prepareText(surahHeader.subtitle, surahHeader.isRtl),
         width / 2,
@@ -465,12 +485,12 @@ export function drawVerse(
 
     ctx.font = buildFont({ size: bottomTitleSize, font: bottomFont })
     ctx.fillStyle = text.textColor
-    ctx.globalAlpha = subtitleAlpha * 0.95
+    ctx.globalAlpha = 0.95
     ctx.fillText(prepareText(surahHeader.title, surahHeader.isRtl), width / 2, cursorY + height * 0.03)
 
     const bottomSubSize = Math.max(10, Math.round(height * 0.018))
     ctx.font = buildFont({ size: bottomSubSize, font: bottomFont })
-    ctx.globalAlpha = subtitleAlpha * 0.75
+    ctx.globalAlpha = 0.8
     ctx.fillText(
       prepareText(surahHeader.subtitle, surahHeader.isRtl),
       width / 2,

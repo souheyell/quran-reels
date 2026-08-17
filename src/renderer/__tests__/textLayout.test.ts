@@ -75,3 +75,54 @@ describe('fitFontSize', () => {
     expect(result.lines).toHaveLength(1)
   })
 })
+
+describe('getSurahHeader', () => {
+  it('returns stable single verse header', async () => {
+    const { getSurahHeader } = await import('../reelRenderer')
+    const verse = {
+      surah: 67,
+      ayat: 1,
+      surahName: 'Al-Mulk',
+      surahArabicName: 'سورة الملك',
+      arabic: 'تَبَارَكَ الَّذِي بِيَدِهِ الْمُلْكُ',
+      translation: 'Blessed is He in whose hand is dominion',
+      editionId: 'en.sahih',
+      editionName: 'Saheeh International',
+      reciterId: 'ar.alafasy',
+      reciterName: 'Mishary Alafasy',
+      audioUrl: '',
+    }
+    const header = getSurahHeader(verse, 'both')
+    expect(header.title).toBe('سورة الملك')
+    expect(header.subtitle).toBe('Surah Al-Mulk · Ayah 1')
+  })
+
+  it('returns unified verse range for multi-verse batch reels', async () => {
+    const { getSurahHeader } = await import('../reelRenderer')
+    const v1 = {
+      surah: 67,
+      ayat: 1,
+      surahName: 'Al-Mulk',
+      surahArabicName: 'سورة الملك',
+      arabic: '...',
+      translation: '...',
+      editionId: 'en.sahih',
+      editionName: 'Saheeh International',
+      reciterId: 'ar.alafasy',
+      reciterName: 'Mishary Alafasy',
+      audioUrl: '',
+    }
+    const v2 = { ...v1, ayat: 2 }
+    const v3 = { ...v1, ayat: 3 }
+    const allVerses = [v1, v2, v3]
+
+    const headerV1 = getSurahHeader(v1, 'both', allVerses)
+    const headerV2 = getSurahHeader(v2, 'both', allVerses)
+
+    expect(headerV1.subtitle).toBe('Surah Al-Mulk · Ayahs 1–3')
+    expect(headerV2.subtitle).toBe('Surah Al-Mulk · Ayahs 1–3')
+    // Remains completely still across Ayah 1 and Ayah 2!
+    expect(headerV1.title).toBe(headerV2.title)
+    expect(headerV1.subtitle).toBe(headerV2.subtitle)
+  })
+})
