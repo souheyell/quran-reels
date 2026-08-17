@@ -73,49 +73,49 @@ async function prepareAudioAndTimeline(
   }
 
   const audioCtx = typeof AudioContext !== 'undefined' ? new AudioContext({ sampleRate }) : null
-  const decodedBuffers: (AudioBuffer | null)[] = []
-  const verseDurationsMs: number[] = []
 
-  // 1. Fetch and decode audio for every verse to get the EXACT millisecond duration
-  for (let i = 0; i < verses.length; i++) {
-    const verse = verses[i]
-    if (!verse?.audioUrl || !audioCtx) {
-      decodedBuffers.push(null)
-      verseDurationsMs.push(fallbackDurationMs)
-      continue
-    }
+  // 1. Fetch and decode audio for all verses in parallel for ultra-fast timeline preparation
+  const decodedResults = await Promise.all(
+    verses.map(async (verse) => {
+      if (!verse?.audioUrl || !audioCtx) {
+        return { buffer: null, durationMs: fallbackDurationMs }
+      }
 
-    try {
-      const proxiedUrl = proxyAudioUrl(verse.audioUrl) || verse.audioUrl
-      const urlsToTry = [proxiedUrl, verse.audioUrl].filter(Boolean) as string[]
+      try {
+        const proxiedUrl = proxyAudioUrl(verse.audioUrl) || verse.audioUrl
+        const urlsToTry = [proxiedUrl, verse.audioUrl].filter(Boolean) as string[]
 
-      let arrayBuffer: ArrayBuffer | null = null
-      for (const url of urlsToTry) {
-        try {
-          const res = await fetch(url)
-          if (res.ok) {
-            arrayBuffer = await res.arrayBuffer()
-            break
+        let arrayBuffer: ArrayBuffer | null = null
+        for (const url of urlsToTry) {
+          try {
+            const res = await fetch(url)
+            if (res.ok) {
+              arrayBuffer = await res.arrayBuffer()
+              break
+            }
+          } catch {
+            // Try next URL fallback
           }
-        } catch {
-          // Try next URL fallback
         }
-      }
 
-      if (!arrayBuffer) {
-        throw new Error(`Failed to fetch audio for ${verse.surah}:${verse.ayat}`)
-      }
+        if (!arrayBuffer) {
+          throw new Error(`Failed to fetch audio for ${verse.surah}:${verse.ayat}`)
+        }
 
-      const decoded = await audioCtx.decodeAudioData(arrayBuffer)
-      decodedBuffers.push(decoded)
-      // Exactly how long the reciter actually speaks (in ms)
-      verseDurationsMs.push(Math.round(decoded.duration * 1000))
-    } catch (err) {
-      console.warn('Failed to decode verse audio for export:', verse.audioUrl, err)
-      decodedBuffers.push(null)
-      verseDurationsMs.push(fallbackDurationMs)
-    }
-  }
+        const decoded = await audioCtx.decodeAudioData(arrayBuffer)
+        return {
+          buffer: decoded,
+          durationMs: Math.round(decoded.duration * 1000),
+        }
+      } catch (err) {
+        console.warn('Failed to decode verse audio for export:', verse.audioUrl, err)
+        return { buffer: null, durationMs: fallbackDurationMs }
+      }
+    }),
+  )
+
+  const decodedBuffers = decodedResults.map((r) => r.buffer)
+  const verseDurationsMs = decodedResults.map((r) => r.durationMs)
 
   // 2. Build the exact timeline with configurable pause between each ayah
   let cursor = 0
@@ -319,6 +319,8 @@ export function exportMp4(
           bitrate: videoBitrate,
           framerate: fps,
           hardwareAcceleration: 'prefer-hardware',
+          bitrateMode: 'variable',
+          latencyMode: 'quality',
         })
 
         let audioEncoder: AudioEncoder | null = null
@@ -379,16 +381,16 @@ export function exportMp4(
           }
         }
 
-        // Encode video frames sequentially with backpressure check to prevent GPU memory saturation
+        // Encode video frames sequentially with high-throughput hardware GPU saturation
         try {
           for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
             if (cancelled || encoderError) {
               break
             }
 
-            // Yield if encoder has too many queued frames
-            while (videoEncoder.encodeQueueSize > 3 && !cancelled && !encoderError) {
-              await waitForBackpressure(videoEncoder, 2)
+            // Keep hardware GPU pipeline saturated without unbounded RAM growth
+            while (videoEncoder.encodeQueueSize > 8 && !cancelled && !encoderError) {
+              await waitForBackpressure(videoEncoder, 4)
             }
 
             if (cancelled || encoderError) break
@@ -420,8 +422,8 @@ export function exportMp4(
 
             onProgress?.((frameIndex + 1) / totalFrames)
 
-            // Periodic micro-yield every 15 frames to keep UI responsive
-            if (frameIndex % 15 === 0) {
+            // Periodic micro-yield every 30 frames to maximize GPU throughput while keeping UI responsive
+            if (frameIndex % 30 === 0) {
               await new Promise((r) => setTimeout(r, 0))
             }
           }

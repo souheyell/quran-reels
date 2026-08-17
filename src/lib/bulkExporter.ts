@@ -115,7 +115,7 @@ export async function renderBulkItem(
 
   const ayahPauseMs = typeof baseConfig.text?.ayahPauseDelay === 'number'
     ? Math.round(baseConfig.text.ayahPauseDelay * 1000)
-    : 1600
+    : 0
   const timeline = buildTimeline(cachedVerses, filledDurations, ayahPauseMs)
 
   // 4. Background Media
