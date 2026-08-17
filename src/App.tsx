@@ -437,6 +437,40 @@ function App() {
           <div className="canvas-viewport-wrapper">
             <PreviewCanvas config={config} image={image} timeline={timeline} />
           </div>
+
+          {/* ── Fast Mobile / APK Action Bar ─────────────────────── */}
+          <div className="mobile-action-bar">
+            <button
+              id="mobile-export-video-btn"
+              type="button"
+              className="btn btn-mobile-export"
+              onClick={handleExportVideo}
+              disabled={exporting}
+            >
+              <span className="btn-icon">⚡</span>
+              {exporting ? `Exporting… ${exportProgress}%` : `Export ${exportFormat.toUpperCase()} Reel`}
+            </button>
+            <button
+              id="mobile-share-reel-btn"
+              type="button"
+              className="btn btn-mobile-share"
+              onClick={handleShareReel}
+              disabled={exporting}
+            >
+              <span className="btn-icon">📲</span>
+              Share
+            </button>
+            <button
+              id="mobile-export-png-btn"
+              type="button"
+              className="btn btn-mobile-png"
+              onClick={handleExportPng}
+              disabled={exporting}
+            >
+              <span className="btn-icon">🖼️</span>
+              PNG
+            </button>
+          </div>
         </main>
 
         {/* ── Right Column: Studio Pro Inspector & Export Toolbar ─ */}

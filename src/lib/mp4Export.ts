@@ -19,34 +19,44 @@ const CANDIDATE_CODECS = [
   'avc1.42001f', // Baseline Profile Level 3.1
 ]
 
+export interface SupportedVideoConfig {
+  codec: string
+  hardwareAcceleration: HardwareAcceleration
+}
+
 async function findSupportedVideoCodec(
   width: number,
   height: number,
   bitrate: number,
   framerate: number,
-): Promise<string> {
+): Promise<SupportedVideoConfig> {
   if (typeof VideoEncoder === 'undefined' || !VideoEncoder.isConfigSupported) {
-    return 'avc1.4d002a'
+    return { codec: 'avc1.4d002a', hardwareAcceleration: 'no-preference' }
   }
 
-  for (const codec of CANDIDATE_CODECS) {
-    try {
-      const support = await VideoEncoder.isConfigSupported({
-        codec,
-        width,
-        height,
-        bitrate,
-        framerate,
-      })
-      if (support.supported) {
-        return codec
+  const accels: HardwareAcceleration[] = ['prefer-hardware', 'no-preference']
+
+  for (const hw of accels) {
+    for (const codec of CANDIDATE_CODECS) {
+      try {
+        const support = await VideoEncoder.isConfigSupported({
+          codec,
+          width,
+          height,
+          bitrate,
+          framerate,
+          hardwareAcceleration: hw,
+        })
+        if (support.supported) {
+          return { codec, hardwareAcceleration: hw }
+        }
+      } catch {
+        // Continue searching
       }
-    } catch {
-      // Continue searching
     }
   }
 
-  return 'avc1.4d002a'
+  return { codec: 'avc1.4d002a', hardwareAcceleration: 'no-preference' }
 }
 
 interface PreparedMedia {
@@ -313,14 +323,12 @@ export function exportMp4(
         })
 
         videoEncoder.configure({
-          codec: videoCodec,
+          codec: videoCodec.codec,
           width,
           height,
           bitrate: videoBitrate,
           framerate: fps,
-          hardwareAcceleration: 'prefer-hardware',
-          bitrateMode: 'variable',
-          latencyMode: 'quality',
+          hardwareAcceleration: videoCodec.hardwareAcceleration,
         })
 
         let audioEncoder: AudioEncoder | null = null

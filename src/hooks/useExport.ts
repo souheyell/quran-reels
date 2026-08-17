@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReelConfig } from '../types'
 import type { Timeline } from '../renderer/timeline'
-import { exportVideo, exportPng, downloadBlob, downloadDataUrl } from '../lib/export'
+import {
+  exportVideo,
+  exportPng,
+  saveAndDownloadBlob,
+  saveAndDownloadDataUrl,
+} from '../lib/export'
 import { shareReelVideo, generateSocialCaption } from '../lib/share'
 
 export function useExport(
@@ -27,7 +32,7 @@ export function useExport(
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
     toastTimeoutRef.current = window.setTimeout(() => {
       setShareToast(null)
-    }, 5000)
+    }, 6000)
   }
 
   // Detect best format on mount
@@ -49,16 +54,23 @@ export function useExport(
       const first = config.verses[0]
       const last = config.verses[config.verses.length - 1]
       const filename = `islamic-reel-${first?.surah || 1}-${first?.ayat || 1}-${last?.ayat || 1}.${ext}`
-      
+
       setLastExportedBlob({ blob, filename })
-      downloadBlob(blob, filename)
-      
-      // Also copy social caption to clipboard automatically
+
+      // Generate social caption
       const caption = generateSocialCaption(config.verses, first?.reciterName)
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
         navigator.clipboard.writeText(caption).catch(() => {})
-        showToast('⚡ Video downloaded & Social Caption copied to clipboard!')
       }
+
+      // Save to native filesystem (Documents/Downloads) or trigger browser download
+      const saveResult = await saveAndDownloadBlob(blob, filename, {
+        title: `${first?.surahName || 'Quran'} Reel`,
+        text: caption,
+        dialogTitle: 'Save / Share Quran Reel Video',
+      })
+
+      showToast(`🎉 ${saveResult.message} & Social Caption copied!`)
     } catch (e) {
       if (e instanceof Error && e.message === 'Export cancelled') return
       setExportError(e instanceof Error ? e.message : 'Export failed')
@@ -111,15 +123,19 @@ export function useExport(
     }
   }, [config, image, timeline, lastExportedBlob])
 
-  const handleExportPng = useCallback(() => {
+  const handleExportPng = useCallback(async () => {
     const dataUrl = exportPng(config, image, timeline)
     if (!dataUrl) {
       setExportError('PNG export failed')
       return
     }
     const first = config.verses[0]
-    downloadDataUrl(dataUrl, `islamic-reel-${first?.surah || 1}-${first?.ayat || 1}.png`)
-    showToast('🖼️ 4K PNG Frame downloaded!')
+    const filename = `islamic-reel-${first?.surah || 1}-${first?.ayat || 1}.png`
+    const saveResult = await saveAndDownloadDataUrl(dataUrl, filename, {
+      title: `${first?.surahName || 'Quran'} 4K Frame`,
+      dialogTitle: 'Save / Share 4K PNG Frame',
+    })
+    showToast(`🖼️ ${saveResult.message}!`)
   }, [config, image, timeline])
 
   const cancelExport = useCallback(() => {

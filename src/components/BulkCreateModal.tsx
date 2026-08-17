@@ -19,7 +19,7 @@ import {
 } from '../lib/bulkExporter'
 import { ALL_RECITERS } from '../api/quran'
 import { shareReelVideo } from '../lib/share'
-import { downloadBlob } from '../lib/export'
+import { saveAndDownloadBlob } from '../lib/export'
 
 interface BulkCreateModalProps {
   isOpen: boolean
@@ -297,8 +297,8 @@ export function BulkCreateModal({
       })
 
       const dateStr = new Date().toISOString().slice(0, 10)
-      downloadBatchZip(zipBlob, `quran-reels-batch-${dateStr}.zip`)
-      showToast('📦 Batch ZIP downloaded successfully!')
+      await downloadBatchZip(zipBlob, `quran-reels-batch-${dateStr}.zip`)
+      showToast('📦 Batch ZIP saved successfully!')
     } catch (err) {
       console.error('ZIP generation failed:', err)
       showToast('Failed to create ZIP package.')
@@ -308,12 +308,17 @@ export function BulkCreateModal({
   }
 
   // Download individual MP4
-  const handleDownloadSingle = (status: BatchItemStatus) => {
+  const handleDownloadSingle = async (status: BatchItemStatus) => {
     if (!status.blob) return
     const ext = status.blob.type.includes('mp4') ? 'mp4' : 'webm'
     const safeTitle = status.item.title.replace(/[^a-zA-Z0-9_-]/g, '_')
-    downloadBlob(status.blob, `${safeTitle}.${ext}`)
-    showToast(`Downloaded ${status.item.title}`)
+    const filename = `${safeTitle}.${ext}`
+    const result = await saveAndDownloadBlob(status.blob, filename, {
+      title: status.item.title,
+      text: status.caption || '',
+      dialogTitle: 'Save / Share Bulk Reel Video',
+    })
+    showToast(`🎉 ${result.message}`)
   }
 
   // Copy caption

@@ -1974,6 +1974,84 @@
   }
 }
 
+/* ── Mobile Fast Action Bar ──────────────────────────────────── */
+.mobile-action-bar {
+  display: none;
+  width: 100%;
+  max-width: 480px;
+  margin: 0.75rem auto 0.25rem auto;
+  gap: 0.5rem;
+  padding: 0 0.5rem;
+  z-index: 10;
+}
+
+@media (max-width: 1200px) {
+  .mobile-action-bar {
+    display: flex;
+    align-items: center;
+  }
+}
+
+.btn-mobile-export {
+  flex: 2;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-mobile-export:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+}
+
+.btn-mobile-export:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-mobile-share {
+  flex: 1;
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25);
+  cursor: pointer;
+}
+
+.btn-mobile-png {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+
 /* ── Audio Download Progress Styles ──────────────────────────── */
 .reciter-download-progress-box {
   margin-top: 0.5rem;

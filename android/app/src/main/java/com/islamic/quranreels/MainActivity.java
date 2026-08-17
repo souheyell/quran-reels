@@ -11,6 +11,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         try {
+            WebView.setWebContentsDebuggingEnabled(true);
             WebView webView = getBridge().getWebView();
             if (webView != null) {
                 // Enable hardware layer acceleration

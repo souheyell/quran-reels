@@ -5,7 +5,7 @@ import { fetchVerses } from '../api/quran'
 import { preloadAndCacheVerses } from './audioCache'
 import { loadAudioDurations, fillMissingDurations } from './audio'
 import { buildTimeline } from '../renderer/timeline'
-import { exportVideo, downloadBlob } from './export'
+import { exportVideo, saveAndDownloadBlob } from './export'
 import { generateSocialCaption } from './share'
 import { getImagesForCategory, STOCK_VIDEO_LOOPS, STOCK_CATEGORIES } from '../api/unsplash'
 import { loadImage } from './imageCache'
@@ -238,8 +238,11 @@ export async function createBatchZip(
 }
 
 /**
- * Trigger immediate download of the generated batch ZIP archive.
+ * Trigger immediate saving/download of the generated batch ZIP archive.
  */
-export function downloadBatchZip(zipBlob: Blob, zipName = 'quran-reels-batch.zip'): void {
-  downloadBlob(zipBlob, zipName)
+export async function downloadBatchZip(zipBlob: Blob, zipName = 'quran-reels-batch.zip'): Promise<void> {
+  await saveAndDownloadBlob(zipBlob, zipName, {
+    title: 'Quran Reels Batch ZIP Pack',
+    dialogTitle: 'Save / Share Bulk Reels ZIP Archive',
+  })
 }
