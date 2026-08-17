@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import type { Verse } from '../types'
 import { POPULAR_EDITIONS, getReciterById } from '../api/quran'
 import { ReciterModal } from './ReciterModal'
+import { subscribeAudioProgress, type AudioProgressInfo } from '../lib/audioCache'
 
 interface VersePanelProps {
   verses: Verse[]
@@ -64,7 +65,19 @@ export function VersePanel({
   const [ayatInput, setAyatInput] = useState(String(verses[0]?.ayat ?? 255))
   const [countInput, setCountInput] = useState(String(verses.length || 1))
   const [showReciterModal, setShowReciterModal] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState<AudioProgressInfo | null>(null)
   const audioFileInputRef = useRef<HTMLInputElement>(null)
+
+  // Subscribe to audio download progress from audioCache
+  useEffect(() => {
+    return subscribeAudioProgress((info) => {
+      setDownloadProgress(info)
+      if (info.percent >= 100) {
+        const timer = setTimeout(() => setDownloadProgress(null), 1200)
+        return () => clearTimeout(timer)
+      }
+    })
+  }, [])
 
   // Keep input fields in sync when verses change
   useEffect(() => {
@@ -266,6 +279,24 @@ export function VersePanel({
           </div>
           <span className="reciter-browse-badge">🔍 Browse All 50+</span>
         </button>
+
+        {/* ── Real-Time Audio Download Progress Bar ────────────── */}
+        {downloadProgress && downloadProgress.percent < 100 && (
+          <div className="reciter-download-progress-box">
+            <div className="reciter-download-info">
+              <span className="reciter-download-label">
+                <span className="reciter-download-spinner" /> Downloading audio to storage…
+              </span>
+              <span className="reciter-download-pct">{downloadProgress.percent}%</span>
+            </div>
+            <div className="reciter-download-track">
+              <div
+                className="reciter-download-fill"
+                style={{ width: `${downloadProgress.percent}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Quick Reciter Fast-Switch Chips */}
         <div className="quick-reciter-chips">

@@ -3,6 +3,8 @@ import type { Verse } from '../types'
 import { fetchVerses, fetchRandomVerses, POPULAR_RECITERS, DEFAULT_RECITER_ID } from '../api/quran'
 import { loadSavedLoaderState, saveLoaderState } from '../lib/storage'
 
+import { preloadAndCacheVerses } from '../lib/audioCache'
+
 interface UseVerseLoaderOptions {
   initialSurah: number
   initialAyat: number
@@ -59,6 +61,16 @@ export function useVerseLoader(options: UseVerseLoaderOptions) {
         const result = await fn(controller.signal)
         if (activeRequestIdRef.current === requestId) {
           setVerses(result)
+          // Stream and cache audio files to storage in background
+          preloadAndCacheVerses(result)
+            .then((cachedVerses) => {
+              if (activeRequestIdRef.current === requestId) {
+                setVerses(cachedVerses)
+              }
+            })
+            .catch((err) => {
+              console.warn('Audio caching notice:', err)
+            })
         }
       } catch (e) {
         if (activeRequestIdRef.current === requestId) {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReelConfig } from '../types'
 import { previewSize, renderFrame } from '../renderer/reelRenderer'
 import type { Timeline } from '../renderer/timeline'
+import { subscribeAudioProgress, type AudioProgressInfo } from '../lib/audioCache'
 
 interface PreviewCanvasProps {
   config: ReelConfig
@@ -33,11 +34,23 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   const [autoplayBlocked, setAutoplayBlocked] = useState(false)
   const [currentProgressMs, setCurrentProgressMs] = useState(0)
   const [isScrubbing, setIsScrubbing] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState<AudioProgressInfo | null>(null)
 
   const playingRef = useRef(playing)
   const soundOnRef = useRef(soundOn)
   const visibleRef = useRef(!document.hidden)
   const isScrubbingRef = useRef(isScrubbing)
+
+  // Subscribe to audio cache streaming progress
+  useEffect(() => {
+    return subscribeAudioProgress((info) => {
+      setDownloadProgress(info)
+      if (info.percent >= 100) {
+        const timer = setTimeout(() => setDownloadProgress(null), 1200)
+        return () => clearTimeout(timer)
+      }
+    })
+  }, [])
 
   // Preview renders at high DPI preview scale
   const { width, height } = previewSize(config.aspectRatio)
@@ -458,9 +471,34 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
           className="preview-canvas"
         />
 
-        {audioLoading && (
+        {/* ── Audio Download Progress Overlay ──────────────────── */}
+        {downloadProgress && downloadProgress.percent < 100 && (
+          <div className="audio-download-canvas-overlay">
+            <div className="canvas-download-box">
+              <div className="canvas-download-top">
+                <span className="canvas-download-spinner" />
+                <span className="canvas-download-title">
+                  Caching Recitation ({downloadProgress.percent}%)
+                </span>
+              </div>
+              <div className="canvas-download-track">
+                <div
+                  className="canvas-download-fill"
+                  style={{ width: `${downloadProgress.percent}%` }}
+                />
+              </div>
+              {downloadProgress.totalAyahs > 1 && (
+                <div className="canvas-download-sub">
+                  Ayah {downloadProgress.ayahIndex} of {downloadProgress.totalAyahs}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {audioLoading && !downloadProgress && (
           <div className="audio-badge">
-            <span className="spinner" /> Loading audio…
+            <span className="spinner" /> Buffering audio…
           </div>
         )}
 
