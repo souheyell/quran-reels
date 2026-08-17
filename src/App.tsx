@@ -15,6 +15,7 @@ import { EffectsPanel } from './components/EffectsPanel'
 import { FooterPanel } from './components/FooterPanel'
 import { PreviewCanvas } from './components/PreviewCanvas'
 import { AboutModal } from './components/AboutModal'
+import { BulkCreateModal } from './components/BulkCreateModal'
 import { getRandomStockImage } from './api/unsplash'
 import type { ReelConfig } from './types'
 import './App.css'
@@ -72,6 +73,7 @@ function App() {
 
   const [image, setImage] = useState<HTMLImageElement | HTMLVideoElement | null>(null)
   const [showAbout, setShowAbout] = useState(false)
+  const [showBulkModal, setShowBulkModal] = useState(false)
   const [activeTab, setActiveTab] = useState<StudioTab>('all')
 
   // Sync loaded verses into config
@@ -204,6 +206,15 @@ function App() {
         </div>
 
         <div className="header-actions">
+          <button
+            type="button"
+            className="btn-bulk-header"
+            onClick={() => setShowBulkModal(true)}
+            title="Bulk Reel Generator (Whole Surah, 30-Day Packs, ZIP Export)"
+          >
+            <span className="btn-icon">📦</span>
+            Bulk Studio
+          </button>
           <button
             type="button"
             className="btn-quick-export"
@@ -564,6 +575,15 @@ function App() {
 
       {/* ── Sadaqah Jariyah & Bio Modal ────────────────────────── */}
       <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
+
+      {/* ── Bulk Reel Generator & Batch Studio Modal ────────────── */}
+      <BulkCreateModal
+        isOpen={showBulkModal}
+        onClose={() => setShowBulkModal(false)}
+        baseConfig={config}
+        editionId={verseLoader.editionId}
+        reciterId={verseLoader.reciterId}
+      />
 
       {/* ── Share & Action Toast Notification ───────────────────── */}
       {shareToast && (
