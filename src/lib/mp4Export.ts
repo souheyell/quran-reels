@@ -145,13 +145,16 @@ async function prepareAudioAndTimeline(
 
   const timeline: Timeline = { slots, totalMs: cursor }
 
-  // 3. Assemble the combined AudioBuffer with sample-accurate placement
+  // 3. Assemble the combined AudioBuffer with sample-accurate placement & seamless boundary smoothing
   let combinedBuffer: AudioBuffer | null = null
   const hasAnyAudio = decodedBuffers.some((b) => b !== null)
 
   if (audioCtx && hasAnyAudio && cursor > 0) {
     const totalSamples = Math.ceil((cursor / 1000) * sampleRate)
     combinedBuffer = audioCtx.createBuffer(2, totalSamples, sampleRate)
+
+    // Gentle 8ms micro-fade to eliminate any digital clicking/popping at audio boundaries
+    const fadeSamples = Math.min(Math.round(sampleRate * 0.008), 350)
 
     for (let i = 0; i < verses.length; i++) {
       const decoded = decodedBuffers[i]
@@ -166,7 +169,16 @@ async function prepareAudioAndTimeline(
         const srcData = decoded.getChannelData(ch)
         const dstData = combinedBuffer.getChannelData(ch)
         for (let s = 0; s < numSamples; s++) {
-          dstData[startSample + s] = srcData[s]
+          let sample = srcData[s]
+          // Apply gentle boundary fade-in at first few samples
+          if (s < fadeSamples && i > 0) {
+            sample *= s / fadeSamples
+          }
+          // Apply gentle boundary fade-out at last few samples
+          if (s >= numSamples - fadeSamples && i < verses.length - 1) {
+            sample *= (numSamples - s) / fadeSamples
+          }
+          dstData[startSample + s] = sample
         }
       }
 
@@ -175,7 +187,14 @@ async function prepareAudioAndTimeline(
         const srcData = decoded.getChannelData(0)
         const dstRight = combinedBuffer.getChannelData(1)
         for (let s = 0; s < numSamples; s++) {
-          dstRight[startSample + s] = srcData[s]
+          let sample = srcData[s]
+          if (s < fadeSamples && i > 0) {
+            sample *= s / fadeSamples
+          }
+          if (s >= numSamples - fadeSamples && i < verses.length - 1) {
+            sample *= (numSamples - s) / fadeSamples
+          }
+          dstRight[startSample + s] = sample
         }
       }
     }

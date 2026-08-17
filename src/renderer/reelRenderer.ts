@@ -660,7 +660,7 @@ export function defaultConfig(): ReelConfig {
       showTranslation: true,
       surahHeaderPosition: 'top',
       surahNameLanguage: 'arabic',
-      ayahPauseDelay: 1.6,
+      ayahPauseDelay: 0.0,
       showBasmalah: true,
       karaokeHighlight: false,
       highlightColor: '#ffd700',

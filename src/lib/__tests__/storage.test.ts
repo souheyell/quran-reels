@@ -33,7 +33,7 @@ describe('storage helpers', () => {
     const config = loadSavedConfig()
     expect(config.aspectRatio).toBe('9:16')
     expect(config.text.arabicSize).toBe(72)
-    expect(config.text.ayahPauseDelay).toBe(1.6)
+    expect(config.text.ayahPauseDelay).toBe(0.0)
     expect(config.text.showBasmalah).toBe(true)
   })
 

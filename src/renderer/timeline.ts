@@ -12,8 +12,8 @@ export interface Timeline {
   totalMs: number
 }
 
-/** Default 1.6-second pause between each ayah in multi-ayah reels */
-export const DEFAULT_AYAH_GAP_MS = 1600
+/** Default 0ms gap between each ayah for seamless continuous recitation flow */
+export const DEFAULT_AYAH_GAP_MS = 0
 
 export function buildTimeline(
   verses: Verse[],

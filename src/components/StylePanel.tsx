@@ -121,13 +121,20 @@ export function StylePanel(props: StylePanelProps) {
       </label>
 
       <label>
-        Ayah Pause Delay: {props.ayahPauseDelay.toFixed(1)}s
+        <span>
+          Verse-to-Verse Transition Flow:{' '}
+          <strong style={{ color: props.ayahPauseDelay === 0 ? '#4ade80' : '#fde047' }}>
+            {props.ayahPauseDelay === 0
+              ? '0.0s (Seamless Flow / مستمر)'
+              : `${props.ayahPauseDelay.toFixed(1)}s Pause`}
+          </strong>
+        </span>
         <input
           id="ayah-pause-delay-input"
           type="range"
           min={0.0}
-          max={5.0}
-          step={0.2}
+          max={3.0}
+          step={0.1}
           value={props.ayahPauseDelay}
           onChange={(e) => props.onAyahPauseDelay(Number(e.target.value))}
         />

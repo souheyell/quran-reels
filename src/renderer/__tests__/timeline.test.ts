@@ -16,23 +16,29 @@ function verse(ayat: number): Verse {
 }
 
 describe('buildTimeline', () => {
-  it('builds sequential slots with 1.6s pause between each ayah', () => {
+  it('builds sequential seamless slots with 0ms default gap', () => {
     const t = buildTimeline([verse(1), verse(2), verse(3)], [5000, 7000, 3000], 8000)
     expect(t.slots).toHaveLength(3)
-    // 5000 + 1600 = 6600 for slot 0
-    expect(t.slots[0].durationMs).toBe(5000 + DEFAULT_AYAH_GAP_MS)
+    expect(t.slots[0].durationMs).toBe(5000)
     expect(t.slots[0].startMs).toBe(0)
-    expect(t.slots[0].endMs).toBe(6600)
+    expect(t.slots[0].endMs).toBe(5000)
 
-    // 7000 + 1600 = 8600 for slot 1
-    expect(t.slots[1].durationMs).toBe(7000 + DEFAULT_AYAH_GAP_MS)
-    expect(t.slots[1].startMs).toBe(6600)
-    expect(t.slots[1].endMs).toBe(6600 + 8600)
+    expect(t.slots[1].durationMs).toBe(7000)
+    expect(t.slots[1].startMs).toBe(5000)
+    expect(t.slots[1].endMs).toBe(12000)
 
-    // Last slot does not need trailing pause
     expect(t.slots[2].durationMs).toBe(3000)
-    expect(t.slots[2].startMs).toBe(15200)
-    expect(t.slots[2].endMs).toBe(18200)
+    expect(t.slots[2].startMs).toBe(12000)
+    expect(t.slots[2].endMs).toBe(15000)
+    expect(t.totalMs).toBe(15000)
+  })
+
+  it('supports custom pause gap between ayahs', () => {
+    const t = buildTimeline([verse(1), verse(2), verse(3)], [5000, 7000, 3000], 8000, 1600)
+    expect(t.slots).toHaveLength(3)
+    expect(t.slots[0].durationMs).toBe(6600)
+    expect(t.slots[1].durationMs).toBe(8600)
+    expect(t.slots[2].durationMs).toBe(3000)
     expect(t.totalMs).toBe(18200)
   })
 

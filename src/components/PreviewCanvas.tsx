@@ -27,6 +27,8 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   const loopBaseRef = useRef(0)
   const audioEndedTimeRef = useRef<number | null>(null)
 
+  const audioPoolRef = useRef<Map<number, HTMLAudioElement>>(new Map())
+
   const [playing, setPlaying] = useState(true)
   const [soundOn, setSoundOn] = useState(true)
   const [volume, setVolume] = useState(0.9)
@@ -70,39 +72,121 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     return () => document.removeEventListener('visibilitychange', handler)
   }, [])
 
-  // Create persistent audio element with comprehensive event handlers
+  // Preloaded Audio Pool with gapless handoff
+  const loadAndPlayVerse = useCallback(
+    (index: number, seekTimeSeconds = 0) => {
+      audioEndedTimeRef.current = null
+
+      // Pause other audio elements in pool
+      audioPoolRef.current.forEach((a, i) => {
+        if (i !== index) {
+          a.pause()
+          a.currentTime = 0
+        }
+      })
+
+      const targetAudio = audioPoolRef.current.get(index)
+      audioRef.current = targetAudio || null
+
+      if (!targetAudio) {
+        setAudioLoading(false)
+        return
+      }
+
+      targetAudio.volume = volume
+      if (seekTimeSeconds > 0) {
+        targetAudio.currentTime = seekTimeSeconds
+      } else {
+        targetAudio.currentTime = 0
+      }
+
+      if (playingRef.current && soundOnRef.current) {
+        const playPromise = targetAudio.play()
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setAutoplayBlocked(false)
+            })
+            .catch((err) => {
+              if (err instanceof DOMException && err.name === 'NotAllowedError') {
+                setAutoplayBlocked(true)
+              }
+            })
+        }
+      }
+    },
+    [volume],
+  )
+
+  // Advance to verse index
+  const advanceTo = useCallback(
+    (nextIndex: number, seekTimeSeconds = 0) => {
+      indexRef.current = nextIndex
+      slotStartRef.current = performance.now() - seekTimeSeconds * 1000
+      audioEndedTimeRef.current = null
+      loadAndPlayVerse(nextIndex, seekTimeSeconds)
+    },
+    [loadAndPlayVerse],
+  )
+
+  // Initialize and preload all verse audio elements into the pool
   useEffect(() => {
-    const audio = new Audio()
-    audio.volume = volume
-    audio.preload = 'auto'
-
-    audio.onloadstart = () => setAudioLoading(true)
-    audio.onwaiting = () => setAudioLoading(true)
-    audio.oncanplay = () => setAudioLoading(false)
-    audio.onplaying = () => {
-      setAudioLoading(false)
-      setAutoplayBlocked(false)
-    }
-
-    audio.onended = () => {
-      audioEndedTimeRef.current = performance.now()
-    }
-
-    audio.onloadedmetadata = () => {
-      setAudioLoading(false)
-    }
-
-    audio.onerror = () => {
-      setAudioLoading(false)
-    }
-
-    audioRef.current = audio
-    return () => {
+    // Clean up previous elements
+    audioPoolRef.current.forEach((audio) => {
       audio.pause()
       audio.src = ''
+    })
+    audioPoolRef.current.clear()
+
+    // Preload each verse element
+    verses.forEach((verse, i) => {
+      if (!verse?.audioUrl) return
+      const audio = new Audio(verse.audioUrl)
+      audio.volume = volume
+      audio.preload = 'auto'
+
+      audio.onloadstart = () => {
+        if (indexRef.current === i) setAudioLoading(true)
+      }
+      audio.onwaiting = () => {
+        if (indexRef.current === i) setAudioLoading(true)
+      }
+      audio.oncanplay = () => {
+        if (indexRef.current === i) setAudioLoading(false)
+      }
+      audio.onplaying = () => {
+        if (indexRef.current === i) {
+          setAudioLoading(false)
+          setAutoplayBlocked(false)
+        }
+      }
+      audio.onended = () => {
+        if (indexRef.current === i) {
+          audioEndedTimeRef.current = performance.now()
+        }
+      }
+      audio.onerror = () => {
+        if (indexRef.current === i) setAudioLoading(false)
+      }
+
+      audioPoolRef.current.set(i, audio)
+    })
+
+    indexRef.current = 0
+    loopBaseRef.current = 0
+    slotStartRef.current = performance.now()
+    audioEndedTimeRef.current = null
+    loadAndPlayVerse(0)
+
+    return () => {
+      audioPoolRef.current.forEach((audio) => {
+        audio.pause()
+        audio.src = ''
+      })
+      audioPoolRef.current.clear()
       audioRef.current = null
     }
-  }, [])
+  }, [verses, volume, loadAndPlayVerse])
 
   // Custom Video Background Loop Support
   useEffect(() => {
@@ -136,69 +220,6 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     }
   }, [config.background.url, config.background.mediaType, image, playing])
 
-  // Load and play audio for a specific verse index
-  const loadAndPlayVerse = useCallback(
-    (index: number, seekTimeSeconds = 0) => {
-      const verse = verses[index]
-      const audio = audioRef.current
-      audioEndedTimeRef.current = null
-
-      if (!audio) return
-
-      if (!verse?.audioUrl) {
-        audio.pause()
-        audio.src = ''
-        setAudioLoading(false)
-        return
-      }
-
-      const targetUrl = verse.audioUrl
-      if (audio.src !== targetUrl) {
-        audio.src = targetUrl
-        audio.currentTime = seekTimeSeconds
-        audio.load()
-      } else {
-        audio.currentTime = seekTimeSeconds
-      }
-
-      if (playingRef.current && soundOnRef.current) {
-        const playPromise = audio.play()
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setAutoplayBlocked(false)
-            })
-            .catch((err) => {
-              if (err instanceof DOMException && err.name === 'NotAllowedError') {
-                setAutoplayBlocked(true)
-              }
-            })
-        }
-      }
-    },
-    [verses],
-  )
-
-  // Advance to verse index
-  const advanceTo = useCallback(
-    (nextIndex: number, seekTimeSeconds = 0) => {
-      indexRef.current = nextIndex
-      slotStartRef.current = performance.now() - seekTimeSeconds * 1000
-      audioEndedTimeRef.current = null
-      loadAndPlayVerse(nextIndex, seekTimeSeconds)
-    },
-    [loadAndPlayVerse],
-  )
-
-  // When verses list changes, load first verse
-  useEffect(() => {
-    indexRef.current = 0
-    loopBaseRef.current = 0
-    slotStartRef.current = performance.now()
-    audioEndedTimeRef.current = null
-    loadAndPlayVerse(0)
-  }, [verses, loadAndPlayVerse])
-
   // Main render loop
   useEffect(() => {
     const canvas = canvasRef.current
@@ -231,7 +252,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       const userDelayMs =
         typeof config.text?.ayahPauseDelay === 'number' && config.text.ayahPauseDelay >= 0
           ? Math.round(config.text.ayahPauseDelay * 1000)
-          : 1600
+          : 0
       const pauseDurationMs = isMultiAyah && !isLastAyah ? userDelayMs : 0
 
       if (!isScrubbingRef.current) {
@@ -339,25 +360,20 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     }
   }, [playing, soundOn])
 
-  // Handle volume changes
+  // Handle volume changes across all preloaded audio pool elements
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume
-    }
+    audioPoolRef.current.forEach((audio) => {
+      audio.volume = volume
+    })
   }, [volume])
 
   // Toggle play/pause
   const togglePlay = () => {
     const nextPlaying = !playing
     setPlaying(nextPlaying)
-    const audio = audioRef.current
-    const verse = verses[indexRef.current] || verses[0]
+    const audio = audioRef.current || audioPoolRef.current.get(indexRef.current)
     if (audio) {
       if (nextPlaying && soundOn) {
-        if (verse?.audioUrl && (!audio.src || audio.src === '')) {
-          audio.src = verse.audioUrl
-          audio.load()
-        }
         const p = audio.play()
         if (p !== undefined) {
           p.then(() => setAutoplayBlocked(false)).catch((err) => {
@@ -376,14 +392,9 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   const toggleSound = () => {
     const nextSound = !soundOn
     setSoundOn(nextSound)
-    const audio = audioRef.current
-    const verse = verses[indexRef.current] || verses[0]
+    const audio = audioRef.current || audioPoolRef.current.get(indexRef.current)
     if (audio) {
       if (nextSound && playing) {
-        if (verse?.audioUrl && (!audio.src || audio.src === '')) {
-          audio.src = verse.audioUrl
-          audio.load()
-        }
         const p = audio.play()
         if (p !== undefined) {
           p.then(() => setAutoplayBlocked(false)).catch((err) => {
@@ -424,14 +435,9 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     setSoundOn(true)
     setPlaying(true)
 
-    const audio = audioRef.current
-    const verse = verses[indexRef.current] || verses[0]
-    if (audio && verse?.audioUrl) {
-      if (!audio.src || audio.src !== verse.audioUrl) {
-        audio.src = verse.audioUrl
-      }
+    const audio = audioRef.current || audioPoolRef.current.get(indexRef.current)
+    if (audio) {
       audio.volume = volume > 0 ? volume : 0.9
-      audio.load()
       const playPromise = audio.play()
       if (playPromise !== undefined) {
         playPromise
