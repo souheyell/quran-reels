@@ -89,6 +89,9 @@ export async function fetchAndCacheAudio(
   }
 
   // 3. Download via stream to track byte-by-byte progress
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 8000)
+
   try {
     notifyProgress({
       url,
@@ -100,7 +103,7 @@ export async function fetchAndCacheAudio(
       reciterName,
     })
 
-    const response = await fetch(url)
+    const response = await fetch(url, { signal: controller.signal })
     if (!response.ok) throw new Error(`HTTP error ${response.status} fetching ${url}`)
 
     const contentLength = response.headers.get('content-length')
@@ -164,7 +167,20 @@ export async function fetchAndCacheAudio(
     return blobUrl
   } catch (err) {
     console.warn(`Failed to stream-download audio (${url}), falling back to direct URL:`, err)
+    // Fail-safe: Always notify 100% progress so UI never stays stuck on loading!
+    onProgress?.(100, 0, 0)
+    notifyProgress({
+      url,
+      percent: 100,
+      loadedBytes: 0,
+      totalBytes: 0,
+      ayahIndex,
+      totalAyahs,
+      reciterName,
+    })
     return url
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
 
@@ -188,20 +204,22 @@ export async function preloadAndCacheVerses(
     const basePercent = (i / totalAyahs) * 100
     const ayahWeight = 100 / totalAyahs
 
-    const blobUrl = await fetchAndCacheAudio(
-      v.audioUrl,
-      i + 1,
-      totalAyahs,
-      v.reciterName,
-      (ayahPercent) => {
-        const overall = Math.min(100, Math.round(basePercent + (ayahPercent * ayahWeight) / 100))
-        onProgress?.(overall, i + 1, totalAyahs)
-      },
-    )
-
-    updatedVerses[i] = {
-      ...v,
-      audioUrl: blobUrl,
+    try {
+      const blobUrl = await fetchAndCacheAudio(
+        v.audioUrl,
+        i + 1,
+        totalAyahs,
+        v.reciterName,
+        (ayahPercent) => {
+          const overall = Math.min(100, Math.round(basePercent + (ayahPercent * ayahWeight) / 100))
+          onProgress?.(overall, i + 1, totalAyahs)
+        },
+      )
+      if (blobUrl) {
+        updatedVerses[i] = { ...v, audioUrl: blobUrl }
+      }
+    } catch (err) {
+      console.warn(`Audio preload error for Ayah ${i + 1}:`, err)
     }
   }
 
