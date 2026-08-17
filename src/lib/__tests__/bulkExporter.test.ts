@@ -44,4 +44,12 @@ describe('bulkExporter service', () => {
     expect(zipBlob.size).toBeGreaterThan(0)
     expect(zipBlob.type).toBe('application/zip')
   })
+
+  it('exposes popular shuffle reciters list with valid reciter IDs', async () => {
+    const { POPULAR_SHUFFLE_RECITERS } = await import('../bulkExporter')
+    expect(POPULAR_SHUFFLE_RECITERS.length).toBeGreaterThanOrEqual(5)
+    expect(POPULAR_SHUFFLE_RECITERS[0].id).toBe('ar.alafasy')
+    expect(POPULAR_SHUFFLE_RECITERS.some((r) => r.id === 'ar.minshawi')).toBe(true)
+    expect(POPULAR_SHUFFLE_RECITERS.some((r) => r.id === 'ar.sudais')).toBe(true)
+  })
 })

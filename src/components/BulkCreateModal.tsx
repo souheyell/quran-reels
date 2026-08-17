@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import type { ReelConfig } from '../types'
 import {
   SURAHS_INDEX,
@@ -13,8 +13,11 @@ import {
   createBatchZip,
   downloadBatchZip,
   type BackgroundStrategy,
+  type ReciterStrategy,
   type BatchItemStatus,
+  POPULAR_SHUFFLE_RECITERS,
 } from '../lib/bulkExporter'
+import { ALL_RECITERS } from '../api/quran'
 import { shareReelVideo } from '../lib/share'
 import { downloadBlob } from '../lib/export'
 
@@ -49,8 +52,42 @@ export function BulkCreateModal({
     '2:255\n3:18-19\n18:1-4\n55:1-13\n67:1-5\n94:1-8\n112:1-4',
   )
 
-  // Background & Strategy
+  // Background & Reciter Strategies
   const [bgStrategy, setBgStrategy] = useState<BackgroundStrategy>('cycle-wallpapers')
+  const [reciterStrategy, setReciterStrategy] = useState<ReciterStrategy>('selected')
+  const [bulkReciterId, setBulkReciterId] = useState<string>(reciterId || 'ar.alafasy')
+
+  // Grouped reciters for the selector
+  const groupedReciters = useMemo(() => {
+    return {
+      popular: ALL_RECITERS.filter((r) => r.category === 'contemporary'),
+      haramain: ALL_RECITERS.filter((r) => r.category === 'haramain'),
+      goldenAge: ALL_RECITERS.filter((r) => r.category === 'golden-age'),
+      mujawwad: ALL_RECITERS.filter((r) => r.category === 'mujawwad'),
+      warsh: ALL_RECITERS.filter((r) => r.category === 'warsh'),
+    }
+  }, [])
+
+  // Helper to get reciter name for a queue item
+  const getItemReciterName = (item: BulkItem, index: number) => {
+    if (item.reciterId) {
+      const r = ALL_RECITERS.find((rec) => rec.id === item.reciterId)
+      return r ? r.name.split(' (')[0] : item.reciterId
+    }
+    if (reciterStrategy === 'shuffle') {
+      const shufflePick = POPULAR_SHUFFLE_RECITERS[index % POPULAR_SHUFFLE_RECITERS.length]
+      return `🔀 ${shufflePick.name.split(' (')[0]}`
+    }
+    const r = ALL_RECITERS.find((rec) => rec.id === bulkReciterId)
+    return r ? r.name.split(' (')[0] : 'Selected Qari'
+  }
+
+  // Update reciter for individual reel in queue
+  const updateItemReciter = (itemId: string, newReciterId: string) => {
+    setQueue((prev) =>
+      prev.map((it) => (it.id === itemId ? { ...it, reciterId: newReciterId || undefined } : it)),
+    )
+  }
 
   // Generation queue state
   const [queue, setQueue] = useState<BulkItem[]>([])
@@ -165,7 +202,7 @@ export function BulkCreateModal({
           i,
           baseConfig,
           editionId,
-          reciterId,
+          bulkReciterId,
           bgStrategy,
           (stepMessage, pct) => {
             setBatchStatuses((prev) => ({
@@ -178,6 +215,7 @@ export function BulkCreateModal({
               },
             }))
           },
+          reciterStrategy,
         )
 
         const videoUrl = URL.createObjectURL(result.blob)
@@ -461,7 +499,7 @@ export function BulkCreateModal({
             {/* Background Strategy Bar */}
             <div className="bulk-strategy-row">
               <div className="strategy-label">
-                <span className="strategy-icon">🎨</span> Background Strategy:
+                <span className="strategy-icon">🎨</span> Background:
               </div>
               <div className="strategy-buttons">
                 <button
@@ -487,6 +525,79 @@ export function BulkCreateModal({
                 </button>
               </div>
             </div>
+
+            {/* Reciter (Qari) Selection Strategy Bar */}
+            <div className="bulk-strategy-row">
+              <div className="strategy-label">
+                <span className="strategy-icon">🎙️</span> Reciter (Qari):
+              </div>
+              <div className="strategy-buttons">
+                <button
+                  type="button"
+                  className={`strategy-btn ${reciterStrategy === 'selected' ? 'active' : ''}`}
+                  onClick={() => setReciterStrategy('selected')}
+                >
+                  🎙️ Specific Qari
+                </button>
+                <button
+                  type="button"
+                  className={`strategy-btn ${reciterStrategy === 'shuffle' ? 'active' : ''}`}
+                  onClick={() => setReciterStrategy('shuffle')}
+                >
+                  🔀 Auto-Shuffle Top Qaris
+                </button>
+              </div>
+            </div>
+
+            {/* Qari Selector Dropdown (When Specific Reciter is Active) */}
+            {reciterStrategy === 'selected' && (
+              <div className="bulk-reciter-dropdown-box">
+                <label className="bulk-form-group">
+                  <span className="bulk-label-text">Choose Qari For Batch</span>
+                  <select
+                    className="bulk-select bulk-qari-select"
+                    value={bulkReciterId}
+                    onChange={(e) => setBulkReciterId(e.target.value)}
+                  >
+                    <optgroup label="🌟 Most Popular & Celebrated">
+                      {groupedReciters.popular.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} {r.arabicName ? `(${r.arabicName})` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="🕋 Haramain Imams (Makkah & Madinah)">
+                      {groupedReciters.haramain.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} {r.arabicName ? `(${r.arabicName})` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="📜 Golden Age Classical Masters">
+                      {groupedReciters.goldenAge.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} {r.arabicName ? `(${r.arabicName})` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="✨ Mujawwad & Maqamat">
+                      {groupedReciters.mujawwad.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} {r.arabicName ? `(${r.arabicName})` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="🌍 Warsh & African Qira'at">
+                      {groupedReciters.warsh.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} {r.arabicName ? `(${r.arabicName})` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
+                </label>
+              </div>
+            )}
           </div>
 
           {/* Live Batch Queue Dashboard */}
@@ -541,13 +652,34 @@ export function BulkCreateModal({
                     <div className="queue-item-index">#{idx + 1}</div>
                     <div className="queue-item-meta">
                       <h4 className="queue-item-title">{item.title}</h4>
-                      <span className="queue-item-sub">
-                        Surah {item.surah} · {item.count} {item.count === 1 ? 'Ayah' : 'Ayahs'} {item.theme ? `· ${item.theme}` : ''}
-                      </span>
+                      <div className="queue-item-sub-row">
+                        <span className="queue-item-sub">
+                          Surah {item.surah} · {item.count} {item.count === 1 ? 'Ayah' : 'Ayahs'} {item.theme ? `· ${item.theme}` : ''}
+                        </span>
+                        <span className="queue-reciter-tag">
+                          🎙️ {getItemReciterName(item, idx)}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
                   <div className="queue-item-right">
+                    {/* Per-Reel Reciter Customizer */}
+                    {!isProcessing && statusObj?.status !== 'completed' && (
+                      <select
+                        className="queue-item-reciter-select"
+                        value={item.reciterId || ''}
+                        onChange={(e) => updateItemReciter(item.id, e.target.value)}
+                        title="Customize reciter for this reel"
+                      >
+                        <option value="">(Default: {getItemReciterName(item, idx)})</option>
+                        {ALL_RECITERS.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.name.split(' (')[0]}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     {/* Status Indicator */}
                     {statusObj ? (
                       <div className="queue-status-block">

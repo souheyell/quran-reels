@@ -22,6 +22,20 @@ export interface BatchItemStatus {
 }
 
 export type BackgroundStrategy = 'current' | 'cycle-wallpapers' | 'cycle-videos'
+export type ReciterStrategy = 'selected' | 'shuffle'
+
+export const POPULAR_SHUFFLE_RECITERS = [
+  { id: 'ar.alafasy', name: 'Mishary Rashid Alafasy' },
+  { id: 'ar.minshawi', name: 'Mohamed Siddiq Al-Minshawi (Murattal)' },
+  { id: 'ar.abdulbasitmurattal', name: 'Abdulbasit Abdussamad (Murattal)' },
+  { id: 'ar.husary', name: 'Mahmoud Khalil Al-Husary' },
+  { id: 'ar.sudais', name: 'Abdur-Rahman As-Sudais' },
+  { id: 'ar.yasserdossari', name: 'Yasser Al-Dosari' },
+  { id: 'ar.mahermuaiqly', name: 'Maher Al-Muaiqly' },
+  { id: 'ar.ahmedajamy', name: 'Ahmed Al-Ajamy' },
+  { id: 'ar.saadalghamdi', name: 'Saad Al-Ghamdi' },
+  { id: 'ar.saudalshuraim', name: 'Saud Al-Shuraim' },
+]
 
 /**
  * Load an image element as a Promise
@@ -64,7 +78,15 @@ export async function renderBulkItem(
   reciterId: string,
   bgStrategy: BackgroundStrategy,
   onProgress: (status: string, percent: number) => void,
+  reciterStrategy: ReciterStrategy = 'selected',
 ): Promise<{ blob: Blob; caption: string; verses: Verse[] }> {
+  // Determine effective reciter for this reel
+  let effectiveReciter = item.reciterId || reciterId
+  if (reciterStrategy === 'shuffle' && !item.reciterId) {
+    const shufflePick = POPULAR_SHUFFLE_RECITERS[itemIndex % POPULAR_SHUFFLE_RECITERS.length]
+    effectiveReciter = shufflePick.id
+  }
+
   // 1. Fetch Verses
   onProgress('Loading verses…', 10)
   const rawVerses = await fetchVerses(
@@ -72,7 +94,7 @@ export async function renderBulkItem(
     item.startAyat,
     item.count,
     editionId,
-    item.reciterId || reciterId,
+    effectiveReciter,
   )
 
   if (!rawVerses || rawVerses.length === 0) {
