@@ -110,7 +110,9 @@ function App() {
     exportError,
     exportProgress,
     exportFormat,
+    shareToast,
     handleExportVideo,
+    handleShareReel,
     handleExportPng,
   } = useExport(config, image, timeline)
 
@@ -490,6 +492,18 @@ function App() {
 
             {/* Export Command Center */}
             <div className="inspector-actions">
+              <button
+                id="share-reel-btn"
+                type="button"
+                className="btn btn-share-primary"
+                onClick={handleShareReel}
+                disabled={exporting}
+                title="Direct share to Instagram Stories, TikTok, WhatsApp or copy caption"
+              >
+                <span className="export-icon">📲</span>
+                {exporting ? `Rendering… ${exportProgress}%` : 'Share Reel to Socials'}
+              </button>
+
               <div className="export-btn-wrap">
                 <button
                   id="export-video-btn"
@@ -550,6 +564,14 @@ function App() {
 
       {/* ── Sadaqah Jariyah & Bio Modal ────────────────────────── */}
       <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
+
+      {/* ── Share & Action Toast Notification ───────────────────── */}
+      {shareToast && (
+        <div className="share-toast-banner" role="status">
+          <span className="toast-icon">✨</span>
+          <span className="toast-text">{shareToast}</span>
+        </div>
+      )}
     </div>
   )
 }

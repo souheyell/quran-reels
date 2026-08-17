@@ -108,10 +108,67 @@ export function loadSavedLoaderState(): Partial<SavedLoaderState> {
  */
 export function saveLoaderState(state: SavedLoaderState): void {
   if (typeof window === 'undefined' || !window.localStorage) return
-
   try {
     window.localStorage.setItem(LOADER_STORAGE_KEY, JSON.stringify(state))
   } catch (e) {
     console.warn('Failed to save loader state to localStorage:', e)
+  }
+}
+
+const RECITER_FAVORITES_KEY = 'quran_reels_reciter_favs_v1'
+const CUSTOM_RECITERS_KEY = 'quran_reels_custom_reciters_v1'
+
+export const DEFAULT_FAVORITE_RECITERS: string[] = [
+  'ar.alafasy',
+  'ar.husary',
+  'ar.abdulbasitmurattal',
+  'ar.minshawi',
+  'ar.sudais',
+  'ar.shuraim',
+  'ar.dossari',
+  'ar.maher',
+  'ar.ajamy',
+  'ar.ghamadi',
+]
+
+export function loadFavoriteReciterIds(): string[] {
+  if (typeof window === 'undefined' || !window.localStorage) return DEFAULT_FAVORITE_RECITERS
+  try {
+    const raw = window.localStorage.getItem(RECITER_FAVORITES_KEY)
+    if (!raw) return DEFAULT_FAVORITE_RECITERS
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_FAVORITE_RECITERS
+  } catch {
+    return DEFAULT_FAVORITE_RECITERS
+  }
+}
+
+export function saveFavoriteReciterIds(ids: string[]): void {
+  if (typeof window === 'undefined' || !window.localStorage) return
+  try {
+    window.localStorage.setItem(RECITER_FAVORITES_KEY, JSON.stringify(ids))
+  } catch (e) {
+    console.warn('Failed to save reciter favorites:', e)
+  }
+}
+
+export function loadCustomReciters(): import('../types').Reciter[] {
+  if (typeof window === 'undefined' || !window.localStorage) return []
+  try {
+    const raw = window.localStorage.getItem(CUSTOM_RECITERS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+export function saveCustomReciters(reciters: import('../types').Reciter[]): void {
+  if (typeof window === 'undefined' || !window.localStorage) return
+  try {
+    window.localStorage.setItem(CUSTOM_RECITERS_KEY, JSON.stringify(reciters))
+  } catch (e) {
+    console.warn('Failed to save custom reciters:', e)
   }
 }

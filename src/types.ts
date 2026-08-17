@@ -113,11 +113,18 @@ export interface Edition {
   language: string
 }
 
+export type ReciterCategory = 'golden-age' | 'haramain' | 'contemporary' | 'mujawwad' | 'warsh' | 'custom'
+
 export interface Reciter {
   id: string
   name: string
   arabicName?: string
   subfolder?: string
+  category?: ReciterCategory
+  style?: string
+  bitrate?: string
+  country?: string
+  isCustom?: boolean
 }
 
 export const ARABIC_EDITION_ID = 'quran-uthmani'
