@@ -22,9 +22,10 @@ May Allah accept this humble endeavor from everyone who builds, reads, recites, 
 
 ## 🌟 Key Features
 
-### 📱 Native Android App (APK Available)
-- Standalone installable Android APK with full hardware acceleration for smooth 60FPS video rendering and audio playback.
-- Ready to install: [`quran-reels-creator.apk`](./quran-reels-creator.apk) (4.0 MB).
+### 📱 Native Android App (Official APK Release)
+- **Direct Download**: 📥 **[Download Quran Reels Creator APK v1.0.0 (7.48 MB)](https://github.com/souheyell/quran-reels/releases/download/v1.0.0/quran-reels-creator.apk)**
+- **Official Release Page**: 🏷️ **[GitHub Releases v1.0.0](https://github.com/souheyell/quran-reels/releases/tag/v1.0.0)**
+- Standalone installable Android APK with full GPU hardware acceleration, WebCodecs 60FPS video rendering, 50+ Qaris, and native Android Filesystem storage & Share sheet integration.
 
 ---
 
