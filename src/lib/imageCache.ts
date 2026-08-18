@@ -1,12 +1,31 @@
-const MAX_ENTRIES = 8
+const MAX_ENTRIES = 12
+
+export type MediaLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 interface CacheEntry {
   url: string
   media: HTMLImageElement | HTMLVideoElement
   lastUsed: number
+  status: MediaLoadStatus
 }
 
 const cache: CacheEntry[] = []
+const statusListeners = new Set<(url: string, status: MediaLoadStatus) => void>()
+
+export function subscribeMediaStatus(listener: (url: string, status: MediaLoadStatus) => void): () => void {
+  statusListeners.add(listener)
+  return () => statusListeners.delete(listener)
+}
+
+function notifyStatus(url: string, status: MediaLoadStatus) {
+  for (const listener of statusListeners) {
+    try {
+      listener(url, status)
+    } catch {
+      // ignore
+    }
+  }
+}
 
 function evict(): void {
   while (cache.length >= MAX_ENTRIES) {
@@ -33,8 +52,13 @@ export function isVideoUrl(url: string, explicitType?: 'image' | 'video'): boole
   return /\.(mp4|webm|mov|m4v)($|\?)/i.test(url)
 }
 
-export function getCachedMedia(url: string): HTMLImageElement | HTMLVideoElement | null {
+export function getMediaStatus(url: string): MediaLoadStatus {
   const entry = cache.find((e) => e.url === url)
+  return entry ? entry.status : 'idle'
+}
+
+export function getCachedMedia(url: string): HTMLImageElement | HTMLVideoElement | null {
+  const entry = cache.find((e) => e.url === url && e.status === 'ready')
   if (entry) {
     entry.lastUsed = Date.now()
     return entry.media
@@ -50,7 +74,7 @@ export function getCachedImage(url: string): HTMLImageElement | null {
 export function loadImage(
   url: string,
   onLoad: (img: HTMLImageElement) => void,
-  onError: () => void,
+  onError: (err?: Error) => void,
 ): void {
   const cached = getCachedImage(url)
   if (cached) {
@@ -58,14 +82,37 @@ export function loadImage(
     return
   }
 
+  notifyStatus(url, 'loading')
   const img = new Image()
   img.crossOrigin = 'anonymous'
+
+  let finished = false
+  const timer = setTimeout(() => {
+    if (!finished) {
+      finished = true
+      notifyStatus(url, 'error')
+      onError(new Error('Image download timed out'))
+    }
+  }, 10000)
+
   img.onload = () => {
+    if (finished) return
+    finished = true
+    clearTimeout(timer)
     evict()
-    cache.push({ url, media: img, lastUsed: Date.now() })
+    cache.push({ url, media: img, lastUsed: Date.now(), status: 'ready' })
+    notifyStatus(url, 'ready')
     onLoad(img)
   }
-  img.onerror = onError
+
+  img.onerror = () => {
+    if (finished) return
+    finished = true
+    clearTimeout(timer)
+    notifyStatus(url, 'error')
+    onError(new Error('Failed to load image'))
+  }
+
   img.src = url
 }
 
@@ -73,7 +120,7 @@ export function loadMedia(
   url: string,
   explicitType: 'image' | 'video' | undefined,
   onLoad: (media: HTMLImageElement | HTMLVideoElement) => void,
-  onError: () => void,
+  onError: (err?: Error) => void,
 ): void {
   const cached = getCachedMedia(url)
   if (cached) {
@@ -82,6 +129,7 @@ export function loadMedia(
   }
 
   if (isVideoUrl(url, explicitType)) {
+    notifyStatus(url, 'loading')
     const video = document.createElement('video')
     video.crossOrigin = 'anonymous'
     video.muted = true
@@ -90,12 +138,22 @@ export function loadMedia(
     video.autoplay = true
     video.preload = 'auto'
 
-    let loaded = false
+    let finished = false
+    const timer = setTimeout(() => {
+      if (!finished) {
+        finished = true
+        notifyStatus(url, 'error')
+        onError(new Error('Video stream timed out'))
+      }
+    }, 12000)
+
     const handleLoaded = () => {
-      if (!loaded) {
-        loaded = true
+      if (!finished) {
+        finished = true
+        clearTimeout(timer)
         evict()
-        cache.push({ url, media: video, lastUsed: Date.now() })
+        cache.push({ url, media: video, lastUsed: Date.now(), status: 'ready' })
+        notifyStatus(url, 'ready')
         video.play().catch(() => {})
         onLoad(video)
       }
@@ -103,7 +161,15 @@ export function loadMedia(
 
     video.onloadeddata = handleLoaded
     video.oncanplay = handleLoaded
-    video.onerror = onError
+    video.onerror = () => {
+      if (!finished) {
+        finished = true
+        clearTimeout(timer)
+        notifyStatus(url, 'error')
+        onError(new Error('Video playback error or blocked by CORS'))
+      }
+    }
+
     video.src = url
     video.load()
   } else {

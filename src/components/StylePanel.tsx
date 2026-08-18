@@ -141,26 +141,35 @@ export function StylePanel(props: StylePanelProps) {
       </label>
 
       <label>
-        Arabic Font Typeface
+        Arabic Font Typeface (نوع الخط العربي)
         <select
           id="arabic-font-select"
           value={props.arabicFont}
           onChange={(e) => props.onArabicFont(e.target.value)}
         >
-          <optgroup label="📜 Classical Quranic & Naskh (الخط القرآني والنسخ)">
-            <option value='"Scheherazade New", serif'>Scheherazade New (Traditional Mushaf Naskh)</option>
-            <option value='"Amiri Quran", "Amiri", serif'>Amiri Quran (Bulaq Classical Mushaf)</option>
-            <option value='"Noto Naskh Arabic", serif'>Noto Naskh Arabic (Digital Crisp Naskh)</option>
+          <optgroup label="📜 Classical Quranic Mushaf & Naskh (المصحفي والنسخ الأصيل)">
+            <option value='"Amiri Quran", "Amiri", serif'>Amiri Quran (Bulaq Classical Mushaf — الأميري المصحفي)</option>
+            <option value='"Scheherazade New", serif'>Scheherazade New (Traditional Mushaf Naskh — النسخ العثماني)</option>
+            <option value='"Noto Naskh Arabic", serif'>Noto Naskh Arabic (Digital Crisp Naskh — نسخ رقمي واضح)</option>
+            <option value='"Gulzar", serif'>Gulzar (Classical Nasta&apos;liq Script — خط النستعليق الفاخر)</option>
+            <option value='"Lateef", serif'>Lateef (Flowing Soft Naskh — خط لطيف المنساب)</option>
           </optgroup>
-          <optgroup label="✒️ Calligraphic & Artistic Scripts (الخطوط الكوفية والرقعية)">
-            <option value='"Reem Kufi", serif'>Reem Kufi (Majestic Classical Kufic)</option>
-            <option value='"Aref Ruqaa", serif'>Aref Ruqaa (Classical Ottoman Ruq&apos;ah)</option>
+          <optgroup label="✒️ Calligraphic & Artistic Scripts (الخطوط الكوفية والرقعية والديوانية)">
+            <option value='"Reem Kufi", serif'>Reem Kufi (Majestic Classical Kufic — الخط الكوفي المهيب)</option>
+            <option value='"Noto Kufi Arabic", sans-serif'>Noto Kufi Arabic (Geometric Modern Kufic — كوفي هندسي)</option>
+            <option value='"Aref Ruqaa", serif'>Aref Ruqaa (Classical Ottoman Ruq&apos;ah — خط الرقعة العثماني)</option>
+            <option value='"Rakkas", serif'>Rakkas (Decorative Diwani Poster — خط رقاص الزخرفي)</option>
+            <option value='"Marhey", cursive'>Marhey (Fluid Playful Calligraphy — خط مرحي العصري)</option>
+            <option value='"El Messiri", sans-serif'>El Messiri (Curvilinear Classical — خط المسيري البديع)</option>
           </optgroup>
-          <optgroup label="📱 Modern Social Reels Typography (الخطوط الحديثة للريلز)">
-            <option value='"Cairo", sans-serif'>Cairo (Modern Display - Social Reels)</option>
-            <option value='"Tajawal", sans-serif'>Tajawal (Balanced Contemporary)</option>
-            <option value='"Noto Sans Arabic", sans-serif'>Noto Sans Arabic (Clean Minimalist)</option>
-            <option value='"Almarai", sans-serif'>Almarai (Modern Geometric)</option>
+          <optgroup label="📱 Modern Social Reels Typography (الخطوط المعاصرة لريلز السوشيال)">
+            <option value='"Cairo", sans-serif'>Cairo (Modern Bold Display — خط كايرو للريلز)</option>
+            <option value='"Tajawal", sans-serif'>Tajawal (Balanced Contemporary — خط تجوال المتوازن)</option>
+            <option value='"Almarai", sans-serif'>Almarai (Modern Geometric — خط المراعي الحديث)</option>
+            <option value='"Alexandria", sans-serif'>Alexandria (Ultra-Sharp Geometric — خط الإسكندرية)</option>
+            <option value='"Mada", sans-serif'>Mada (Compact Screen Typography — خط مدى المعاصر)</option>
+            <option value='"Changa", sans-serif'>Changa (Heavy Bold Poster Style — خط تشانغا البارز)</option>
+            <option value='"Noto Sans Arabic", sans-serif'>Noto Sans Arabic (Clean Minimalist — نوتو البسيط)</option>
           </optgroup>
         </select>
       </label>
@@ -221,10 +230,18 @@ export function StylePanel(props: StylePanelProps) {
                 value={props.translationFont}
                 onChange={(e) => props.onTranslationFont(e.target.value)}
               >
-                <option value='"Inter", sans-serif'>Inter (Modern Clean)</option>
-                <option value='system-ui, sans-serif'>System UI</option>
-                <option value='"Georgia", serif'>Georgia (Editorial Serif)</option>
-                <option value='"Times New Roman", serif'>Times New Roman</option>
+                <optgroup label="Modern Sans-Serif (Contemporary Reels)">
+                  <option value='"Inter", sans-serif'>Inter (Modern Clean)</option>
+                  <option value='"Outfit", sans-serif'>Outfit (High-Impact Display)</option>
+                  <option value='"Plus Jakarta Sans", sans-serif'>Plus Jakarta Sans (Geometric Modern)</option>
+                  <option value='system-ui, sans-serif'>System UI</option>
+                </optgroup>
+                <optgroup label="Classical & Luxury Serif (Reverent Style)">
+                  <option value='"Cinzel", serif'>Cinzel (Classical Gilded Roman)</option>
+                  <option value='"Playfair Display", serif'>Playfair Display (Luxury Editorial)</option>
+                  <option value='"Georgia", serif'>Georgia (Editorial Serif)</option>
+                  <option value='"Times New Roman", serif'>Times New Roman</option>
+                </optgroup>
               </select>
             </label>
             <label style={{ flex: 1 }}>

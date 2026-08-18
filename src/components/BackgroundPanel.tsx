@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   STOCK_CATEGORIES,
   STOCK_VIDEO_LOOPS,
@@ -8,6 +8,7 @@ import {
   type StockCategory,
   type CuratedMedia,
 } from '../api/unsplash'
+import { getMediaStatus, subscribeMediaStatus, type MediaLoadStatus } from '../lib/imageCache'
 
 interface BackgroundPanelProps {
   url: string
@@ -42,7 +43,19 @@ export function BackgroundPanel({
   const [searchQuery, setSearchQuery] = useState('')
   const [shuffleSeed, setShuffleSeed] = useState(0)
   const [customFileName, setCustomFileName] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [currentMediaStatus, setCurrentMediaStatus] = useState<MediaLoadStatus>(() => getMediaStatus(url))
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setCurrentMediaStatus(getMediaStatus(url))
+    const unsubscribe = subscribeMediaStatus((changedUrl, status) => {
+      if (changedUrl === url) {
+        setCurrentMediaStatus(status)
+      }
+    })
+    return unsubscribe
+  }, [url])
 
   const photos = searchQuery.trim()
     ? searchStockImages(searchQuery)
@@ -74,16 +87,27 @@ export function BackgroundPanel({
     setShuffleSeed((prev) => prev + 2)
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const processFile = (file: File) => {
     const isVideo = file.type.startsWith('video/')
     const objectUrl = URL.createObjectURL(file)
     setCustomFileName(file.name)
     onUrlChange(objectUrl, isVideo ? 'video' : 'image')
   }
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) processFile(file)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) processFile(file)
+  }
+
   const isCurrentCustom = url.startsWith('blob:')
+  const currentItem = displayedMedia.find((m) => m.full === url)
 
   return (
     <section className="panel" id="background-panel">
@@ -114,6 +138,72 @@ export function BackgroundPanel({
             🔄 Refresh
           </button>
         </div>
+      </div>
+
+      {/* ── Real-Time Media Download & Cache Status Banner ───────── */}
+      <div
+        className={`media-status-banner status-${currentMediaStatus}`}
+        onDragOver={(e) => {
+          e.preventDefault()
+          setIsDragging(true)
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+      >
+        <div className="media-status-left">
+          <span className="media-status-icon">
+            {currentMediaStatus === 'ready'
+              ? '⚡'
+              : currentMediaStatus === 'loading'
+                ? '⏳'
+                : currentMediaStatus === 'error'
+                  ? '⚠️'
+                  : '📷'}
+          </span>
+          <div className="media-status-details">
+            <div className="media-status-title">
+              {customFileName
+                ? customFileName
+                : currentItem
+                  ? currentItem.title
+                  : 'Custom Background'}
+            </div>
+            <div className="media-status-subtext">
+              {currentMediaStatus === 'ready' && (
+                <span className="badge-ready">
+                  ✅ Downloaded & Ready in Cache {currentItem?.sizeLabel ? `(${currentItem.sizeLabel})` : '(Instant 60FPS)'}
+                </span>
+              )}
+              {currentMediaStatus === 'loading' && (
+                <span className="badge-loading">
+                  ⏳ Caching high-res footage from CDN…
+                </span>
+              )}
+              {currentMediaStatus === 'error' && (
+                <span className="badge-error">
+                  ⚠️ Network timeout — Fallback dark gradient active
+                </span>
+              )}
+              {currentMediaStatus === 'idle' && (
+                <span className="badge-idle">
+                  {mediaType === 'video' ? '🎬 Video Loop Selected' : '📷 4K Photo Selected'}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {isDragging ? (
+          <span className="drag-hint">📥 Drop your video or image file here!</span>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-xs btn-outline"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Drop / Upload
+          </button>
+        )}
       </div>
 
       {/* Media Type Sub-Filter Tabs */}
@@ -218,6 +308,12 @@ export function BackgroundPanel({
                   <span className="thumb-badge">
                     {item.mediaType === 'video' ? '🎬 Video' : '📷'}
                   </span>
+                  {item.sizeLabel && (
+                    <span className="thumb-size-pill">{item.sizeLabel}</span>
+                  )}
+                  {isSelected && (
+                    <span className="thumb-check">✓</span>
+                  )}
                 </div>
               </button>
             )
