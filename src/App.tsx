@@ -162,6 +162,8 @@ function App() {
     handleExportVideo,
     handleShareReel,
     handleExportPng,
+    lastSaveResult,
+    clearLastSaveResult,
   } = useExport(config, image, timeline)
 
   const handleRestoreRecipe = useCallback(
@@ -1016,6 +1018,80 @@ function App() {
         exportPreset={exportPreset}
         onExportPresetChange={setExportPreset}
       />
+
+      {/* ── Single Export Completion Hub (Folder & CLI Command) ── */}
+      {lastSaveResult?.cliCommand && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            maxWidth: '460px',
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
+            border: '1px solid rgba(99, 102, 241, 0.5)',
+            borderRadius: '12px',
+            padding: '1rem',
+            boxShadow: '0 12px 36px rgba(0, 0, 0, 0.7)',
+            zIndex: 1000,
+            backdropFilter: 'blur(12px)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.6rem',
+            animation: 'toastSlideUp 0.25s ease-out',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              🚀 Reel Exported &amp; Saved to Disk!
+            </span>
+            <button
+              type="button"
+              onClick={clearLastSaveResult}
+              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1rem', padding: '0 4px' }}
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
+            📁 <strong>Saving Folder / File:</strong>
+            <div style={{ background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '6px', marginTop: '2px', fontFamily: 'monospace', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#a5f3fc' }}>
+              {lastSaveResult.path}
+            </div>
+          </div>
+          <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
+            💻 <strong>CLI Command to Import:</strong>
+            <div style={{ background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '6px', marginTop: '2px', fontFamily: 'monospace', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#fbbf24' }}>
+              {lastSaveResult.cliCommand}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            <button
+              type="button"
+              className="btn-copy-code"
+              style={{ flex: 1, padding: '6px 10px', textAlign: 'center' }}
+              onClick={() => {
+                if (lastSaveResult.cliCommand) {
+                  navigator.clipboard?.writeText(lastSaveResult.cliCommand)
+                }
+              }}
+            >
+              📋 Copy CLI Command
+            </button>
+            <button
+              type="button"
+              className="btn-copy-code"
+              style={{ flex: 1, padding: '6px 10px', textAlign: 'center' }}
+              onClick={() => {
+                if (lastSaveResult.path) {
+                  navigator.clipboard?.writeText(lastSaveResult.path)
+                }
+              }}
+            >
+              📁 Copy File Path
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Share & Action Toast Notification ───────────────────── */}
       {shareToast && (

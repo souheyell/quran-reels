@@ -416,6 +416,49 @@ export function generateManifestItem(
 }
 
 /**
+ * Prepare manifest metadata, JSON string, and file list for batch export.
+ */
+export function prepareBatchManifestAndFiles(
+  batchResults: Array<{
+    item: BulkItem
+    blob: Blob
+    caption: string
+    verses: Verse[]
+    durationMs?: number
+  }>,
+  manifestFormat: ManifestFormat = 'array',
+): {
+  manifestItems: ManifestItem[]
+  manifestContent: string
+  files: Array<{ filename: string; blob: Blob }>
+} {
+  const manifestItems: ManifestItem[] = []
+  const files: Array<{ filename: string; blob: Blob }> = []
+
+  for (let i = 0; i < batchResults.length; i++) {
+    const res = batchResults[i]
+    const ext = res.blob.type.includes('webm') ? 'webm' : 'mp4'
+    const manifestItem = generateManifestItem(res.item, i, ext, res.verses)
+    manifestItems.push(manifestItem)
+    files.push({ filename: manifestItem.filename, blob: res.blob })
+  }
+
+  let manifestContent: string
+  if (manifestFormat === 'keyValue') {
+    const dict: Record<string, Omit<ManifestItem, 'filename'>> = {}
+    for (const item of manifestItems) {
+      const { filename, ...rest } = item
+      dict[filename] = rest
+    }
+    manifestContent = JSON.stringify(dict, null, 2)
+  } else {
+    manifestContent = JSON.stringify(manifestItems, null, 2)
+  }
+
+  return { manifestItems, manifestContent, files }
+}
+
+/**
  * Package multiple exported reels into Format 1: Master manifest.json
  * All videos sit directly in the root of the archive alongside a single manifest.json.
  */
@@ -437,34 +480,14 @@ export async function createBatchZip(
   const manifestFormat = options.manifestFormat || 'array'
   const onZipProgress = options.onZipProgress
 
+  const { manifestContent, files } = prepareBatchManifestAndFiles(batchResults, manifestFormat)
+
   const zip = new JSZip()
-  const manifestItems: ManifestItem[] = []
 
-  for (let i = 0; i < batchResults.length; i++) {
-    const res = batchResults[i]
-    const ext = res.blob.type.includes('webm') ? 'webm' : 'mp4'
-    const manifestItem = generateManifestItem(res.item, i, ext, res.verses)
-    manifestItems.push(manifestItem)
-
-    // Convert blob to ArrayBuffer for universal JSZip serialization
-    const buffer = await res.blob.arrayBuffer()
-
-    // Place video file directly in the root of the archive alongside manifest.json
-    zip.file(manifestItem.filename, buffer)
-  }
-
-  // Format manifest.json
-  let manifestContent: string
-  if (manifestFormat === 'keyValue') {
-    const dict: Record<string, Omit<ManifestItem, 'filename'>> = {}
-    for (const item of manifestItems) {
-      const { filename, ...rest } = item
-      dict[filename] = rest
-    }
-    manifestContent = JSON.stringify(dict, null, 2)
-  } else {
-    // Format 1: Array format (Recommended & Cleanest)
-    manifestContent = JSON.stringify(manifestItems, null, 2)
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i]
+    const buffer = await file.blob.arrayBuffer()
+    zip.file(file.filename, buffer)
   }
 
   // Place manifest.json directly in the root of the archive

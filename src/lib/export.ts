@@ -7,6 +7,7 @@ import { exportMp4, supportsWebCodecs } from './mp4Export'
 import { Filesystem, Directory } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 import { Capacitor } from '@capacitor/core'
+import { saveSingleExportToServer } from './exportDestination'
 
 export interface ExportHandle {
   cancel: () => void
@@ -258,6 +259,8 @@ export interface SaveFileResult {
   uri?: string
   shared?: boolean
   message: string
+  folderPath?: string
+  cliCommand?: string
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {
@@ -371,6 +374,22 @@ export async function saveAndDownloadBlob(
 
   // Web Browser fallback
   downloadBlob(blob, filename)
+
+  try {
+    const serverResult = await saveSingleExportToServer(blob, filename)
+    if (serverResult.success) {
+      return {
+        savedTo: 'web',
+        path: serverResult.filePath || filename,
+        folderPath: serverResult.folderPath,
+        cliCommand: serverResult.cliCommand,
+        message: `Saved to ${serverResult.filePath || filename}`,
+      }
+    }
+  } catch {
+    // Ignore dev server offline
+  }
+
   return {
     savedTo: 'web',
     path: filename,

@@ -32,6 +32,13 @@ export function useExport(
     blob: Blob
     filename: string
   } | null>(null)
+  const [lastSaveResult, setLastSaveResult] = useState<{
+    savedTo: 'native' | 'web'
+    path: string
+    folderPath?: string
+    cliCommand?: string
+    message: string
+  } | null>(null)
 
   const handleRef = useRef<{ cancel: () => void } | null>(null)
   const toastTimeoutRef = useRef<number | null>(null)
@@ -91,6 +98,7 @@ export function useExport(
         dialogTitle: 'Save / Share Quran Reel Video',
       })
 
+      setLastSaveResult(saveResult)
       showToast(`🎉 ${saveResult.message} & Social Caption copied!`)
     } catch (e) {
       if (e instanceof Error && e.message === 'Export cancelled') return
@@ -185,5 +193,7 @@ export function useExport(
     handleShareReel,
     handleExportPng,
     cancelExport,
+    lastSaveResult,
+    clearLastSaveResult: () => setLastSaveResult(null),
   }
 }

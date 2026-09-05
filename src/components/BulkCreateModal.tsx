@@ -20,7 +20,16 @@ import {
   POPULAR_SHUFFLE_RECITERS,
   formatDurationMs,
   formatDurationSecsDetailed,
+  prepareBatchManifestAndFiles,
+  getSurahSlug,
 } from '../lib/bulkExporter'
+import {
+  saveBulkPackToServer,
+  openExportFolder,
+  buildUploaderCliCommand,
+  getStoredCliTemplate,
+  setStoredCliTemplate,
+} from '../lib/exportDestination'
 import {
   estimateBulkItemDurationSeconds,
   formatEstimatedDuration,
@@ -185,6 +194,18 @@ export function BulkCreateModal({
   const [zipDownloaded, setZipDownloaded] = useState(false)
   const [manifestFormat, setManifestFormat] = useState<ManifestFormat>('array')
 
+  const [serverSaveStatus, setServerSaveStatus] = useState<{
+    saved: boolean
+    folderPath?: string
+    manifestPath?: string
+    cliCommand?: string
+    error?: string
+  } | null>(null)
+  const [isSavingToServer, setIsSavingToServer] = useState(false)
+  const [cliTemplate, setCliTemplate] = useState<string>(() => getStoredCliTemplate())
+  const [showCliConfig, setShowCliConfig] = useState(false)
+  const [copiedField, setCopiedField] = useState<'folder' | 'cmd' | null>(null)
+
   const isCancelledRef = useRef(false)
   const toastTimerRef = useRef<number | null>(null)
 
@@ -192,6 +213,37 @@ export function BulkCreateModal({
     setToastMessage(msg)
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
     toastTimerRef.current = window.setTimeout(() => setToastMessage(null), 4000)
+  }
+
+  const handleUpdateCliTemplate = (newTmpl: string) => {
+    setCliTemplate(newTmpl)
+    setStoredCliTemplate(newTmpl)
+    if (serverSaveStatus?.folderPath) {
+      const updatedCmd = buildUploaderCliCommand({
+        folderPath: serverSaveStatus.folderPath,
+        manifestPath: serverSaveStatus.manifestPath,
+        template: newTmpl,
+      })
+      setServerSaveStatus((prev) => (prev ? { ...prev, cliCommand: updatedCmd } : null))
+    }
+  }
+
+  const handleCopyText = (text: string, field: 'folder' | 'cmd') => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text).catch(() => {})
+      setCopiedField(field)
+      setTimeout(() => setCopiedField(null), 3000)
+      showToast(field === 'cmd' ? '📋 Copied CLI command to clipboard!' : '📁 Copied folder path to clipboard!')
+    }
+  }
+
+  const handleOpenFolder = async (folderPath?: string) => {
+    const res = await openExportFolder(folderPath)
+    if (res.success) {
+      showToast('📂 Opened export folder in Finder / Explorer!')
+    } else {
+      showToast(`📁 Folder: ${res.folderPath}`)
+    }
   }
 
   // Estimate duration for each reel before ever generating
@@ -427,6 +479,39 @@ export function BulkCreateModal({
       const totalBatchMs = completedResults.reduce((acc, r) => acc + (r.durationMs || 0), 0)
       showToast(`⚡ Batch Complete! ${completedResults.length} Reels Generated (${formatDurationSecsDetailed(totalBatchMs)} total duration).`)
       setBatchDone(true)
+
+      // Auto-save entire batch to server / cloudspace exports folder
+      try {
+        const primarySurah = completedResults[0]?.verses?.[0]?.surah || completedResults[0]?.item.surah || 1
+        const surahMeta = SURAHS_INDEX.find((s) => s.number === primarySurah)
+        const primarySurahName = completedResults[0]?.verses?.[0]?.surahName || surahMeta?.englishName || 'quran'
+        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+        const packFolderName = `quran_pack_${getSurahSlug(primarySurah, primarySurahName)}_${dateStr}_${Date.now().toString().slice(-4)}`
+
+        const { manifestContent, files } = prepareBatchManifestAndFiles(completedResults, manifestFormat)
+
+        setIsSavingToServer(true)
+        void saveBulkPackToServer(packFolderName, files, manifestContent)
+          .then((res) => {
+            const cmd = buildUploaderCliCommand({
+              folderPath: res.folderPath,
+              manifestPath: res.manifestPath,
+              template: cliTemplate,
+            })
+            setServerSaveStatus({
+              saved: res.success,
+              folderPath: res.folderPath,
+              manifestPath: res.manifestPath,
+              cliCommand: cmd,
+              error: res.error,
+            })
+          })
+          .finally(() => {
+            setIsSavingToServer(false)
+          })
+      } catch (saveErr) {
+        console.warn('Auto-save to server exports folder skipped:', saveErr)
+      }
     }
   }
 
@@ -1080,6 +1165,137 @@ export function BulkCreateModal({
             })}
           </div>
         </div>
+
+        {/* ── Cloud & CLI Uploader Hub (Format 1 Master manifest.json) ── */}
+        {completedCount > 0 && (
+          <div className="bulk-uploader-hub-card">
+            <div className="hub-header">
+              <div className="hub-title">
+                <span className="hub-icon">🚀</span>
+                <div>
+                  <h4>
+                    Cloud &amp; CLI Uploader Hub
+                    {isSavingToServer ? (
+                      <span style={{ fontSize: '0.74rem', color: '#fbbf24', fontWeight: 500, marginLeft: '8px' }}>
+                        💾 Saving to server disk ({completedCount} reels + manifest.json)…
+                      </span>
+                    ) : serverSaveStatus?.saved ? (
+                      <span style={{ fontSize: '0.74rem', color: '#34d399', fontWeight: 500, marginLeft: '8px' }}>
+                        ✅ Saved on Server Disk (Format 1: Master manifest.json)
+                      </span>
+                    ) : null}
+                  </h4>
+                  <p className="hub-subtitle">
+                    Exported reels sit directly in the pack directory alongside <code>manifest.json</code>. Ready for automated CLI upload.
+                  </p>
+                </div>
+              </div>
+              <div className="hub-actions">
+                {serverSaveStatus?.folderPath && (
+                  <button
+                    type="button"
+                    className="btn-copy-code"
+                    style={{ background: 'rgba(255,255,255,0.08)', color: '#fff' }}
+                    onClick={() => void handleOpenFolder(serverSaveStatus.folderPath)}
+                    title="Open folder in Finder or File Manager"
+                  >
+                    📂 Open in Finder
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Saving Folder Row */}
+            <div className="hub-row">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="hub-label">📁 Saving Folder (Server / Cloudspace):</span>
+                <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{completedCount} MP4 videos + manifest.json</span>
+              </div>
+              <div className="hub-code-box">
+                <code>{serverSaveStatus?.folderPath || 'Saving to exports/...'}</code>
+                <button
+                  type="button"
+                  className="btn-copy-code"
+                  onClick={() => handleCopyText(serverSaveStatus?.folderPath || '', 'folder')}
+                  disabled={!serverSaveStatus?.folderPath}
+                >
+                  {copiedField === 'folder' ? '✅ Copied!' : '📋 Copy Path'}
+                </button>
+              </div>
+            </div>
+
+            {/* CLI Command Row */}
+            <div className="hub-row">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="hub-label">💻 CLI Command for Bulk Uploader Script:</span>
+                <span style={{ fontSize: '0.72rem', color: '#38bdf8' }}>Ready to paste in terminal</span>
+              </div>
+              <div className="hub-code-box">
+                <code>
+                  {serverSaveStatus?.cliCommand ||
+                    buildUploaderCliCommand({
+                      folderPath: serverSaveStatus?.folderPath || 'exports',
+                      template: cliTemplate,
+                    })}
+                </code>
+                <button
+                  type="button"
+                  className="btn-copy-code"
+                  onClick={() =>
+                    handleCopyText(
+                      serverSaveStatus?.cliCommand ||
+                        buildUploaderCliCommand({
+                          folderPath: serverSaveStatus?.folderPath || 'exports',
+                          template: cliTemplate,
+                        }),
+                      'cmd',
+                    )
+                  }
+                >
+                  {copiedField === 'cmd' ? '✅ Copied!' : '📋 Copy CLI Command'}
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Template Customization Accordion */}
+            <div className="hub-settings-toggle">
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => setShowCliConfig(!showCliConfig)}
+              >
+                {showCliConfig ? '▼ Hide CLI Command Settings' : '⚙️ Customize CLI Command Script / Template'}
+              </button>
+              {showCliConfig && (
+                <div className="hub-settings-drawer">
+                  <label>
+                    <span>
+                      CLI Command Template (supports <code>{'{folder}'}</code>, <code>{'{manifest}'}</code>, <code>{'{file}'}</code>):
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                      <input
+                        type="text"
+                        className="bulk-text-input"
+                        style={{ flex: 1, padding: '6px 10px', fontSize: '0.8rem', background: '#0f172a', color: '#f8fafc', border: '1px solid #334155', borderRadius: '6px' }}
+                        value={cliTemplate}
+                        onChange={(e) => handleUpdateCliTemplate(e.target.value)}
+                        placeholder='python scripts/bulk_uploader.py --folder "{folder}"'
+                      />
+                      <button
+                        type="button"
+                        className="btn-copy-code"
+                        onClick={() => handleUpdateCliTemplate('python scripts/bulk_uploader.py --folder "{folder}"')}
+                        title="Reset to default uploader script template"
+                      >
+                        Reset Default
+                      </button>
+                    </div>
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Modal Footer Controls */}
         <div className="bulk-modal-footer">

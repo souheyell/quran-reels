@@ -3496,3 +3496,150 @@
   }
 }
 
+/* ── Bulk Uploader Hub Card & CLI Command Box ──────────────────────── */
+.bulk-uploader-hub-card {
+  margin: 0.85rem 1.5rem 0.25rem;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.hub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.hub-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.hub-icon {
+  font-size: 1.4rem;
+  padding: 0.35rem 0.55rem;
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 8px;
+  line-height: 1;
+}
+
+.hub-title h4 {
+  margin: 0 0 0.2rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #e0e7ff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hub-subtitle {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+
+.hub-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.hub-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hub-code-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem 0.4rem 0.8rem;
+  gap: 0.75rem;
+  overflow: hidden;
+}
+
+.hub-code-box code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.78rem;
+  color: #38bdf8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: all;
+}
+
+.btn-copy-code {
+  background: rgba(99, 102, 241, 0.2);
+  color: #c7d2fe;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.btn-copy-code:hover {
+  background: rgba(99, 102, 241, 0.4);
+  color: #fff;
+  border-color: #818cf8;
+}
+
+.hub-settings-toggle {
+  margin-top: 0.2rem;
+}
+
+.hub-settings-toggle .link-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.74rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  transition: color 0.15s;
+}
+
+.hub-settings-toggle .link-btn:hover {
+  color: #e2e8f0;
+}
+
+.hub-settings-drawer {
+  margin-top: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hub-settings-drawer label {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hub-settings-drawer code {
+  color: #fbbf24;
+}
+

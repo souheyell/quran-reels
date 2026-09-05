@@ -25,6 +25,8 @@
 .DS_Store
 *.pem
 scratch/
+/exports/*
+!/exports/.gitkeep
 
 # debug
 npm-debug.log*

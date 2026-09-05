@@ -163,6 +163,134 @@ function localMediaPlugin(): Plugin {
         }
         next()
       })
+
+      // ── Exports Destination Endpoints (Cloudspace & Local Disk) ──
+      const exportsDir = path.resolve(process.cwd(), 'exports')
+      if (!fs.existsSync(exportsDir)) {
+        fs.mkdirSync(exportsDir, { recursive: true })
+      }
+
+      // Endpoint: GET /__api/export-config
+      server.middlewares.use('/__api/export-config', (req, res, next) => {
+        if (req.method === 'GET') {
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ exportsDir, relativeDir: 'exports' }))
+          return
+        }
+        next()
+      })
+
+      // Endpoint: POST /__api/save-single-export
+      server.middlewares.use('/__api/save-single-export', (req, res, next) => {
+        if (req.method === 'POST') {
+          const chunks: Buffer[] = []
+          req.on('data', (chunk) => chunks.push(chunk))
+          req.on('end', () => {
+            try {
+              const singleDir = path.join(exportsDir, 'single')
+              if (!fs.existsSync(singleDir)) fs.mkdirSync(singleDir, { recursive: true })
+              const rawFilename = (req.headers['x-filename'] as string) || `reel_${Date.now()}.mp4`
+              const filename = decodeURIComponent(rawFilename)
+              const filePath = path.join(singleDir, filename)
+              const buffer = Buffer.concat(chunks)
+              fs.writeFileSync(filePath, buffer)
+              res.setHeader('Content-Type', 'application/json')
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  folderPath: singleDir,
+                  filePath,
+                  filename,
+                  exportsDir,
+                }),
+              )
+            } catch (err: unknown) {
+              const message = err instanceof Error ? err.message : 'Save single export failed'
+              res.statusCode = 500
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ success: false, error: message }))
+            }
+          })
+          return
+        }
+        next()
+      })
+
+      // Endpoint: POST /__api/save-bulk-file
+      server.middlewares.use('/__api/save-bulk-file', (req, res, next) => {
+        if (req.method === 'POST') {
+          const chunks: Buffer[] = []
+          req.on('data', (chunk) => chunks.push(chunk))
+          req.on('end', () => {
+            try {
+              const rawPackName = (req.headers['x-pack-name'] as string) || `quran_reels_pack_${Date.now()}`
+              const packName = decodeURIComponent(rawPackName)
+              const packDir = path.join(exportsDir, packName)
+              if (!fs.existsSync(packDir)) fs.mkdirSync(packDir, { recursive: true })
+
+              const rawFilename = (req.headers['x-filename'] as string) || `video_${Date.now()}.mp4`
+              const filename = decodeURIComponent(rawFilename)
+              const filePath = path.join(packDir, filename)
+              const buffer = Buffer.concat(chunks)
+              fs.writeFileSync(filePath, buffer)
+
+              res.setHeader('Content-Type', 'application/json')
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  packName,
+                  folderPath: packDir,
+                  filePath,
+                  filename,
+                  manifestPath: path.join(packDir, 'manifest.json'),
+                  exportsDir,
+                }),
+              )
+            } catch (err: unknown) {
+              const message = err instanceof Error ? err.message : 'Save bulk file failed'
+              res.statusCode = 500
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ success: false, error: message }))
+            }
+          })
+          return
+        }
+        next()
+      })
+
+      // Endpoint: POST /__api/open-export-folder
+      server.middlewares.use('/__api/open-export-folder', (req, res, next) => {
+        if (req.method === 'POST') {
+          const chunks: Buffer[] = []
+          req.on('data', (chunk) => chunks.push(chunk))
+          req.on('end', () => {
+            try {
+              let targetDir = exportsDir
+              if (chunks.length > 0) {
+                const parsed = JSON.parse(Buffer.concat(chunks).toString('utf-8'))
+                if (parsed.folderPath && fs.existsSync(parsed.folderPath)) {
+                  targetDir = parsed.folderPath
+                }
+              }
+              const cmd = process.platform === 'darwin' ? `open "${targetDir}"` : process.platform === 'win32' ? `explorer "${targetDir}"` : `xdg-open "${targetDir}"`
+              exec(cmd, (err) => {
+                res.setHeader('Content-Type', 'application/json')
+                if (err) {
+                  res.end(JSON.stringify({ success: false, error: err.message, folderPath: targetDir }))
+                } else {
+                  res.end(JSON.stringify({ success: true, folderPath: targetDir }))
+                }
+              })
+            } catch (err: unknown) {
+              const message = err instanceof Error ? err.message : 'Open folder failed'
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ success: false, error: message, folderPath: exportsDir }))
+            }
+          })
+          return
+        }
+        next()
+      })
     },
   }
 }

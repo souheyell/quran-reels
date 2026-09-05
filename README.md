@@ -94,6 +94,16 @@ A rapid 3-step creation flow for beginners and fast creators:
 ### 📜 5. Holy Quran Paper & Mushaf Layout Mode
 - Authentic Mushaf layout mode rendering classic Quranic script with parchment textures, traditional margins, and authentic Hizb/Juz markers.
 
+### 🚀 6. Cloudspace Disk Exports & Bulk Uploader CLI Hub
+Designed specifically for creators running on cloudspaces (Codespaces, cloud servers, or local machines):
+- **Direct Server Disk Exports**: Batch exports automatically save directly to `./exports/<pack_name>/` on the server filesystem alongside `manifest.json`, eliminating the need to download large ZIP files to your laptop and re-upload.
+- **Ready-to-Use CLI Command**: Each export generates a 1-click copyable terminal command:
+  ```bash
+  python scripts/bulk_uploader.py --folder "exports/quran_pack_kahf_20260905_1200"
+  ```
+- **Custom Script Templates**: Configure your own CLI command pattern (e.g. `python upload.py --dir {folder}` or `node uploader.js`), automatically saved to `localStorage`.
+- **Included Starter CLI Script (`scripts/bulk_uploader.py`)**: Built-in Python CLI tool that parses Format 1 master `manifest.json`, validates video files, and connects to social media distribution pipelines.
+
 ---
 
 ## 🌟 Core Features
