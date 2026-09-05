@@ -202,6 +202,8 @@ export function BulkCreateModal({
     error?: string
   } | null>(null)
   const [isSavingToServer, setIsSavingToServer] = useState(false)
+  const [serverSaveProgressText, setServerSaveProgressText] = useState<string>('')
+  const [lastPackFolderName, setLastPackFolderName] = useState<string>('')
   const [cliTemplate, setCliTemplate] = useState<string>(() => getStoredCliTemplate())
   const [showCliConfig, setShowCliConfig] = useState(false)
   const [copiedField, setCopiedField] = useState<'folder' | 'cmd' | null>(null)
@@ -487,31 +489,110 @@ export function BulkCreateModal({
         const primarySurahName = completedResults[0]?.verses?.[0]?.surahName || surahMeta?.englishName || 'quran'
         const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '')
         const packFolderName = `quran_pack_${getSurahSlug(primarySurah, primarySurahName)}_${dateStr}_${Date.now().toString().slice(-4)}`
+        setLastPackFolderName(packFolderName)
 
-        const { manifestContent, files } = prepareBatchManifestAndFiles(completedResults, manifestFormat)
-
-        setIsSavingToServer(true)
-        void saveBulkPackToServer(packFolderName, files, manifestContent)
-          .then((res) => {
-            const cmd = buildUploaderCliCommand({
-              folderPath: res.folderPath,
-              manifestPath: res.manifestPath,
-              template: cliTemplate,
-            })
-            setServerSaveStatus({
-              saved: res.success,
-              folderPath: res.folderPath,
-              manifestPath: res.manifestPath,
-              cliCommand: cmd,
-              error: res.error,
-            })
-          })
-          .finally(() => {
-            setIsSavingToServer(false)
-          })
+        void handleSavePackToDisk(packFolderName, completedResults)
       } catch (saveErr) {
         console.warn('Auto-save to server exports folder skipped:', saveErr)
       }
+    }
+  }
+
+  // Save or re-save current completed batch to server / cloudspace exports folder
+  const handleSavePackToDisk = async (
+    customPackName?: string,
+    overrideResults?: Array<{
+      item: BulkItem
+      blob: Blob
+      caption: string
+      verses: import('../types').Verse[]
+      durationMs?: number
+    }>,
+  ) => {
+    let sourceResults: Array<{
+      item: BulkItem
+      blob: Blob
+      caption: string
+      verses: import('../types').Verse[]
+      durationMs?: number
+    }> = overrideResults || []
+
+    if (sourceResults.length === 0) {
+      const completedItems = Object.values(batchStatuses).filter(
+        (s) => s.status === 'completed' && s.blob,
+      )
+      if (completedItems.length === 0) {
+        showToast('No completed reels to save.')
+        return
+      }
+      sourceResults = completedItems.map((s) => ({
+        item: s.item,
+        blob: s.blob!,
+        caption: s.caption || '',
+        verses: s.verses || [],
+        durationMs: s.durationMs,
+      }))
+    }
+
+    const primarySurah = sourceResults[0]?.verses?.[0]?.surah || sourceResults[0]?.item.surah || 1
+    const surahMeta = SURAHS_INDEX.find((s) => s.number === primarySurah)
+    const primarySurahName = sourceResults[0]?.verses?.[0]?.surahName || surahMeta?.englishName || 'quran'
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    const packFolderName =
+      customPackName ||
+      lastPackFolderName ||
+      `quran_pack_${getSurahSlug(primarySurah, primarySurahName)}_${dateStr}_${Date.now().toString().slice(-4)}`
+    setLastPackFolderName(packFolderName)
+
+    const { manifestContent, files } = prepareBatchManifestAndFiles(sourceResults, manifestFormat)
+
+    setIsSavingToServer(true)
+    setServerSaveProgressText(`Initializing disk upload (${files.length} reels)...`)
+
+    try {
+      const res = await saveBulkPackToServer(
+        packFolderName,
+        files,
+        manifestContent,
+        (_percent, info) => {
+          if (info?.statusText) {
+            setServerSaveProgressText(info.statusText)
+          }
+        },
+      )
+
+      const cmd = buildUploaderCliCommand({
+        folderPath: res.folderPath,
+        manifestPath: res.manifestPath,
+        template: cliTemplate,
+      })
+
+      setServerSaveStatus({
+        saved: res.success,
+        folderPath: res.folderPath,
+        manifestPath: res.manifestPath,
+        cliCommand: cmd,
+        error: res.error,
+      })
+
+      if (res.success) {
+        showToast(`💾 Saved ${files.length} reels + manifest.json to ${res.folderPath}`)
+      } else {
+        showToast(`⚠️ Server save incomplete: ${res.error || 'Check server logs'}`)
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Server disk save failed'
+      showToast(`⚠️ Server save failed: ${message}`)
+      setServerSaveStatus((prev) => ({
+        saved: false,
+        folderPath: prev?.folderPath || `exports/${packFolderName}`,
+        manifestPath: prev?.manifestPath,
+        cliCommand: prev?.cliCommand,
+        error: message,
+      }))
+    } finally {
+      setIsSavingToServer(false)
+      setServerSaveProgressText('')
     }
   }
 
@@ -1177,11 +1258,15 @@ export function BulkCreateModal({
                     Cloud &amp; CLI Uploader Hub
                     {isSavingToServer ? (
                       <span style={{ fontSize: '0.74rem', color: '#fbbf24', fontWeight: 500, marginLeft: '8px' }}>
-                        💾 Saving to server disk ({completedCount} reels + manifest.json)…
+                        💾 {serverSaveProgressText || `Saving to server disk (${completedCount} reels + manifest.json)…`}
                       </span>
                     ) : serverSaveStatus?.saved ? (
                       <span style={{ fontSize: '0.74rem', color: '#34d399', fontWeight: 500, marginLeft: '8px' }}>
                         ✅ Saved on Server Disk (Format 1: Master manifest.json)
+                      </span>
+                    ) : serverSaveStatus?.error ? (
+                      <span style={{ fontSize: '0.74rem', color: '#f87171', fontWeight: 500, marginLeft: '8px' }}>
+                        ⚠️ Save Incomplete: {serverSaveStatus.error}
                       </span>
                     ) : null}
                   </h4>
@@ -1190,7 +1275,25 @@ export function BulkCreateModal({
                   </p>
                 </div>
               </div>
-              <div className="hub-actions">
+              <div className="hub-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn-copy-code"
+                  style={{
+                    background: serverSaveStatus?.saved ? 'rgba(52,211,153,0.15)' : 'rgba(56,189,248,0.15)',
+                    color: serverSaveStatus?.saved ? '#34d399' : '#38bdf8',
+                    borderColor: serverSaveStatus?.saved ? 'rgba(52,211,153,0.3)' : 'rgba(56,189,248,0.3)',
+                  }}
+                  onClick={() => void handleSavePackToDisk()}
+                  disabled={isSavingToServer}
+                  title="Save or re-save all generated reels and manifest.json to the server disk folder"
+                >
+                  {isSavingToServer
+                    ? '⏳ Saving...'
+                    : serverSaveStatus?.saved
+                      ? '🔄 Re-save to Disk'
+                      : '💾 Save to Disk'}
+                </button>
                 {serverSaveStatus?.folderPath && (
                   <button
                     type="button"

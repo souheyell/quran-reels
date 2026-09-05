@@ -258,6 +258,77 @@ function localMediaPlugin(): Plugin {
         next()
       })
 
+      // Endpoint: POST /__api/save-file-chunk (Resilient chunked uploader for large MP4s and cloud proxies)
+      server.middlewares.use('/__api/save-file-chunk', (req, res, next) => {
+        if (req.method === 'POST') {
+          const rawPackName = (req.headers['x-pack-name'] as string) || ''
+          const rawSubFolder = (req.headers['x-subfolder'] as string) || ''
+          const packName = rawPackName ? decodeURIComponent(rawPackName) : ''
+          const subFolder = rawSubFolder ? decodeURIComponent(rawSubFolder) : ''
+
+          let targetDir = exportsDir
+          if (packName) {
+            targetDir = path.join(exportsDir, packName)
+          } else if (subFolder) {
+            targetDir = path.join(exportsDir, subFolder)
+          }
+
+          if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true })
+          }
+
+          const rawFilename = (req.headers['x-filename'] as string) || `file_${Date.now()}`
+          const filename = decodeURIComponent(rawFilename)
+          const filePath = path.join(targetDir, filename)
+
+          const chunkIndex = parseInt((req.headers['x-chunk-index'] as string) || '0', 10)
+          const totalChunks = parseInt((req.headers['x-total-chunks'] as string) || '1', 10)
+          const offset = parseInt((req.headers['x-chunk-offset'] as string) || '0', 10)
+          const totalSize = parseInt((req.headers['x-total-size'] as string) || '0', 10)
+
+          const chunks: Buffer[] = []
+          req.on('data', (chunk) => chunks.push(chunk))
+          req.on('end', () => {
+            try {
+              const buffer = Buffer.concat(chunks)
+
+              // Open file for writing at exact offset
+              const fd = fs.openSync(filePath, chunkIndex === 0 ? 'w' : (fs.existsSync(filePath) ? 'r+' : 'w'))
+              fs.writeSync(fd, buffer, 0, buffer.length, offset)
+              fs.closeSync(fd)
+
+              const isLastChunk = chunkIndex >= totalChunks - 1
+              const currentSize = fs.existsSync(filePath) ? fs.statSync(filePath).size : 0
+
+              res.setHeader('Content-Type', 'application/json')
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  chunkIndex,
+                  totalChunks,
+                  isLastChunk,
+                  currentSize,
+                  totalSize,
+                  folderPath: targetDir,
+                  filePath,
+                  filename,
+                  manifestPath: packName ? path.join(targetDir, 'manifest.json') : undefined,
+                  exportsDir,
+                }),
+              )
+            } catch (err: unknown) {
+              const message = err instanceof Error ? err.message : 'Save file chunk failed'
+              res.statusCode = 500
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ success: false, error: message }))
+            }
+          })
+          return
+        }
+        next()
+      })
+
+
       // Endpoint: POST /__api/open-export-folder
       server.middlewares.use('/__api/open-export-folder', (req, res, next) => {
         if (req.method === 'POST') {

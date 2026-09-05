@@ -5,6 +5,9 @@ import {
   setStoredCliTemplate,
   getExportServerConfig,
   openExportFolder,
+  uploadBlobInChunks,
+  saveBulkPackToServer,
+  saveSingleExportToServer,
   DEFAULT_BULK_CLI_TEMPLATE,
   DEFAULT_SINGLE_CLI_TEMPLATE,
 } from '../exportDestination'
@@ -113,4 +116,120 @@ describe('exportDestination & CLI command builder', () => {
     expect(res.success).toBe(true)
     expect(res.folderPath).toBe('/workspace/exports')
   })
+
+  it('uploads a blob in chunks and reports progress properly', async () => {
+    // 1.5MB blob sliced into 512KB chunks -> 3 chunks
+    const testData = new Uint8Array(1.5 * 1024 * 1024)
+    const blob = new Blob([testData], { type: 'video/mp4' })
+
+    const progressReports: number[] = []
+    const fetchCalls: any[] = []
+
+    global.fetch = vi.fn().mockImplementation((url, init) => {
+      fetchCalls.push({ url, headers: init.headers })
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            folderPath: '/workspace/exports/pack_test',
+            filePath: '/workspace/exports/pack_test/01_reel.mp4',
+            filename: '01_reel.mp4',
+          }),
+      })
+    })
+
+    const result = await uploadBlobInChunks({
+      blob,
+      filename: '01_reel.mp4',
+      packName: 'pack_test',
+      chunkSize: 512 * 1024,
+      onProgress: (p) => {
+        progressReports.push(p.percent)
+      },
+    })
+
+    expect(result.success).toBe(true)
+    expect(fetchCalls.length).toBe(3)
+    expect(fetchCalls[0].headers['x-chunk-index']).toBe('0')
+    expect(fetchCalls[1].headers['x-chunk-index']).toBe('1')
+    expect(fetchCalls[2].headers['x-chunk-index']).toBe('2')
+    expect(fetchCalls[0].headers['x-total-chunks']).toBe('3')
+    expect(fetchCalls[0].headers['x-filename']).toBe('01_reel.mp4')
+    expect(progressReports[progressReports.length - 1]).toBe(100)
+  })
+
+  it('retries when a chunk upload fails with HTTP error and succeeds after backoff', async () => {
+    const testData = new Uint8Array(100 * 1024) // 1 chunk
+    const blob = new Blob([testData], { type: 'video/mp4' })
+
+    let callCount = 0
+    global.fetch = vi.fn().mockImplementation(() => {
+      callCount++
+      if (callCount === 1) {
+        // First attempt fails with 502 or 413
+        return Promise.resolve({
+          ok: false,
+          status: 413,
+          statusText: 'Payload Too Large',
+          text: () => Promise.resolve('Proxy rejected body'),
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            folderPath: '/workspace/exports/single',
+            filePath: '/workspace/exports/single/test.mp4',
+            filename: 'test.mp4',
+          }),
+      })
+    })
+
+    const res = await saveSingleExportToServer(blob, 'test.mp4')
+    expect(res.success).toBe(true)
+    expect(callCount).toBe(2)
+  })
+
+  it('saveBulkPackToServer saves manifest and all items, and reports failure if an item fails', async () => {
+    const manifestJson = JSON.stringify([{ filename: '01.mp4' }])
+    const videoBlob = new Blob([new Uint8Array(1024)], { type: 'video/mp4' })
+
+    // Simulate server rejecting video file chunks even after retries
+    let fetchCount = 0
+    global.fetch = vi.fn().mockImplementation((_url, init) => {
+      fetchCount++
+      // If uploading video (not manifest), fail
+      if (init.headers['x-filename'] === '01.mp4') {
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+          text: () => Promise.resolve('Disk full or proxy closed'),
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            folderPath: '/workspace/exports/test_pack',
+            filePath: '/workspace/exports/test_pack/manifest.json',
+            filename: 'manifest.json',
+          }),
+      })
+    })
+
+    const res = await saveBulkPackToServer(
+      'test_pack',
+      [{ filename: '01.mp4', blob: videoBlob }],
+      manifestJson,
+    )
+
+    expect(res.success).toBe(false)
+    expect(res.error).toContain('Failed to upload chunk')
+    expect(res.manifestPath).toBe('/workspace/exports/test_pack/manifest.json')
+  })
 })
+

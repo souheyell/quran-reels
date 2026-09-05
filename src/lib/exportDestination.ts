@@ -90,40 +90,178 @@ export async function getExportServerConfig(): Promise<ExportServerConfig> {
   }
 }
 
+export interface ChunkUploadProgress {
+  filename: string
+  loadedBytes: number
+  totalBytes: number
+  percent: number
+  chunkIndex: number
+  totalChunks: number
+}
+
+export interface UploadBlobChunkOptions {
+  blob: Blob
+  filename: string
+  packName?: string
+  subFolder?: string
+  chunkSize?: number // default 512 * 1024 (512KB)
+  maxRetries?: number // default 3
+  onProgress?: (progress: ChunkUploadProgress) => void
+}
+
+export interface BulkSaveProgressInfo {
+  percent: number
+  currentFile: string
+  fileIndex: number
+  totalFiles: number
+  statusText: string
+}
+
+export type BulkSaveProgressCallback = (
+  percent: number,
+  info?: BulkSaveProgressInfo,
+) => void
+
+/**
+ * Upload a Blob in chunks (512KB slices) to bypass reverse proxy payload limits
+ * (e.g. GitHub Codespaces, Cloudflare, nginx) with automatic retries and exponential backoff.
+ */
+export async function uploadBlobInChunks(
+  options: UploadBlobChunkOptions,
+): Promise<{
+  success: boolean
+  folderPath: string
+  filePath: string
+  filename: string
+  manifestPath?: string
+  exportsDir?: string
+}> {
+  const chunkSize = options.chunkSize || 512 * 1024
+  const totalBytes = options.blob.size
+  const totalChunks = Math.max(1, Math.ceil(totalBytes / chunkSize))
+
+  let finalResponseData: {
+    success: boolean
+    folderPath: string
+    filePath: string
+    filename: string
+    manifestPath?: string
+    exportsDir?: string
+  } | null = null
+
+  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+    const start = chunkIndex * chunkSize
+    const end = Math.min(start + chunkSize, totalBytes)
+    const chunkSlice = options.blob.slice(start, end)
+    const offset = start
+
+    let success = false
+    let lastError: Error | null = null
+    const maxRetries = options.maxRetries || 3
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const headers: Record<string, string> = {
+          'x-filename': encodeURIComponent(options.filename),
+          'x-chunk-index': String(chunkIndex),
+          'x-total-chunks': String(totalChunks),
+          'x-chunk-offset': String(offset),
+          'x-total-size': String(totalBytes),
+        }
+        if (options.packName) {
+          headers['x-pack-name'] = encodeURIComponent(options.packName)
+        }
+        if (options.subFolder) {
+          headers['x-subfolder'] = encodeURIComponent(options.subFolder)
+        }
+
+        const res = await fetch('/__api/save-file-chunk', {
+          method: 'POST',
+          headers,
+          body: chunkSlice,
+        })
+
+        if (!res.ok) {
+          const errText = await res.text().catch(() => '')
+          throw new Error(
+            `HTTP ${res.status} (${res.statusText || 'Error'}): ${errText || 'Chunk upload failed'}`,
+          )
+        }
+
+        const data = await res.json()
+        if (!data || !data.success) {
+          throw new Error(data?.error || 'Server rejected file chunk')
+        }
+
+        finalResponseData = data
+        success = true
+        break
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err : new Error(String(err))
+        if (attempt < maxRetries) {
+          // Exponential backoff: 250ms, 500ms, 1000ms
+          await new Promise((resolve) => setTimeout(resolve, 250 * Math.pow(2, attempt - 1)))
+        }
+      }
+    }
+
+    if (!success) {
+      throw new Error(
+        `Failed to upload chunk ${chunkIndex + 1}/${totalChunks} of "${options.filename}": ${
+          lastError?.message || 'Network error'
+        }`,
+      )
+    }
+
+    if (options.onProgress) {
+      const loadedBytes = end
+      const percent = Math.min(100, Math.round((loadedBytes / totalBytes) * 100))
+      options.onProgress({
+        filename: options.filename,
+        loadedBytes,
+        totalBytes,
+        percent,
+        chunkIndex,
+        totalChunks,
+      })
+    }
+  }
+
+  if (!finalResponseData) {
+    throw new Error(`Upload of "${options.filename}" completed without server response`)
+  }
+
+  return finalResponseData
+}
+
 /**
  * Save an individual exported MP4 directly to the server's exports/single folder on disk.
+ * Uses resilient chunked uploading to support cloud environments & reverse proxies.
  */
 export async function saveSingleExportToServer(
   blob: Blob,
   filename: string,
+  onProgress?: (progress: ChunkUploadProgress) => void,
 ): Promise<SaveExportResult> {
   try {
-    const res = await fetch('/__api/save-single-export', {
-      method: 'POST',
-      headers: {
-        'x-filename': encodeURIComponent(filename),
-      },
-      body: blob,
+    const uploadRes = await uploadBlobInChunks({
+      blob,
+      filename,
+      subFolder: 'single',
+      onProgress,
     })
 
-    if (res.ok) {
-      const data = (await res.json()) as {
-        success: boolean
-        folderPath: string
-        filePath: string
-        filename: string
-      }
-      const cliCommand = buildUploaderCliCommand({
-        filePath: data.filePath,
-        folderPath: data.folderPath,
-      })
-      return {
-        success: true,
-        folderPath: data.folderPath,
-        filePath: data.filePath,
-        filename: data.filename,
-        cliCommand,
-      }
+    const cliCommand = buildUploaderCliCommand({
+      filePath: uploadRes.filePath,
+      folderPath: uploadRes.folderPath,
+    })
+
+    return {
+      success: true,
+      folderPath: uploadRes.folderPath,
+      filePath: uploadRes.filePath,
+      filename: uploadRes.filename,
+      cliCommand,
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Save single export failed'
@@ -133,62 +271,78 @@ export async function saveSingleExportToServer(
       error: message,
     }
   }
-
-  return {
-    success: false,
-    folderPath: 'exports/single',
-    error: 'Failed to save export to server disk',
-  }
 }
 
 /**
  * Save an entire bulk batch (videos + manifest.json) directly into exports/<packName>/ on disk.
+ * Uses 512KB chunk slices to bypass any reverse proxy body size limits in Codespaces/cloud.
  */
 export async function saveBulkPackToServer(
   packName: string,
   items: Array<{ filename: string; blob: Blob }>,
   manifestContent: string,
-  onProgress?: (percent: number) => void,
+  onProgress?: BulkSaveProgressCallback,
 ): Promise<SaveExportResult> {
   const cleanPackName = packName.replace(/[^\w.-]+/g, '_')
   let savedFolder = `exports/${cleanPackName}`
   let manifestPath = `${savedFolder}/manifest.json`
 
   try {
-    // 1. Save manifest.json first
-    const manifestBlob = new Blob([manifestContent], { type: 'application/json' })
-    const manifestRes = await fetch('/__api/save-bulk-file', {
-      method: 'POST',
-      headers: {
-        'x-pack-name': encodeURIComponent(cleanPackName),
-        'x-filename': encodeURIComponent('manifest.json'),
-      },
-      body: manifestBlob,
-    })
+    const totalFiles = items.length
 
-    if (manifestRes.ok) {
-      const data = (await manifestRes.json()) as { folderPath: string; manifestPath: string }
-      savedFolder = data.folderPath
-      manifestPath = data.manifestPath
+    // 1. Save manifest.json first
+    if (onProgress) {
+      onProgress(0, {
+        percent: 0,
+        currentFile: 'manifest.json',
+        fileIndex: 0,
+        totalFiles: totalFiles + 1,
+        statusText: 'Saving manifest.json to server disk...',
+      })
     }
 
-    // 2. Save each video file
-    const totalFiles = items.length
-    let savedCount = 0
+    const manifestBlob = new Blob([manifestContent], { type: 'application/json' })
+    const manifestUpload = await uploadBlobInChunks({
+      blob: manifestBlob,
+      filename: 'manifest.json',
+      packName: cleanPackName,
+    })
+    savedFolder = manifestUpload.folderPath
+    manifestPath = manifestUpload.filePath
 
-    for (const item of items) {
-      await fetch('/__api/save-bulk-file', {
-        method: 'POST',
-        headers: {
-          'x-pack-name': encodeURIComponent(cleanPackName),
-          'x-filename': encodeURIComponent(item.filename),
+    // 2. Save each video file using chunked upload with detailed progress
+    for (let i = 0; i < totalFiles; i++) {
+      const item = items[i]
+      const fileIndex = i + 1
+
+      await uploadBlobInChunks({
+        blob: item.blob,
+        filename: item.filename,
+        packName: cleanPackName,
+        onProgress: (chunkProg) => {
+          if (onProgress) {
+            const overallFraction = (i + chunkProg.percent / 100) / totalFiles
+            const overallPercent = Math.min(99, Math.round(overallFraction * 100))
+            onProgress(overallPercent, {
+              percent: overallPercent,
+              currentFile: item.filename,
+              fileIndex,
+              totalFiles,
+              statusText: `Saving ${fileIndex}/${totalFiles}: ${item.filename} (${chunkProg.percent}%)...`,
+            })
+          }
         },
-        body: item.blob,
       })
-      savedCount++
-      if (onProgress) {
-        onProgress(Math.round((savedCount / totalFiles) * 100))
-      }
+    }
+
+    if (onProgress) {
+      onProgress(100, {
+        percent: 100,
+        currentFile: '',
+        fileIndex: totalFiles,
+        totalFiles,
+        statusText: `All ${totalFiles} reels saved to disk.`,
+      })
     }
 
     const cliCommand = buildUploaderCliCommand({
