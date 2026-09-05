@@ -206,6 +206,7 @@ export function BulkCreateModal({
   const [lastPackFolderName, setLastPackFolderName] = useState<string>('')
   const [cliTemplate, setCliTemplate] = useState<string>(() => getStoredCliTemplate())
   const [showCliConfig, setShowCliConfig] = useState(false)
+  const [isHubCollapsed, setIsHubCollapsed] = useState(false)
   const [copiedField, setCopiedField] = useState<'folder' | 'cmd' | null>(null)
 
   const isCancelledRef = useRef(false)
@@ -1305,98 +1306,112 @@ export function BulkCreateModal({
                     📂 Open in Finder
                   </button>
                 )}
-              </div>
-            </div>
-
-            {/* Saving Folder Row */}
-            <div className="hub-row">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="hub-label">📁 Saving Folder (Server / Cloudspace):</span>
-                <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{completedCount} MP4 videos + manifest.json</span>
-              </div>
-              <div className="hub-code-box">
-                <code>{serverSaveStatus?.folderPath || 'Saving to exports/...'}</code>
                 <button
                   type="button"
                   className="btn-copy-code"
-                  onClick={() => handleCopyText(serverSaveStatus?.folderPath || '', 'folder')}
-                  disabled={!serverSaveStatus?.folderPath}
+                  style={{ background: 'rgba(255,255,255,0.06)', color: '#cbd5e1' }}
+                  onClick={() => setIsHubCollapsed((prev) => !prev)}
+                  title={isHubCollapsed ? 'Expand Hub details' : 'Collapse Hub details'}
                 >
-                  {copiedField === 'folder' ? '✅ Copied!' : '📋 Copy Path'}
+                  {isHubCollapsed ? '▼ Expand Hub' : '▲ Minimize'}
                 </button>
               </div>
             </div>
 
-            {/* CLI Command Row */}
-            <div className="hub-row">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="hub-label">💻 CLI Command for Bulk Uploader Script:</span>
-                <span style={{ fontSize: '0.72rem', color: '#38bdf8' }}>Ready to paste in terminal</span>
-              </div>
-              <div className="hub-code-box">
-                <code>
-                  {serverSaveStatus?.cliCommand ||
-                    buildUploaderCliCommand({
-                      folderPath: serverSaveStatus?.folderPath || 'exports',
-                      template: cliTemplate,
-                    })}
-                </code>
-                <button
-                  type="button"
-                  className="btn-copy-code"
-                  onClick={() =>
-                    handleCopyText(
-                      serverSaveStatus?.cliCommand ||
+            {/* Collapsible Hub Rows */}
+            {!isHubCollapsed && (
+              <>
+                {/* Saving Folder Row */}
+                <div className="hub-row">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="hub-label">📁 Saving Folder (Server / Cloudspace):</span>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{completedCount} MP4 videos + manifest.json</span>
+                  </div>
+                  <div className="hub-code-box">
+                    <code>{serverSaveStatus?.folderPath || 'Saving to exports/...'}</code>
+                    <button
+                      type="button"
+                      className="btn-copy-code"
+                      onClick={() => handleCopyText(serverSaveStatus?.folderPath || '', 'folder')}
+                      disabled={!serverSaveStatus?.folderPath}
+                    >
+                      {copiedField === 'folder' ? '✅ Copied!' : '📋 Copy Path'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* CLI Command Row */}
+                <div className="hub-row">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="hub-label">💻 CLI Command for Bulk Uploader Script:</span>
+                    <span style={{ fontSize: '0.72rem', color: '#38bdf8' }}>Ready to paste in terminal</span>
+                  </div>
+                  <div className="hub-code-box">
+                    <code>
+                      {serverSaveStatus?.cliCommand ||
                         buildUploaderCliCommand({
                           folderPath: serverSaveStatus?.folderPath || 'exports',
                           template: cliTemplate,
-                        }),
-                      'cmd',
-                    )
-                  }
-                >
-                  {copiedField === 'cmd' ? '✅ Copied!' : '📋 Copy CLI Command'}
-                </button>
-              </div>
-            </div>
-
-            {/* Quick Template Customization Accordion */}
-            <div className="hub-settings-toggle">
-              <button
-                type="button"
-                className="link-btn"
-                onClick={() => setShowCliConfig(!showCliConfig)}
-              >
-                {showCliConfig ? '▼ Hide CLI Command Settings' : '⚙️ Customize CLI Command Script / Template'}
-              </button>
-              {showCliConfig && (
-                <div className="hub-settings-drawer">
-                  <label>
-                    <span>
-                      CLI Command Template (supports <code>{'{folder}'}</code>, <code>{'{manifest}'}</code>, <code>{'{file}'}</code>):
-                    </span>
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                      <input
-                        type="text"
-                        className="bulk-text-input"
-                        style={{ flex: 1, padding: '6px 10px', fontSize: '0.8rem', background: '#0f172a', color: '#f8fafc', border: '1px solid #334155', borderRadius: '6px' }}
-                        value={cliTemplate}
-                        onChange={(e) => handleUpdateCliTemplate(e.target.value)}
-                        placeholder='python scripts/bulk_uploader.py --folder "{folder}"'
-                      />
-                      <button
-                        type="button"
-                        className="btn-copy-code"
-                        onClick={() => handleUpdateCliTemplate('python scripts/bulk_uploader.py --folder "{folder}"')}
-                        title="Reset to default uploader script template"
-                      >
-                        Reset Default
-                      </button>
-                    </div>
-                  </label>
+                        })}
+                    </code>
+                    <button
+                      type="button"
+                      className="btn-copy-code"
+                      onClick={() =>
+                        handleCopyText(
+                          serverSaveStatus?.cliCommand ||
+                            buildUploaderCliCommand({
+                              folderPath: serverSaveStatus?.folderPath || 'exports',
+                              template: cliTemplate,
+                            }),
+                          'cmd',
+                        )
+                      }
+                    >
+                      {copiedField === 'cmd' ? '✅ Copied!' : '📋 Copy CLI Command'}
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* Quick Template Customization Accordion */}
+                <div className="hub-settings-toggle">
+                  <button
+                    type="button"
+                    className="link-btn"
+                    onClick={() => setShowCliConfig((prev) => !prev)}
+                  >
+                    {showCliConfig ? '▼ Hide CLI Command Settings' : '⚙️ Customize CLI Command Script / Template'}
+                  </button>
+                  {showCliConfig && (
+                    <div className="hub-settings-drawer">
+                      <label>
+                        <span>
+                          CLI Command Template (supports <code>{'{folder}'}</code>, <code>{'{manifest}'}</code>, <code>{'{file}'}</code>):
+                        </span>
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                          <input
+                            type="text"
+                            className="bulk-text-input"
+                            style={{ flex: 1, padding: '6px 10px', fontSize: '0.8rem', background: '#0f172a', color: '#f8fafc', border: '1px solid #334155', borderRadius: '6px' }}
+                            value={cliTemplate}
+                            onChange={(e) => handleUpdateCliTemplate(e.target.value)}
+                            placeholder='python scripts/bulk_uploader.py --folder "{folder}"'
+                          />
+                          <button
+                            type="button"
+                            className="btn-copy-code"
+                            onClick={() => handleUpdateCliTemplate('python scripts/bulk_uploader.py --folder "{folder}"')}
+                            title="Reset to default uploader script template"
+                          >
+                            Reset Default
+                          </button>
+                        </div>
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
 

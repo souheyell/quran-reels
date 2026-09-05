@@ -231,5 +231,16 @@ describe('exportDestination & CLI command builder', () => {
     expect(res.error).toContain('Failed to upload chunk')
     expect(res.manifestPath).toBe('/workspace/exports/test_pack/manifest.json')
   })
+
+  it('manages CLI popup disabled preference in localStorage', async () => {
+    const { isCliPopupDisabled, setCliPopupDisabled } = await import('../../components/ExportCliPopup')
+    expect(isCliPopupDisabled()).toBe(false)
+
+    setCliPopupDisabled(true)
+    expect(isCliPopupDisabled()).toBe(true)
+
+    setCliPopupDisabled(false)
+    expect(isCliPopupDisabled()).toBe(false)
+  })
 })
 

@@ -19,6 +19,8 @@ import { PreviewCanvas } from './components/PreviewCanvas'
 import { AboutModal } from './components/AboutModal'
 import { BulkCreateModal } from './components/BulkCreateModal'
 import { QuickWizardModal } from './components/QuickWizardModal'
+import { ExportCliPopup, isCliPopupDisabled } from './components/ExportCliPopup'
+import { buildUploaderCliCommand } from './lib/exportDestination'
 import { getRandomStockImage } from './api/unsplash'
 import { loadSavedCustomFonts } from './lib/customFonts'
 import { getVaultMediaLiveUrl } from './lib/mediaDB'
@@ -165,6 +167,45 @@ function App() {
     lastSaveResult,
     clearLastSaveResult,
   } = useExport(config, image, timeline)
+
+  const [showCliPopup, setShowCliPopup] = useState<boolean>(false)
+  const [manualCliResult, setManualCliResult] = useState<{
+    path: string
+    folderPath?: string
+    cliCommand?: string
+    message?: string
+  } | null>(null)
+
+  // Show popup upon export completion unless user has disabled it
+  useEffect(() => {
+    if (lastSaveResult?.cliCommand) {
+      if (!isCliPopupDisabled()) {
+        setShowCliPopup(true)
+      }
+    }
+  }, [lastSaveResult])
+
+  const activeCliResult = lastSaveResult || manualCliResult
+
+  const handleToggleCliHub = () => {
+    if (showCliPopup && activeCliResult) {
+      setShowCliPopup(false)
+    } else {
+      if (!lastSaveResult) {
+        const first = config.verses[0]
+        const fallbackFilename = `islamic-reel-${first?.surah || 1}-${first?.ayat || 1}.mp4`
+        const fallbackPath = `exports/single/${fallbackFilename}`
+        const cmd = buildUploaderCliCommand({ filePath: fallbackPath })
+        setManualCliResult({
+          path: fallbackPath,
+          folderPath: 'exports/single',
+          cliCommand: cmd,
+          message: 'Single Reel CLI Command',
+        })
+      }
+      setShowCliPopup(true)
+    }
+  }
 
   const handleRestoreRecipe = useCallback(
     async (recipe: DecodedRecipe) => {
@@ -500,6 +541,20 @@ function App() {
           >
             <span className="btn-icon">📦</span>
             Bulk Studio
+          </button>
+          <button
+            type="button"
+            className="btn-bulk-header"
+            style={{
+              background: showCliPopup ? 'rgba(56, 189, 248, 0.22)' : 'rgba(56, 189, 248, 0.1)',
+              borderColor: showCliPopup ? '#38bdf8' : 'rgba(56, 189, 248, 0.3)',
+              color: '#38bdf8',
+            }}
+            onClick={handleToggleCliHub}
+            title="Toggle Bulk Uploader CLI Hub & Export Paths"
+          >
+            <span className="btn-icon">💻</span>
+            CLI Hub
           </button>
           <button
             type="button"
@@ -1019,78 +1074,21 @@ function App() {
         onExportPresetChange={setExportPreset}
       />
 
-      {/* ── Single Export Completion Hub (Folder & CLI Command) ── */}
-      {lastSaveResult?.cliCommand && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            maxWidth: '460px',
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
-            border: '1px solid rgba(99, 102, 241, 0.5)',
-            borderRadius: '12px',
-            padding: '1rem',
-            boxShadow: '0 12px 36px rgba(0, 0, 0, 0.7)',
-            zIndex: 1000,
-            backdropFilter: 'blur(12px)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.6rem',
-            animation: 'toastSlideUp 0.25s ease-out',
+      {/* ── Resizable, Draggable, Dismissible CLI Export Popup ── */}
+      {showCliPopup && activeCliResult?.cliCommand && (
+        <ExportCliPopup
+          result={activeCliResult}
+          onClose={() => {
+            setShowCliPopup(false)
+            clearLastSaveResult()
+            setManualCliResult(null)
           }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              🚀 Reel Exported &amp; Saved to Disk!
-            </span>
-            <button
-              type="button"
-              onClick={clearLastSaveResult}
-              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1rem', padding: '0 4px' }}
-            >
-              ✕
-            </button>
-          </div>
-          <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
-            📁 <strong>Saving Folder / File:</strong>
-            <div style={{ background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '6px', marginTop: '2px', fontFamily: 'monospace', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#a5f3fc' }}>
-              {lastSaveResult.path}
-            </div>
-          </div>
-          <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
-            💻 <strong>CLI Command to Import:</strong>
-            <div style={{ background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '6px', marginTop: '2px', fontFamily: 'monospace', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#fbbf24' }}>
-              {lastSaveResult.cliCommand}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-            <button
-              type="button"
-              className="btn-copy-code"
-              style={{ flex: 1, padding: '6px 10px', textAlign: 'center' }}
-              onClick={() => {
-                if (lastSaveResult.cliCommand) {
-                  navigator.clipboard?.writeText(lastSaveResult.cliCommand)
-                }
-              }}
-            >
-              📋 Copy CLI Command
-            </button>
-            <button
-              type="button"
-              className="btn-copy-code"
-              style={{ flex: 1, padding: '6px 10px', textAlign: 'center' }}
-              onClick={() => {
-                if (lastSaveResult.path) {
-                  navigator.clipboard?.writeText(lastSaveResult.path)
-                }
-              }}
-            >
-              📁 Copy File Path
-            </button>
-          </div>
-        </div>
+          onToggleDisable={(disabled) => {
+            if (disabled) {
+              setShowCliPopup(false)
+            }
+          }}
+        />
       )}
 
       {/* ── Share & Action Toast Notification ───────────────────── */}
