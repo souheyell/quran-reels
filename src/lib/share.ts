@@ -43,7 +43,7 @@ export function generateSocialCaption(verses: Verse[], reciterName?: string): st
   const qari = reciterName || first.reciterName || 'Classical Qari'
 
   return `📖 ${surahLabel}
-${first.surahArabicName ? `✨ سورة ${first.surahArabicName}` : ''}
+${first.surahArabicName ? `✨ ${first.surahArabicName}` : ''}
 
 "${arabicSnippet}"
 

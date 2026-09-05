@@ -1,4 +1,4 @@
-const MAX_ENTRIES = 12
+const MAX_ENTRIES = 16
 
 export type MediaLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -71,10 +71,27 @@ export function getCachedImage(url: string): HTMLImageElement | null {
   return media instanceof HTMLImageElement ? media : null
 }
 
+export function cacheMediaItem(
+  url: string,
+  media: HTMLImageElement | HTMLVideoElement,
+): void {
+  evict()
+  const existingIdx = cache.findIndex((c) => c.url === url)
+  if (existingIdx >= 0) {
+    cache[existingIdx]!.media = media
+    cache[existingIdx]!.lastUsed = Date.now()
+    cache[existingIdx]!.status = 'ready'
+  } else {
+    cache.push({ url, media, lastUsed: Date.now(), status: 'ready' })
+  }
+  notifyStatus(url, 'ready')
+}
+
 export function loadImage(
   url: string,
   onLoad: (img: HTMLImageElement) => void,
   onError: (err?: Error) => void,
+  isRetry = false,
 ): void {
   const cached = getCachedImage(url)
   if (cached) {
@@ -82,18 +99,26 @@ export function loadImage(
     return
   }
 
+  const isLocal = url.startsWith('blob:') || url.startsWith('data:')
   notifyStatus(url, 'loading')
   const img = new Image()
-  img.crossOrigin = 'anonymous'
+  if (!isRetry && !isLocal) {
+    img.crossOrigin = 'anonymous'
+  }
 
   let finished = false
   const timer = setTimeout(() => {
     if (!finished) {
       finished = true
-      notifyStatus(url, 'error')
-      onError(new Error('Image download timed out'))
+      if (!isRetry && !isLocal) {
+        // Retry once without CORS header
+        loadImage(url, onLoad, onError, true)
+      } else {
+        notifyStatus(url, 'error')
+        onError(new Error('Image download timed out'))
+      }
     }
-  }, 10000)
+  }, isLocal ? 15000 : 25000)
 
   img.onload = () => {
     if (finished) return
@@ -109,8 +134,13 @@ export function loadImage(
     if (finished) return
     finished = true
     clearTimeout(timer)
-    notifyStatus(url, 'error')
-    onError(new Error('Failed to load image'))
+    if (!isRetry && !isLocal) {
+      // Retry once without crossOrigin attribute
+      loadImage(url, onLoad, onError, true)
+    } else {
+      notifyStatus(url, 'error')
+      onError(new Error('Failed to load image'))
+    }
   }
 
   img.src = url
@@ -121,6 +151,7 @@ export function loadMedia(
   explicitType: 'image' | 'video' | undefined,
   onLoad: (media: HTMLImageElement | HTMLVideoElement) => void,
   onError: (err?: Error) => void,
+  isRetry = false,
 ): void {
   const cached = getCachedMedia(url)
   if (cached) {
@@ -128,10 +159,14 @@ export function loadMedia(
     return
   }
 
+  const isLocal = url.startsWith('blob:') || url.startsWith('data:')
+
   if (isVideoUrl(url, explicitType)) {
     notifyStatus(url, 'loading')
     const video = document.createElement('video')
-    video.crossOrigin = 'anonymous'
+    if (!isRetry && !isLocal) {
+      video.crossOrigin = 'anonymous'
+    }
     video.muted = true
     video.loop = true
     video.playsInline = true
@@ -142,10 +177,14 @@ export function loadMedia(
     const timer = setTimeout(() => {
       if (!finished) {
         finished = true
-        notifyStatus(url, 'error')
-        onError(new Error('Video stream timed out'))
+        if (!isRetry && !isLocal) {
+          loadMedia(url, explicitType, onLoad, onError, true)
+        } else {
+          notifyStatus(url, 'error')
+          onError(new Error('Video stream timed out'))
+        }
       }
-    }, 12000)
+    }, isLocal ? 15000 : 25000)
 
     const handleLoaded = () => {
       if (!finished) {
@@ -165,14 +204,41 @@ export function loadMedia(
       if (!finished) {
         finished = true
         clearTimeout(timer)
-        notifyStatus(url, 'error')
-        onError(new Error('Video playback error or blocked by CORS'))
+        if (!isRetry) {
+          // Retry without crossOrigin
+          loadMedia(url, explicitType, onLoad, onError, true)
+        } else {
+          notifyStatus(url, 'error')
+          onError(new Error('Video playback error or blocked by CORS'))
+        }
       }
     }
 
     video.src = url
     video.load()
   } else {
-    loadImage(url, onLoad, onError)
+    loadImage(url, onLoad, onError, isRetry)
   }
+}
+
+/**
+ * Manually force re-download / retry for a given URL
+ */
+export function retryLoadMedia(
+  url: string,
+  explicitType: 'image' | 'video' | undefined,
+  onLoad: (media: HTMLImageElement | HTMLVideoElement) => void,
+  onError: (err?: Error) => void,
+): void {
+  const idx = cache.findIndex((e) => e.url === url)
+  if (idx >= 0) {
+    const removed = cache.splice(idx, 1)[0]
+    if (removed && removed.media instanceof HTMLVideoElement) {
+      try {
+        removed.media.pause()
+        removed.media.src = ''
+      } catch {}
+    }
+  }
+  loadMedia(url, explicitType, onLoad, onError)
 }

@@ -118,54 +118,84 @@ const PHOTO_DATABASE: Record<StockCategory, RawMedia[]> = {
 
 export const STOCK_VIDEO_LOOPS: CuratedMedia[] = [
   {
-    id: 'video-galaxy-motion',
+    id: 'video-stars-night-sky',
     category: 'Cosmos & Galaxies',
-    title: 'Cosmic Nebula Starfield',
+    title: 'Stars Rotating in Night Sky',
     source: 'Unsplash',
     full: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=1080&h=1920&q=85',
     thumb: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=300&h=400&q=70',
     mediaType: 'image',
-    sizeLabel: '520 KB',
+    sizeLabel: '4K Motion Starfield',
   },
   {
-    id: 'video-clouds-sunset',
-    category: 'Sunsets & Golden Hour',
-    title: 'Golden Sunset Clouds Horizon',
-    source: 'Unsplash',
-    full: 'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?auto=format&fit=crop&w=1080&h=1920&q=85',
-    thumb: 'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?auto=format&fit=crop&w=300&h=400&q=70',
-    mediaType: 'image',
-    sizeLabel: '380 KB',
-  },
-  {
-    id: 'video-holy-mosque',
+    id: 'video-holy-mosque-dome',
     category: 'Mosques & Holy Sites',
-    title: 'Illuminated Minaret Vista',
+    title: 'Majestic Mosque Dome & Minaret',
     source: 'Unsplash',
     full: 'https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=1080&h=1920&q=85',
     thumb: 'https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=300&h=400&q=70',
     mediaType: 'image',
-    sizeLabel: '420 KB',
+    sizeLabel: '4K Mosque Vista',
   },
   {
-    id: 'video-rain-leaves',
-    category: 'Rain & Atmospheric Fog',
-    title: 'Rain on Leaves Nature',
+    id: 'video-clouds-blue-sky',
+    category: 'Sunsets & Golden Hour',
+    title: 'Drifting Golden Clouds & Sky',
     source: 'Unsplash',
-    full: 'https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?auto=format&fit=crop&w=1080&h=1920&q=85',
-    thumb: 'https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?auto=format&fit=crop&w=300&h=400&q=70',
+    full: 'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?auto=format&fit=crop&w=1080&h=1920&q=85',
+    thumb: 'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?auto=format&fit=crop&w=300&h=400&q=70',
     mediaType: 'image',
-    sizeLabel: '410 KB',
+    sizeLabel: '4K Golden Hour',
   },
   {
-    id: 'video-waterfall-stream',
+    id: 'video-sunset-beach-waves',
     category: 'Oceans & Waterfalls',
-    title: 'Mountain Cascade Stream',
+    title: 'Golden Sunset Waves Loop',
+    source: 'Unsplash',
+    full: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1080&h=1920&q=85',
+    thumb: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&h=400&q=70',
+    mediaType: 'image',
+    sizeLabel: '4K Sunset Waves',
+  },
+  {
+    id: 'video-raindrops-window',
+    category: 'Rain & Atmospheric Fog',
+    title: 'Raindrops on Window Glass',
+    source: 'Unsplash',
+    full: 'https://images.unsplash.com/photo-1519692933481-e162a57d6721?auto=format&fit=crop&w=1080&h=1920&q=85',
+    thumb: 'https://images.unsplash.com/photo-1519692933481-e162a57d6721?auto=format&fit=crop&w=300&h=400&q=70',
+    mediaType: 'image',
+    sizeLabel: '4K Rain Atmosphere',
+  },
+  {
+    id: 'video-desert-dunes-sky',
+    category: 'Deserts & Dunes',
+    title: 'Sunlit Desert Sand Dunes',
+    source: 'Unsplash',
+    full: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=1080&h=1920&q=85',
+    thumb: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=300&h=400&q=70',
+    mediaType: 'image',
+    sizeLabel: '4K Desert Dunes',
+  },
+  {
+    id: 'video-mountain-stream-water',
+    category: 'Mountains & Summits',
+    title: 'Flowing Mountain Stream',
     source: 'Unsplash',
     full: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1080&h=1920&q=85',
     thumb: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=300&h=400&q=70',
     mediaType: 'image',
-    sizeLabel: '490 KB',
+    sizeLabel: '4K Mountain Stream',
+  },
+  {
+    id: 'video-mountain-fog-morning',
+    category: 'Forests & Redwoods',
+    title: 'Misty Forest & Mountain Fog',
+    source: 'Unsplash',
+    full: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1080&h=1920&q=85',
+    thumb: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=300&h=400&q=70',
+    mediaType: 'image',
+    sizeLabel: '4K Forest Mist',
   },
 ]
 
@@ -240,6 +270,44 @@ export function getRandomStockImage(width = 1080, height = 1920): CuratedMedia {
   const randomCat = categories[Math.floor(Math.random() * categories.length)]
   const images = getImagesForCategory(randomCat, Math.floor(Math.random() * 10), width, height)
   return images[Math.floor(Math.random() * images.length)]
+}
+
+let localCuratedImages: CuratedMedia[] = []
+let localCuratedVideos: CuratedMedia[] = []
+
+export function registerLocalMedia(catalog: {
+  images: Array<{ id: string; title: string; filename: string; url: string; sizeLabel?: string; mediaType: 'image' }>
+  videos: Array<{ id: string; title: string; filename: string; url: string; sizeLabel?: string; mediaType: 'video' }>
+}): void {
+  localCuratedImages = catalog.images.map((img) => ({
+    id: img.id,
+    category: 'Mosques & Holy Sites',
+    title: img.title,
+    source: 'Coverr',
+    full: img.url,
+    thumb: img.url,
+    mediaType: 'image',
+    sizeLabel: img.sizeLabel || 'Local Photo',
+  }))
+
+  localCuratedVideos = catalog.videos.map((vid) => ({
+    id: vid.id,
+    category: 'Cosmos & Galaxies',
+    title: vid.title,
+    source: 'Coverr',
+    full: vid.url,
+    thumb: vid.url,
+    mediaType: 'video',
+    sizeLabel: vid.sizeLabel || 'Local Video',
+  }))
+}
+
+export function getLocalMediaCurated(): { images: CuratedMedia[]; videos: CuratedMedia[] } {
+  return { images: localCuratedImages, videos: localCuratedVideos }
+}
+
+export function getAllStockVideoLoops(): CuratedMedia[] {
+  return [...localCuratedVideos, ...STOCK_VIDEO_LOOPS]
 }
 
 export const DEFAULT_BACKGROUND_URL = makeUnsplashUrl(

@@ -20,6 +20,7 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
           ...state.background,
           url: action.url,
           mediaType: action.mediaType ?? state.background.mediaType,
+          vaultMediaId: action.vaultMediaId !== undefined ? action.vaultMediaId : state.background.vaultMediaId,
         },
       }
     case 'SET_BACKGROUND_FIT':
@@ -76,6 +77,22 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
       return { ...state, text: { ...state.text, highlightColor: action.color } }
     case 'SET_SECONDARY_EDITION_ID':
       return { ...state, text: { ...state.text, secondaryEditionId: action.editionId } }
+    case 'SET_SHOW_REFLECTION_CARD':
+      return { ...state, text: { ...state.text, showReflectionCard: action.show } }
+    case 'SET_REFLECTION_TEXT':
+      return { ...state, text: { ...state.text, reflectionText: action.text } }
+    case 'SET_COUNTDOWN_ENABLED':
+      return { ...state, countdown: { ...state.countdown, enabled: action.enabled } }
+    case 'SET_COUNTDOWN_STYLE':
+      return { ...state, countdown: { ...state.countdown, style: action.style } }
+    case 'SET_COUNTDOWN_POSITION':
+      return { ...state, countdown: { ...state.countdown, position: action.position } }
+    case 'SET_COUNTDOWN_COLOR':
+      return { ...state, countdown: { ...state.countdown, color: action.color } }
+    case 'SET_COUNTDOWN_SHOW_TOTAL':
+      return { ...state, countdown: { ...state.countdown, showTotalTime: action.showTotal } }
+    case 'SET_COUNTDOWN_OPACITY':
+      return { ...state, countdown: { ...state.countdown, opacity: action.opacity } }
     case 'SET_FOOTER_ENABLED':
       return { ...state, footer: { ...state.footer, enabled: action.enabled } }
     case 'SET_FOOTER_TEXT':
@@ -92,6 +109,12 @@ function configReducer(state: ReelConfig, action: ConfigAction): ReelConfig {
       return { ...state, motion: { ...state.motion, duration: action.duration } }
     case 'SET_ASPECT_RATIO':
       return { ...state, aspectRatio: action.ratio }
+    case 'SET_LAYOUT_MODE':
+      return { ...state, text: { ...state.text, layoutMode: action.mode } }
+    case 'SET_MUSHAF_THEME':
+      return { ...state, text: { ...state.text, mushafTheme: action.theme } }
+    case 'SET_MUSHAF_GLOW_INTENSITY':
+      return { ...state, text: { ...state.text, mushafGlowIntensity: action.intensity } }
     case 'APPLY_PRESET':
       return {
         ...state,
@@ -141,8 +164,8 @@ export function useReelConfig() {
     [],
   )
   const setBackgroundUrl = useCallback(
-    (url: string, mediaType?: 'image' | 'video') =>
-      dispatch({ type: 'SET_BACKGROUND_URL', url, mediaType }),
+    (url: string, mediaType?: 'image' | 'video', vaultMediaId?: string) =>
+      dispatch({ type: 'SET_BACKGROUND_URL', url, mediaType, vaultMediaId }),
     [],
   )
   const setBackgroundFit = useCallback(
@@ -256,6 +279,39 @@ export function useReelConfig() {
     (editionId: string) => dispatch({ type: 'SET_SECONDARY_EDITION_ID', editionId }),
     [],
   )
+  const setShowReflectionCard = useCallback(
+    (show: boolean) => dispatch({ type: 'SET_SHOW_REFLECTION_CARD', show }),
+    [],
+  )
+  const setReflectionText = useCallback(
+    (text: string) => dispatch({ type: 'SET_REFLECTION_TEXT', text }),
+    [],
+  )
+  const setCountdownEnabled = useCallback(
+    (enabled: boolean) => dispatch({ type: 'SET_COUNTDOWN_ENABLED', enabled }),
+    [],
+  )
+  const setCountdownStyle = useCallback(
+    (style: ReelConfig['countdown']['style']) => dispatch({ type: 'SET_COUNTDOWN_STYLE', style }),
+    [],
+  )
+  const setCountdownPosition = useCallback(
+    (position: ReelConfig['countdown']['position']) =>
+      dispatch({ type: 'SET_COUNTDOWN_POSITION', position }),
+    [],
+  )
+  const setCountdownColor = useCallback(
+    (color: string) => dispatch({ type: 'SET_COUNTDOWN_COLOR', color }),
+    [],
+  )
+  const setCountdownShowTotal = useCallback(
+    (showTotal: boolean) => dispatch({ type: 'SET_COUNTDOWN_SHOW_TOTAL', showTotal }),
+    [],
+  )
+  const setCountdownOpacity = useCallback(
+    (opacity: number) => dispatch({ type: 'SET_COUNTDOWN_OPACITY', opacity }),
+    [],
+  )
   const setFooterEnabled = useCallback(
     (enabled: boolean) => dispatch({ type: 'SET_FOOTER_ENABLED', enabled }),
     [],
@@ -287,6 +343,20 @@ export function useReelConfig() {
   )
   const setAspectRatio = useCallback(
     (ratio: ReelConfig['aspectRatio']) => dispatch({ type: 'SET_ASPECT_RATIO', ratio }),
+    [],
+  )
+  const setLayoutMode = useCallback(
+    (mode: ReelConfig['text']['layoutMode']) =>
+      dispatch({ type: 'SET_LAYOUT_MODE', mode: mode || 'calligraphy-overlay' }),
+    [],
+  )
+  const setMushafTheme = useCallback(
+    (theme: ReelConfig['text']['mushafTheme']) =>
+      dispatch({ type: 'SET_MUSHAF_THEME', theme: theme || 'obsidian-gold' }),
+    [],
+  )
+  const setMushafGlowIntensity = useCallback(
+    (intensity: number) => dispatch({ type: 'SET_MUSHAF_GLOW_INTENSITY', intensity }),
     [],
   )
   const applyPreset = useCallback(
@@ -329,6 +399,17 @@ export function useReelConfig() {
     setKaraokeHighlight,
     setHighlightColor,
     setSecondaryEditionId,
+    setShowReflectionCard,
+    setReflectionText,
+    setLayoutMode,
+    setMushafTheme,
+    setMushafGlowIntensity,
+    setCountdownEnabled,
+    setCountdownStyle,
+    setCountdownPosition,
+    setCountdownColor,
+    setCountdownShowTotal,
+    setCountdownOpacity,
     setFooterEnabled,
     setFooterText,
     setFooterIcon,

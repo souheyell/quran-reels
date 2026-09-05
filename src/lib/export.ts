@@ -1,4 +1,4 @@
-import type { ReelConfig } from '../types'
+import type { ReelConfig, ExportOptions } from '../types'
 import { ASPECT_SIZES, renderFrame } from '../renderer/reelRenderer'
 import type { Timeline } from '../renderer/timeline'
 import { activeSlot } from '../renderer/timeline'
@@ -70,9 +70,17 @@ export function exportWebM(
   image: CanvasImageSource | null,
   timeline: Timeline,
   onProgress?: (fraction: number) => void,
-  fps = 30,
+  options?: ExportOptions | number,
 ): ExportHandle {
-  const { width, height } = ASPECT_SIZES[config.aspectRatio]
+  const fps = typeof options === 'number' ? options : options?.fps ?? 30
+  const videoBitrate = typeof options === 'object' && options?.bitrate ? options.bitrate : 10_000_000
+  const audioBitrate = typeof options === 'object' && options?.audioBitrate ? options.audioBitrate : 320_000
+  const scale = typeof options === 'object' && options?.scale ? options.scale : 1
+
+  const baseSize = ASPECT_SIZES[config.aspectRatio]
+  const width = Math.round(baseSize.width * scale)
+  const height = Math.round(baseSize.height * scale)
+
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
@@ -89,8 +97,8 @@ export function exportWebM(
 
   const recorder = new MediaRecorder(stream, {
     mimeType: 'video/webm;codecs=vp9',
-    videoBitsPerSecond: 12_000_000,
-    audioBitsPerSecond: 128_000,
+    videoBitsPerSecond: videoBitrate,
+    audioBitsPerSecond: audioBitrate,
   })
 
   const durationMs = timeline.totalMs
@@ -112,6 +120,10 @@ export function exportWebM(
 
     recorder.start(250)
     if (capture) void capture.ctx.resume()
+    if (image instanceof HTMLVideoElement) {
+      image.currentTime = 0
+      image.play().catch(() => {})
+    }
 
     let lastSlotIndex = -1
     const loop = (now: number) => {
@@ -163,11 +175,11 @@ export function exportVideo(
   image: CanvasImageSource | null,
   timeline: Timeline,
   onProgress?: (fraction: number) => void,
-  fps = 30,
+  options?: ExportOptions | number,
 ): ExportHandle {
   if (supportsWebCodecs()) {
     try {
-      const mp4Handle = exportMp4(config, image, timeline, onProgress, fps)
+      const mp4Handle = exportMp4(config, image, timeline, onProgress, options)
       let activeHandle = mp4Handle
       const done = mp4Handle.done.catch((err) => {
         if (err instanceof Error && err.message === 'Export cancelled') {
@@ -175,7 +187,7 @@ export function exportVideo(
         }
         console.warn('WebCodecs MP4 export error, falling back to MediaRecorder:', err)
         if (typeof MediaRecorder !== 'undefined') {
-          const fallbackHandle = exportWebM(config, image, timeline, onProgress, fps)
+          const fallbackHandle = exportWebM(config, image, timeline, onProgress, options)
           activeHandle = fallbackHandle
           return fallbackHandle.done
         }
@@ -194,7 +206,7 @@ export function exportVideo(
   if (typeof MediaRecorder === 'undefined') {
     throw new Error('Video export is not supported in this environment.')
   }
-  return exportWebM(config, image, timeline, onProgress, fps)
+  return exportWebM(config, image, timeline, onProgress, options)
 }
 
 export function exportPng(

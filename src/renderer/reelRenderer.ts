@@ -3,6 +3,9 @@ import { drawBackground, getTransform } from './kenburns'
 import { drawAtmosphericEffect } from './effects'
 import { drawBorder } from './borders'
 import { drawWaveform } from './waveform'
+import { drawCountdown } from './countdown'
+import { drawMushafPage } from './mushafLayout'
+import { drawHolyQuranPaper } from './holyQuranPaper'
 import { fitFontSize, isRtl, prepareText } from './textLayout'
 import { DEFAULT_BACKGROUND_URL } from '../api/unsplash'
 import {
@@ -474,6 +477,38 @@ export function drawVerse(
       ctx.fillText(prepareText(verse.secondaryTranslation, secRtl), width / 2, cursorY + height * 0.008)
       cursorY += secFontSize * 1.5
     }
+
+    // Optional Reflection / Tafsir Badge
+    if (text.showReflectionCard && text.reflectionText?.trim()) {
+      const scale = width / 1080
+      const refText = text.reflectionText.trim()
+      const refFontSize = Math.max(11, Math.round(18 * scale))
+      ctx.font = `600 ${refFontSize}px ${text.translationFont}`
+      const refMetrics = ctx.measureText(refText)
+      const pillW = refMetrics.width + Math.round(36 * scale)
+      const pillH = Math.round(32 * scale)
+      const pillX = (width - pillW) / 2
+      const pillY = cursorY + Math.round(14 * scale)
+
+      ctx.save()
+      ctx.globalAlpha = translationAlpha * 0.9
+      ctx.beginPath()
+      ctx.roundRect(pillX, pillY, pillW, pillH, pillH / 2)
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.7)'
+      ctx.fill()
+
+      ctx.strokeStyle = text.highlightColor || '#ffd700'
+      ctx.lineWidth = Math.max(1, Math.round(1.5 * scale))
+      ctx.stroke()
+
+      ctx.fillStyle = '#ffffff'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(refText, width / 2, pillY + pillH / 2)
+      ctx.restore()
+
+      cursorY += pillH + Math.round(18 * scale)
+    }
   }
 
   // ── Render Bottom Reference (if selected) ────────────────
@@ -543,19 +578,84 @@ function drawFooterBranding(
   ctx.restore()
 }
 
+function drawProceduralBackdrop(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  timeMs: number,
+): void {
+  ctx.save()
+  // Deep celestial spiritual backdrop
+  const grad = ctx.createLinearGradient(0, 0, width, height)
+  grad.addColorStop(0, '#030c17')
+  grad.addColorStop(0.4, '#071828')
+  grad.addColorStop(0.75, '#0a232f')
+  grad.addColorStop(1, '#051424')
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, width, height)
+
+  // Ambient center gold & emerald glow
+  const cx = width / 2
+  const cy = height / 2
+  const pulse = Math.sin(timeMs / 1800) * 0.08 + 0.92
+  const radius = Math.max(width, height) * 0.55 * pulse
+  const radial = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius)
+  radial.addColorStop(0, 'rgba(245, 158, 11, 0.14)')
+  radial.addColorStop(0.45, 'rgba(16, 185, 129, 0.08)')
+  radial.addColorStop(1, 'rgba(0, 0, 0, 0)')
+  ctx.fillStyle = radial
+  ctx.fillRect(0, 0, width, height)
+
+  // Gentle drifting starlight particle shimmer
+  const numStars = 28
+  ctx.fillStyle = '#ffffff'
+  for (let i = 0; i < numStars; i++) {
+    const seedX = ((i * 137.5 + 47) % width)
+    const seedY = ((i * 229.3 + 83) % height)
+    const phase = (timeMs / 1200 + i * 0.7) % (Math.PI * 2)
+    const alpha = (Math.sin(phase) * 0.5 + 0.5) * 0.55 + 0.15
+    const size = ((i % 3) + 1.2)
+    ctx.globalAlpha = alpha
+    ctx.beginPath()
+    ctx.arc(seedX, seedY, size, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  ctx.restore()
+}
+
 export function renderFrame(ctx: CanvasRenderingContext2D, params: FrameParams): void {
   const { config, image, verse, verseTimeMs, slotDurationMs, timeMs, totalDurationMs } = params
   const width = ctx.canvas.width
   const height = ctx.canvas.height
+  const totalMs = totalDurationMs ?? config.motion.duration * 1000
 
   ctx.save()
+  // Ensure maximum interpolation quality for background images, videos, and calligraphy
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+
   ctx.fillStyle = '#000'
   ctx.fillRect(0, 0, width, height)
+
+  // Dedicated Holy Quran Paper Mode: shows whole selected verses on authentic Mushaf paper with no effects
+  if (config.text?.layoutMode === 'holy-quran-paper') {
+    drawHolyQuranPaper(ctx, config, config.verses, verse, verseTimeMs, slotDurationMs, width, height)
+    drawFooterBranding(ctx, config, width, height)
+    if (config.countdown?.enabled && config.countdown.style !== 'none') {
+      drawCountdown(ctx, config.countdown, timeMs, totalMs, width, height)
+    }
+    ctx.restore()
+    return
+  }
 
   // Continuous background motion across entire video timeline (never resets between ayahs)
   const transform = getTransform(config.motion, timeMs, totalDurationMs)
   if (image) {
     drawBackground(ctx, image, width, height, transform, config.background.fit)
+  } else {
+    // Ethereal spiritual procedural backdrop when loading or offline
+    drawProceduralBackdrop(ctx, width, height, timeMs)
   }
 
   const overlayAlpha = config.overlay.opacity
@@ -591,7 +691,11 @@ export function renderFrame(ctx: CanvasRenderingContext2D, params: FrameParams):
     )
   }
 
-  drawVerse(ctx, config, verse, verseTimeMs, slotDurationMs, width, height)
+  if (config.text?.layoutMode === 'mushaf-page') {
+    drawMushafPage(ctx, config, config.verses, verse, verseTimeMs, slotDurationMs, width, height)
+  } else {
+    drawVerse(ctx, config, verse, verseTimeMs, slotDurationMs, width, height)
+  }
 
   // Authentic Islamic borders, arabesque frames, and vignettes
   if (config.border?.type && config.border.type !== 'none') {
@@ -606,6 +710,12 @@ export function renderFrame(ctx: CanvasRenderingContext2D, params: FrameParams):
   }
 
   drawFooterBranding(ctx, config, width, height)
+
+  // Pure Visual Countdown Timer Overlay
+  if (config.countdown?.enabled && config.countdown.style !== 'none') {
+    drawCountdown(ctx, config.countdown, timeMs, totalMs, width, height)
+  }
+
   ctx.restore()
 }
 
@@ -665,6 +775,19 @@ export function defaultConfig(): ReelConfig {
       karaokeHighlight: false,
       highlightColor: '#ffd700',
       secondaryEditionId: 'none',
+      showReflectionCard: false,
+      reflectionText: '✨ Reflection: Remembrance of Allah',
+      layoutMode: 'calligraphy-overlay',
+      mushafTheme: 'obsidian-gold',
+      mushafGlowIntensity: 0.85,
+    },
+    countdown: {
+      enabled: false,
+      style: 'glowing-ring',
+      position: 'top-right',
+      color: '#ffd700',
+      showTotalTime: false,
+      opacity: 0.9,
     },
     footer: {
       enabled: false,

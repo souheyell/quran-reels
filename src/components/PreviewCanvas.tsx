@@ -37,6 +37,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   const [currentProgressMs, setCurrentProgressMs] = useState(0)
   const [isScrubbing, setIsScrubbing] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState<AudioProgressInfo | null>(null)
+  const [safeZone, setSafeZone] = useState<'none' | 'instagram' | 'tiktok' | 'grid'>('none')
 
   const playingRef = useRef(playing)
   const soundOnRef = useRef(soundOn)
@@ -188,19 +189,47 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     }
   }, [verses, volume, loadAndPlayVerse])
 
-  // Custom Video Background Loop Support
+  // Continuous Video Background Playback (Never cuts or resets across verses)
+  const currentVideoUrlRef = useRef<string | null>(null)
+
   useEffect(() => {
     const isVideo =
       image instanceof HTMLVideoElement ||
       config.background.mediaType === 'video' ||
       /\.(mp4|webm|mov|m4v)($|\?)/i.test(config.background.url)
 
-    if (isVideo) {
-      if (image instanceof HTMLVideoElement) {
-        videoRef.current = image
-        if (playing) image.play().catch(() => {})
-        return
+    if (!isVideo) {
+      if (videoRef.current) {
+        try {
+          videoRef.current.pause()
+          videoRef.current.src = ''
+        } catch {}
+        videoRef.current = null
+        currentVideoUrlRef.current = null
       }
+      return
+    }
+
+    if (image instanceof HTMLVideoElement) {
+      videoRef.current = image
+      currentVideoUrlRef.current = config.background.url
+      if (playing) {
+        image.play().catch(() => {})
+      } else {
+        image.pause()
+      }
+      return
+    }
+
+    // Only create a new HTMLVideoElement if URL has changed or no video element exists
+    if (!videoRef.current || currentVideoUrlRef.current !== config.background.url) {
+      if (videoRef.current) {
+        try {
+          videoRef.current.pause()
+          videoRef.current.src = ''
+        } catch {}
+      }
+
       const v = document.createElement('video')
       v.src = config.background.url
       v.autoplay = true
@@ -208,17 +237,35 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       v.muted = true
       v.playsInline = true
       v.crossOrigin = 'anonymous'
-      v.play().catch(() => {})
-      videoRef.current = v
-      return () => {
-        v.pause()
-        v.src = ''
-        videoRef.current = null
+      v.preload = 'auto'
+      if (playing) {
+        v.play().catch(() => {})
       }
+      videoRef.current = v
+      currentVideoUrlRef.current = config.background.url
     } else {
-      videoRef.current = null
+      // Same video URL: just sync play/pause state without resetting currentTime
+      if (playing) {
+        videoRef.current.play().catch(() => {})
+      } else {
+        videoRef.current.pause()
+      }
     }
   }, [config.background.url, config.background.mediaType, image, playing])
+
+  // Clean up video element only on component unmount
+  useEffect(() => {
+    return () => {
+      if (videoRef.current) {
+        try {
+          videoRef.current.pause()
+          videoRef.current.src = ''
+        } catch {}
+        videoRef.current = null
+        currentVideoUrlRef.current = null
+      }
+    }
+  }, [])
 
   // Main render loop
   useEffect(() => {
@@ -425,6 +472,9 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       const offsetMs = clampedMs - targetSlot.startMs
       const seekSeconds = offsetMs / 1000
       advanceTo(safeIdx, seekSeconds)
+      if (videoRef.current && Number.isFinite(videoRef.current.duration) && videoRef.current.duration > 0) {
+        videoRef.current.currentTime = (clampedMs / 1000) % videoRef.current.duration
+      }
     }
   }
 
@@ -456,11 +506,96 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
 
   return (
     <div className="preview-container">
+      {/* ── Viewport Floating Toolbar (Safe Zones & Aspect) ──── */}
+      <div className="viewport-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: '380px', marginBottom: '0.5rem', padding: '0 0.25rem' }}>
+        <div style={{ display: 'flex', gap: '0.35rem', background: 'rgba(5, 20, 36, 0.7)', backdropFilter: 'blur(12px)', padding: '0.2rem 0.35rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <button
+            type="button"
+            onClick={() => setSafeZone('none')}
+            title="Clean Viewport"
+            style={{
+              background: safeZone === 'none' ? '#f59e0b' : 'transparent',
+              color: safeZone === 'none' ? '#000' : 'rgba(255,255,255,0.7)',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '0.2rem 0.55rem',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Clean
+          </button>
+          <button
+            type="button"
+            onClick={() => setSafeZone(safeZone === 'instagram' ? 'none' : 'instagram')}
+            title="Toggle Instagram Reels Safe Zone"
+            style={{
+              background: safeZone === 'instagram' ? '#f59e0b' : 'transparent',
+              color: safeZone === 'instagram' ? '#000' : 'rgba(255,255,255,0.7)',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '0.2rem 0.55rem',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+            }}
+          >
+            <span>📱</span> IG Reels
+          </button>
+          <button
+            type="button"
+            onClick={() => setSafeZone(safeZone === 'tiktok' ? 'none' : 'tiktok')}
+            title="Toggle TikTok Safe Zone"
+            style={{
+              background: safeZone === 'tiktok' ? '#f59e0b' : 'transparent',
+              color: safeZone === 'tiktok' ? '#000' : 'rgba(255,255,255,0.7)',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '0.2rem 0.55rem',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+            }}
+          >
+            <span>🎵</span> TikTok
+          </button>
+          <button
+            type="button"
+            onClick={() => setSafeZone(safeZone === 'grid' ? 'none' : 'grid')}
+            title="Toggle Rule-of-Thirds Composition Grid"
+            style={{
+              background: safeZone === 'grid' ? '#f59e0b' : 'transparent',
+              color: safeZone === 'grid' ? '#000' : 'rgba(255,255,255,0.7)',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '0.2rem 0.55rem',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            📐 Grid
+          </button>
+        </div>
+
+        <div style={{ fontSize: '0.72rem', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '0.2rem 0.5rem', borderRadius: '12px', fontWeight: 600 }}>
+          {config.aspectRatio} · {width}x{height}
+        </div>
+      </div>
+
       <div
         className="preview-wrapper"
         style={{
           aspectRatio: config.aspectRatio.replace(':', '/'),
           cursor: 'pointer',
+          position: 'relative',
         }}
         onClick={() => {
           if (autoplayBlocked) {
@@ -476,6 +611,71 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
           height={height}
           className="preview-canvas"
         />
+
+        {/* ── Social Safe Zone Overlay Guides ──────────────────── */}
+        {safeZone === 'instagram' && (
+          <div className="social-safe-zone-overlay ig-safe-zone" style={{ pointerEvents: 'none', position: 'absolute', inset: 0, zIndex: 15, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '12px 14px' }}>
+            {/* Top Bar */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.75 }}>
+              <span style={{ fontSize: '0.8rem', color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>‹ Reels</span>
+              <span style={{ fontSize: '0.8rem', color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>📷</span>
+            </div>
+            {/* Right Action Column */}
+            <div style={{ position: 'absolute', right: '12px', bottom: '64px', display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'center', opacity: 0.85 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                <span style={{ fontSize: '1.2rem', textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>🤍</span>
+                <span style={{ fontSize: '0.65rem', color: '#fff', textShadow: '0 1px 2px #000' }}>14.2k</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                <span style={{ fontSize: '1.2rem', textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>💬</span>
+                <span style={{ fontSize: '0.65rem', color: '#fff', textShadow: '0 1px 2px #000' }}>382</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                <span style={{ fontSize: '1.2rem', textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>↗️</span>
+                <span style={{ fontSize: '0.65rem', color: '#fff', textShadow: '0 1px 2px #000' }}>Share</span>
+              </div>
+              <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: '2px solid #fff', background: '#000', opacity: 0.9 }} />
+            </div>
+            {/* Bottom Safe Zone Indicator */}
+            <div style={{ background: 'rgba(0,0,0,0.3)', borderTop: '1px dashed rgba(245, 158, 11, 0.6)', padding: '6px 8px', borderRadius: '4px', maxWidth: '75%' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fbbf24', textShadow: '0 1px 2px #000' }}>@quran_creator · Follow</div>
+              <div style={{ fontSize: '0.65rem', color: '#d4e4fa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Instagram Caption area (Avoid placing critical text here)</div>
+            </div>
+          </div>
+        )}
+
+        {safeZone === 'tiktok' && (
+          <div className="social-safe-zone-overlay tiktok-safe-zone" style={{ pointerEvents: 'none', position: 'absolute', inset: 0, zIndex: 15, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '12px 14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', opacity: 0.75 }}>
+              <span style={{ fontSize: '0.75rem', color: '#fff', fontWeight: 600 }}>Following | For You</span>
+            </div>
+            <div style={{ position: 'absolute', right: '10px', bottom: '50px', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center', opacity: 0.85 }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '2px solid #ff0050', background: '#fff' }} />
+              <span style={{ fontSize: '1.1rem' }}>❤️</span>
+              <span style={{ fontSize: '1.1rem' }}>💬</span>
+              <span style={{ fontSize: '1.1rem' }}>⭐</span>
+              <span style={{ fontSize: '1.1rem' }}>↗️</span>
+            </div>
+            <div style={{ background: 'rgba(0,0,0,0.35)', borderTop: '1px dashed rgba(0, 229, 255, 0.6)', padding: '6px 8px', borderRadius: '4px', maxWidth: '70%' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#00e5ff' }}>@creator_handle</div>
+              <div style={{ fontSize: '0.62rem', color: '#fff' }}>TikTok Safe Zone Margin</div>
+            </div>
+          </div>
+        )}
+
+        {safeZone === 'grid' && (
+          <div className="composition-grid-overlay" style={{ pointerEvents: 'none', position: 'absolute', inset: 0, zIndex: 15, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr 1fr', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+            <div style={{ borderRight: '1px dashed rgba(245, 158, 11, 0.4)', borderBottom: '1px dashed rgba(245, 158, 11, 0.4)' }} />
+            <div style={{ borderRight: '1px dashed rgba(245, 158, 11, 0.4)', borderBottom: '1px dashed rgba(245, 158, 11, 0.4)' }} />
+            <div style={{ borderBottom: '1px dashed rgba(245, 158, 11, 0.4)' }} />
+            <div style={{ borderRight: '1px dashed rgba(245, 158, 11, 0.4)', borderBottom: '1px dashed rgba(245, 158, 11, 0.4)' }} />
+            <div style={{ borderRight: '1px dashed rgba(245, 158, 11, 0.4)', borderBottom: '1px dashed rgba(245, 158, 11, 0.4)' }} />
+            <div style={{ borderBottom: '1px dashed rgba(245, 158, 11, 0.4)' }} />
+            <div style={{ borderRight: '1px dashed rgba(245, 158, 11, 0.4)' }} />
+            <div style={{ borderRight: '1px dashed rgba(245, 158, 11, 0.4)' }} />
+            <div />
+          </div>
+        )}
 
         {/* ── Audio Download Progress Overlay ──────────────────── */}
         {downloadProgress && downloadProgress.percent < 100 && (

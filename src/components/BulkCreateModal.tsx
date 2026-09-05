@@ -7,6 +7,7 @@ import {
   splitSurahIntoChunks,
   parseCustomVerseList,
   type BulkItem,
+  type PackCategory,
 } from '../lib/bulkPacks'
 import {
   renderBulkItem,
@@ -15,8 +16,17 @@ import {
   type BackgroundStrategy,
   type ReciterStrategy,
   type BatchItemStatus,
+  type ManifestFormat,
   POPULAR_SHUFFLE_RECITERS,
+  formatDurationMs,
+  formatDurationSecsDetailed,
 } from '../lib/bulkExporter'
+import {
+  estimateBulkItemDurationSeconds,
+  formatEstimatedDuration,
+  formatTotalBatchEstimate,
+  getSocialDurationCategory,
+} from '../lib/durationEstimator'
 import { ALL_RECITERS } from '../api/quran'
 import { shareReelVideo } from '../lib/share'
 import { saveAndDownloadBlob } from '../lib/export'
@@ -31,6 +41,46 @@ interface BulkCreateModalProps {
 
 type BulkTab = 'surah' | 'ramadan' | 'themes' | 'custom'
 
+const POPULAR_SURAH_PICKS = [
+  { number: 67, name: 'Al-Mulk', arabic: 'الملك', icon: '👑' },
+  { number: 18, name: 'Al-Kahf', arabic: 'الكهف', icon: '🕌' },
+  { number: 55, name: 'Ar-Rahman', arabic: 'الرحمن', icon: '🌿' },
+  { number: 56, name: 'Al-Waqi\'ah', arabic: 'الواقعة', icon: '🌌' },
+  { number: 36, name: 'Ya-Sin', arabic: 'يس', icon: '🕊️' },
+  { number: 76, name: 'Al-Insan', arabic: 'الإنسان', icon: '✨' },
+  { number: 19, name: 'Maryam', arabic: 'مريم', icon: '🌸' },
+  { number: 12, name: 'Yusuf', arabic: 'يوسف', icon: '📖' },
+  { number: 2, name: 'Al-Baqarah', arabic: 'البقرة', icon: '⚡' },
+  { number: 24, name: 'An-Nur', arabic: 'النور', icon: '💡' },
+  { number: 73, name: 'Al-Muzzammil', arabic: 'المزمل', icon: '🌙' },
+  { number: 94, name: 'Ash-Sharh', arabic: 'الشرح', icon: '🤲' },
+]
+
+const QUICK_AYAH_TEMPLATES = [
+  { label: 'Ayat al-Kursi (2:255)', code: '2:255' },
+  { label: 'Last 2 of Baqarah (2:285-286)', code: '2:285-286' },
+  { label: 'First 10 of Kahf (18:1-10)', code: '18:1-10' },
+  { label: 'Ar-Rahman 1-13 (55:1-13)', code: '55:1-13' },
+  { label: 'Al-Mulk 1-5 (67:1-5)', code: '67:1-5' },
+  { label: 'Ash-Sharh (94:1-8)', code: '94:1-8' },
+  { label: 'The 3 Quls (112, 113, 114)', code: '112:1-4\n113:1-5\n114:1-6' },
+  { label: 'Du\'a of Yunus (21:87)', code: '21:87' },
+  { label: 'Light Verse (24:35)', code: '24:35' },
+  { label: 'Closing of Al-Hashr (59:22-24)', code: '59:22-24' },
+  { label: 'Du\'a of Musa (20:25-28)', code: '20:25-28' },
+  { label: 'Forgiveness (39:53)', code: '39:53' },
+]
+
+const THEME_CATEGORIES: Array<{ id: PackCategory; label: string; icon: string }> = [
+  { id: 'all', label: 'All Collections', icon: '🌟' },
+  { id: 'popular', label: 'Popular & Daily', icon: '👑' },
+  { id: 'duas', label: 'Duas & Invocations', icon: '🤲' },
+  { id: 'protection', label: 'Ruqyah & Shield', icon: '🛡️' },
+  { id: 'friday-night', label: 'Friday & Tahajjud', icon: '🕌' },
+  { id: 'jannah-akhirah', label: 'Jannah & Akhirah', icon: '🌺' },
+  { id: 'family-virtues', label: 'Family & Virtues', icon: '💖' },
+]
+
 export function BulkCreateModal({
   isOpen,
   onClose,
@@ -43,14 +93,46 @@ export function BulkCreateModal({
   // Surah splitter state
   const [selectedSurah, setSelectedSurah] = useState<number>(67) // Default Al-Mulk
   const [chunkSize, setChunkSize] = useState<number>(3) // Default 3 ayahs per reel
+  const [surahStartAyat, setSurahStartAyat] = useState<number>(1)
+  const [surahEndAyat, setSurahEndAyat] = useState<number>(30)
 
   // Thematic pack state
   const [selectedThemeId, setSelectedThemeId] = useState<string>('pack-duas')
+  const [themeCategory, setThemeCategory] = useState<PackCategory>('all')
 
   // Custom list state
   const [customTextInput, setCustomTextInput] = useState<string>(
     '2:255\n3:18-19\n18:1-4\n55:1-13\n67:1-5\n94:1-8\n112:1-4',
   )
+
+  // Current Surah metadata
+  const currentSurahMeta = useMemo(() => {
+    return SURAHS_INDEX.find((s) => s.number === selectedSurah)
+  }, [selectedSurah])
+
+  // Sync Start / End Ayahs when Surah changes
+  useEffect(() => {
+    if (currentSurahMeta) {
+      setSurahStartAyat(1)
+      setSurahEndAyat(currentSurahMeta.totalAyahs)
+    }
+  }, [selectedSurah, currentSurahMeta])
+
+  // Filtered Thematic Collections
+  const filteredThemes = useMemo(() => {
+    if (themeCategory === 'all') return THEMATIC_PACKS
+    return THEMATIC_PACKS.filter((p) => p.category === themeCategory)
+  }, [themeCategory])
+
+  // Auto-sync selectedThemeId if current is filtered out
+  useEffect(() => {
+    if (activeTab === 'themes') {
+      const exists = filteredThemes.some((p) => p.id === selectedThemeId)
+      if (!exists && filteredThemes.length > 0) {
+        setSelectedThemeId(filteredThemes[0].id)
+      }
+    }
+  }, [themeCategory, activeTab, filteredThemes, selectedThemeId])
 
   // Background & Reciter Strategies
   const [bgStrategy, setBgStrategy] = useState<BackgroundStrategy>('cycle-wallpapers')
@@ -99,6 +181,9 @@ export function BulkCreateModal({
   const [zipProgress, setZipProgress] = useState<number | null>(null)
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [batchDone, setBatchDone] = useState(false)
+  const [zipDownloaded, setZipDownloaded] = useState(false)
+  const [manifestFormat, setManifestFormat] = useState<ManifestFormat>('array')
 
   const isCancelledRef = useRef(false)
   const toastTimerRef = useRef<number | null>(null)
@@ -109,12 +194,64 @@ export function BulkCreateModal({
     toastTimerRef.current = window.setTimeout(() => setToastMessage(null), 4000)
   }
 
+  // Estimate duration for each reel before ever generating
+  const estimatedDurations = useMemo(() => {
+    const map: Record<
+      string,
+      {
+        durationSec: number
+        formatted: string
+        category: ReturnType<typeof getSocialDurationCategory>
+      }
+    > = {}
+    queue.forEach((item) => {
+      const effectiveReciter = item.reciterId || bulkReciterId
+      const dur = estimateBulkItemDurationSeconds(
+        item,
+        effectiveReciter,
+        baseConfig.text?.ayahPauseDelay ?? 0.5,
+      )
+      map[item.id] = {
+        durationSec: dur,
+        formatted: formatEstimatedDuration(dur),
+        category: getSocialDurationCategory(dur),
+      }
+    })
+    return map
+  }, [queue, bulkReciterId, baseConfig.text?.ayahPauseDelay])
+
+  // Total estimated duration of currently selected items
+  const totalEstimatedSeconds = useMemo(() => {
+    return queue
+      .filter((item) => selectedItemIds.has(item.id))
+      .reduce((acc, item) => acc + (estimatedDurations[item.id]?.durationSec || 0), 0)
+  }, [queue, selectedItemIds, estimatedDurations])
+
+  // Quick estimator for chunk size options in Surah Splitter
+  const getChunkEstimate = (size: number) => {
+    const dummyItem: BulkItem = {
+      id: 'preview',
+      title: 'Preview',
+      surah: selectedSurah,
+      startAyat: surahStartAyat || 1,
+      count: size,
+    }
+    const dur = estimateBulkItemDurationSeconds(
+      dummyItem,
+      bulkReciterId,
+      baseConfig.text?.ayahPauseDelay ?? 0.5,
+    )
+    return formatEstimatedDuration(dur)
+  }
+
   // Update preview queue based on tab selections
   useEffect(() => {
     let items: BulkItem[] = []
     if (activeTab === 'surah') {
-      const meta = SURAHS_INDEX.find((s) => s.number === selectedSurah)
-      items = splitSurahIntoChunks(selectedSurah, chunkSize, 1, meta?.totalAyahs)
+      const maxAyahs = currentSurahMeta?.totalAyahs || 7
+      const validEnd = Math.max(1, Math.min(surahEndAyat || maxAyahs, maxAyahs))
+      const validStart = Math.max(1, Math.min(surahStartAyat || 1, validEnd))
+      items = splitSurahIntoChunks(selectedSurah, chunkSize, validStart, validEnd)
     } else if (activeTab === 'ramadan') {
       items = RAMADAN_30_DAYS_PACK.items
     } else if (activeTab === 'themes') {
@@ -126,7 +263,29 @@ export function BulkCreateModal({
 
     setQueue(items)
     setSelectedItemIds(new Set(items.map((it) => it.id)))
-  }, [activeTab, selectedSurah, chunkSize, selectedThemeId, customTextInput])
+    // Reset done state whenever the queue config changes
+    setBatchDone(false)
+    setZipDownloaded(false)
+  }, [
+    activeTab,
+    selectedSurah,
+    chunkSize,
+    surahStartAyat,
+    surahEndAyat,
+    currentSurahMeta,
+    selectedThemeId,
+    customTextInput,
+  ])
+
+  // Append a quick Ayah template snippet to custom text input
+  const handleAddTemplate = (code: string) => {
+    setCustomTextInput((prev) => {
+      const trimmed = prev.trim()
+      if (!trimmed) return code
+      return `${trimmed}\n${code}`
+    })
+    showToast('✨ Added verse to custom selection!')
+  }
 
   // Toggle item selection
   const toggleSelectItem = (id: string) => {
@@ -178,6 +337,7 @@ export function BulkCreateModal({
       blob: Blob
       caption: string
       verses: import('../types').Verse[]
+      durationMs: number
     }> = []
 
     for (let i = 0; i < itemsToProcess.length; i++) {
@@ -226,10 +386,12 @@ export function BulkCreateModal({
             item,
             status: 'completed',
             progress: 100,
-            message: 'Completed',
+            message: `Completed (${(result.durationMs / 1000).toFixed(1)}s)`,
             blob: result.blob,
             videoUrl,
             caption: result.caption,
+            verses: result.verses,
+            durationMs: result.durationMs,
           },
         }))
 
@@ -238,6 +400,7 @@ export function BulkCreateModal({
           blob: result.blob,
           caption: result.caption,
           verses: result.verses,
+          durationMs: result.durationMs,
         })
       } catch (err) {
         console.error(`Batch render failed for ${item.title}:`, err)
@@ -261,7 +424,9 @@ export function BulkCreateModal({
     setCurrentQueueIndex(-1)
 
     if (completedResults.length > 0 && !isCancelledRef.current) {
-      showToast(`⚡ Batch Complete! ${completedResults.length} Reels Generated.`)
+      const totalBatchMs = completedResults.reduce((acc, r) => acc + (r.durationMs || 0), 0)
+      showToast(`⚡ Batch Complete! ${completedResults.length} Reels Generated (${formatDurationSecsDetailed(totalBatchMs)} total duration).`)
+      setBatchDone(true)
     }
   }
 
@@ -289,16 +454,20 @@ export function BulkCreateModal({
         item: s.item,
         blob: s.blob!,
         caption: s.caption || '',
-        verses: [],
+        verses: s.verses || [],
+        durationMs: s.durationMs,
       }))
 
-      const zipBlob = await createBatchZip(zipPayload, (pct) => {
-        setZipProgress(pct)
+      const zipBlob = await createBatchZip(zipPayload, {
+        manifestFormat,
+        onZipProgress: (pct) => {
+          setZipProgress(pct)
+        },
       })
 
-      const dateStr = new Date().toISOString().slice(0, 10)
-      await downloadBatchZip(zipBlob, `quran-reels-batch-${dateStr}.zip`)
-      showToast('📦 Batch ZIP saved successfully!')
+      await downloadBatchZip(zipBlob, 'quran_reels_pack.zip')
+      showToast('📦 Batch ZIP (Format 1: Master manifest.json) saved successfully!')
+      setZipDownloaded(true)
     } catch (err) {
       console.error('ZIP generation failed:', err)
       showToast('Failed to create ZIP package.')
@@ -409,9 +578,28 @@ export function BulkCreateModal({
             {/* TAB 1: Surah Splitter */}
             {activeTab === 'surah' && (
               <div className="bulk-tab-content">
+                {/* Popular Surahs Quick Picks */}
+                <div className="bulk-quick-pick-section">
+                  <span className="bulk-quick-title">⭐ Quick Pick Popular Surahs:</span>
+                  <div className="bulk-quick-surahs-row">
+                    {POPULAR_SURAH_PICKS.map((p) => (
+                      <button
+                        key={p.number}
+                        type="button"
+                        className={`bulk-quick-surah-chip ${selectedSurah === p.number ? 'active' : ''}`}
+                        onClick={() => setSelectedSurah(p.number)}
+                      >
+                        <span className="chip-icon">{p.icon}</span>
+                        <span className="chip-name">{p.name}</span>
+                        <span className="chip-arabic">{p.arabic}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="bulk-form-row">
-                  <label className="bulk-form-group">
-                    <span className="bulk-label-text">Select Surah</span>
+                  <label className="bulk-form-group flex-2">
+                    <span className="bulk-label-text">Select Surah (1–114)</span>
                     <select
                       className="bulk-select"
                       value={selectedSurah}
@@ -425,17 +613,75 @@ export function BulkCreateModal({
                     </select>
                   </label>
 
+                  <div className="bulk-form-group flex-2">
+                    <div className="bulk-label-row">
+                      <span className="bulk-label-text">Verse Range to Split</span>
+                      <span className="bulk-label-dur-hint">
+                        Total: {Math.max(1, (surahEndAyat || currentSurahMeta?.totalAyahs || 1) - (surahStartAyat || 1) + 1)} Ayahs
+                      </span>
+                    </div>
+                    <div className="bulk-range-inputs">
+                      <div className="range-field">
+                        <span className="range-label">From:</span>
+                        <input
+                          type="number"
+                          className="bulk-number-input"
+                          min={1}
+                          max={currentSurahMeta?.totalAyahs || 286}
+                          value={surahStartAyat}
+                          onChange={(e) => setSurahStartAyat(Math.max(1, Number(e.target.value)))}
+                        />
+                      </div>
+                      <span className="range-sep">→</span>
+                      <div className="range-field">
+                        <span className="range-label">To:</span>
+                        <input
+                          type="number"
+                          className="bulk-number-input"
+                          min={surahStartAyat}
+                          max={currentSurahMeta?.totalAyahs || 286}
+                          value={surahEndAyat}
+                          onChange={(e) =>
+                            setSurahEndAyat(
+                              Math.min(
+                                currentSurahMeta?.totalAyahs || 286,
+                                Math.max(surahStartAyat, Number(e.target.value)),
+                              ),
+                            )
+                          }
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-xs bulk-reset-range-btn"
+                        onClick={() => {
+                          setSurahStartAyat(1)
+                          setSurahEndAyat(currentSurahMeta?.totalAyahs || 30)
+                        }}
+                        title="Reset to entire Surah"
+                      >
+                        All
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bulk-form-row">
                   <label className="bulk-form-group">
-                    <span className="bulk-label-text">Ayahs Per Reel</span>
+                    <div className="bulk-label-row">
+                      <span className="bulk-label-text">Ayahs Per Reel (Chunk Size)</span>
+                      <span className="bulk-label-dur-hint">⚡ Adjust to control reel pacing</span>
+                    </div>
                     <div className="bulk-chunk-chips">
-                      {[1, 2, 3, 5].map((size) => (
+                      {[1, 2, 3, 5, 7, 10].map((size) => (
                         <button
                           key={size}
                           type="button"
                           className={`chip ${chunkSize === size ? 'active' : ''}`}
                           onClick={() => setChunkSize(size)}
                         >
-                          {size} {size === 1 ? 'Ayah' : 'Ayahs'}
+                          <span className="chip-count">{size} {size === 1 ? 'Ayah' : 'Ayahs'}</span>
+                          <span className="chip-dur">({getChunkEstimate(size)})</span>
                         </button>
                       ))}
                     </div>
@@ -450,9 +696,12 @@ export function BulkCreateModal({
                 <div className="bulk-preset-banner">
                   <div className="preset-banner-icon">🌙</div>
                   <div className="preset-banner-info">
-                    <h4 className="preset-banner-title">{RAMADAN_30_DAYS_PACK.title}</h4>
+                    <h4 className="preset-banner-title">{RAMADAN_30_DAYS_PACK.title} ({RAMADAN_30_DAYS_PACK.arabicTitle})</h4>
                     <p className="preset-banner-desc">{RAMADAN_30_DAYS_PACK.description}</p>
-                    <span className="preset-banner-badge">30 Curated Reels Ready</span>
+                    <div className="preset-banner-meta-row">
+                      <span className="preset-banner-badge">30 Curated Reels Ready</span>
+                      <span className="preset-dur-badge">⏱️ Est. ~14m Total (~28s avg)</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -461,21 +710,53 @@ export function BulkCreateModal({
             {/* TAB 3: Thematic Collections */}
             {activeTab === 'themes' && (
               <div className="bulk-tab-content">
-                <div className="bulk-theme-cards">
-                  {THEMATIC_PACKS.map((p) => (
-                    <div
-                      key={p.id}
-                      className={`bulk-theme-card ${selectedThemeId === p.id ? 'active' : ''}`}
-                      onClick={() => setSelectedThemeId(p.id)}
+                {/* Category Filter Chips */}
+                <div className="bulk-category-chips">
+                  {THEME_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      className={`bulk-cat-chip ${themeCategory === cat.id ? 'active' : ''}`}
+                      onClick={() => setThemeCategory(cat.id)}
                     >
-                      <span className="theme-card-icon">{p.icon}</span>
-                      <div className="theme-card-body">
-                        <h4 className="theme-card-title">{p.title}</h4>
-                        <p className="theme-card-desc">{p.description}</p>
-                        <span className="theme-card-count">{p.items.length} Reels</span>
-                      </div>
-                    </div>
+                      <span>{cat.icon}</span> {cat.label}
+                    </button>
                   ))}
+                </div>
+
+                <div className="bulk-theme-cards">
+                  {filteredThemes.map((p) => {
+                    const packTotalSec = p.items.reduce(
+                      (acc, item) =>
+                        acc +
+                        estimateBulkItemDurationSeconds(
+                          item,
+                          bulkReciterId,
+                          baseConfig.text?.ayahPauseDelay ?? 0.5,
+                        ),
+                      0,
+                    )
+                    return (
+                      <div
+                        key={p.id}
+                        className={`bulk-theme-card ${selectedThemeId === p.id ? 'active' : ''}`}
+                        onClick={() => setSelectedThemeId(p.id)}
+                      >
+                        <span className="theme-card-icon">{p.icon}</span>
+                        <div className="theme-card-body">
+                          <h4 className="theme-card-title">{p.title}</h4>
+                          {p.arabicTitle && <span className="theme-card-arabic">{p.arabicTitle}</span>}
+                          <p className="theme-card-desc">{p.description}</p>
+                          <div className="theme-card-meta-row">
+                            <span className="theme-card-count">{p.items.length} Reels</span>
+                            <span className="theme-card-dur">
+                              ⏱️ {formatTotalBatchEstimate(packTotalSec)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -483,6 +764,24 @@ export function BulkCreateModal({
             {/* TAB 4: Custom Verse List */}
             {activeTab === 'custom' && (
               <div className="bulk-tab-content">
+                {/* Quick Add Templates */}
+                <div className="bulk-quick-templates-section">
+                  <span className="bulk-quick-title">✨ 1-Click Common Passages & Duas:</span>
+                  <div className="bulk-quick-template-chips">
+                    {QUICK_AYAH_TEMPLATES.map((tmpl, tIdx) => (
+                      <button
+                        key={tIdx}
+                        type="button"
+                        className="bulk-template-chip"
+                        onClick={() => handleAddTemplate(tmpl.code)}
+                        title={`Click to add ${tmpl.label}`}
+                      >
+                        + {tmpl.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <label className="bulk-form-group">
                   <span className="bulk-label-text">
                     Enter Surah:Ayah Ranges (Separated by commas or newlines)
@@ -611,6 +910,12 @@ export function BulkCreateModal({
               <h3 className="queue-title">
                 Reel Queue <span className="queue-count">({selectedCount} / {queue.length} selected)</span>
               </h3>
+              <span
+                className="queue-total-estimate-pill"
+                title="Estimated total batch playback length before rendering"
+              >
+                ⏳ Est. Batch Duration: {formatTotalBatchEstimate(totalEstimatedSeconds)}
+              </span>
             </div>
             <div className="queue-header-right">
               <button type="button" className="btn btn-xs" onClick={toggleSelectAll}>
@@ -625,6 +930,11 @@ export function BulkCreateModal({
               <div className="overall-progress-header">
                 <span className="overall-progress-title">
                   <span className="reciter-download-spinner" /> Generating Batch: Reel {currentQueueIndex + 1} of {selectedCount}
+                  {completedCount > 0 && (
+                    <span className="overall-batch-dur-pill">
+                      · {formatDurationSecsDetailed(Object.values(batchStatuses).reduce((acc, s) => acc + (s.durationMs || 0), 0))} generated
+                    </span>
+                  )}
                 </span>
                 <span className="overall-progress-pct">{overallPercent}%</span>
               </div>
@@ -640,6 +950,7 @@ export function BulkCreateModal({
               const statusObj = batchStatuses[item.id]
               const isSelected = selectedItemIds.has(item.id)
               const isCurrent = isProcessing && currentQueueIndex === idx
+              const itemEstimate = estimatedDurations[item.id]
 
               return (
                 <div
@@ -664,6 +975,26 @@ export function BulkCreateModal({
                         <span className="queue-reciter-tag">
                           🎙️ {getItemReciterName(item, idx)}
                         </span>
+                        {statusObj?.durationMs ? (
+                          <span
+                            className="queue-duration-badge completed"
+                            title={`Exact Rendered Duration: ${(statusObj.durationMs / 1000).toFixed(1)} seconds`}
+                          >
+                            ⏱️ {formatDurationMs(statusObj.durationMs)} ({(statusObj.durationMs / 1000).toFixed(1)}s)
+                          </span>
+                        ) : (
+                          <span
+                            className={`queue-duration-badge estimate ${itemEstimate?.category.cssClass || 'short'}`}
+                            title={`${itemEstimate?.category.tooltip || 'Estimated duration before generation'} — adjust chunk size to change`}
+                          >
+                            ⏱️ {itemEstimate?.formatted || '~15s'}
+                            {itemEstimate && (
+                              <span className="duration-platform-tag">
+                                {itemEstimate.category.badgeText}
+                              </span>
+                            )}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -696,7 +1027,7 @@ export function BulkCreateModal({
                         {statusObj.status === 'rendering' && (
                           <div className="queue-render-mini">
                             <span className="queue-badge rendering">
-                              🎬 {statusObj.progress}%
+                              🎬 {statusObj.message.includes('(') ? statusObj.message.split('(')[1].split(')')[0] : ''} {statusObj.progress}%
                             </span>
                           </div>
                         )}
@@ -754,20 +1085,40 @@ export function BulkCreateModal({
         <div className="bulk-modal-footer">
           <div className="footer-left">
             {completedCount > 0 && (
-              <button
-                type="button"
-                className="btn btn-zip-download"
-                onClick={handleDownloadZip}
-                disabled={zipProgress !== null}
-              >
-                {zipProgress !== null ? (
-                  <>
-                    <span className="spinner" /> Packaging ZIP ({zipProgress}%)…
-                  </>
-                ) : (
-                  <>📦 Download All as ZIP ({completedCount} Reels)</>
-                )}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-zip-download"
+                  onClick={handleDownloadZip}
+                  disabled={zipProgress !== null || zipDownloaded}
+                  title={zipDownloaded ? 'Already downloaded — generate a new batch to re-download' : undefined}
+                >
+                  {zipProgress !== null ? (
+                    <>
+                      <span className="spinner" /> Packaging ZIP ({zipProgress}%)…
+                    </>
+                  ) : zipDownloaded ? (
+                    <>✅ ZIP Pack Downloaded ({completedCount} Reels)</>
+                  ) : (
+                    <>
+                      📦 Download ZIP Pack ({completedCount} Reels · manifest.json)
+                    </>
+                  )}
+                </button>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  <span>Manifest:</span>
+                  <select
+                    className="bulk-select"
+                    style={{ fontSize: '0.78rem', padding: '4px 8px', height: '34px', width: 'auto', borderRadius: '6px' }}
+                    value={manifestFormat}
+                    onChange={(e) => setManifestFormat(e.target.value as ManifestFormat)}
+                    title="Choose manifest.json structure inside the ZIP archive"
+                  >
+                    <option value="array">Array [ ] (Format 1 Recommended)</option>
+                    <option value="keyValue">Key-Value Dictionary &#123; &#125;</option>
+                  </select>
+                </label>
+              </div>
             )}
           </div>
 
@@ -780,6 +1131,16 @@ export function BulkCreateModal({
               >
                 ⏹ Stop Batch
               </button>
+            ) : batchDone ? (
+              <button
+                type="button"
+                className="btn btn-bulk-primary"
+                disabled
+                title="Batch already generated — change your selection or settings to run again"
+                style={{ opacity: 0.7, cursor: 'not-allowed' }}
+              >
+                ✅ Batch Complete — {completedCount} Reels Done
+              </button>
             ) : (
               <button
                 type="button"
@@ -787,7 +1148,7 @@ export function BulkCreateModal({
                 onClick={handleStartBatch}
                 disabled={selectedCount === 0}
               >
-                🚀 Generate {selectedCount} Reels Batch
+                🚀 Generate {selectedCount} Reels ({formatTotalBatchEstimate(totalEstimatedSeconds)})
               </button>
             )}
           </div>

@@ -1,9 +1,175 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import fs from 'node:fs'
+import path from 'node:path'
+import { exec } from 'node:child_process'
+
+function localMediaPlugin(): Plugin {
+  const backgroundsDir = path.resolve(process.cwd(), 'public/backgrounds')
+  const imagesDir = path.join(backgroundsDir, 'images')
+  const videosDir = path.join(backgroundsDir, 'videos')
+
+  function scanMedia() {
+    const images: Array<{
+      id: string
+      title: string
+      filename: string
+      url: string
+      sizeLabel: string
+      mediaType: 'image'
+    }> = []
+    const videos: Array<{
+      id: string
+      title: string
+      filename: string
+      url: string
+      sizeLabel: string
+      mediaType: 'video'
+    }> = []
+
+    const imageExts = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif', '.svg'])
+    const videoExts = new Set(['.mp4', '.webm', '.mov', '.m4v'])
+
+    function formatSize(bytes: number) {
+      if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+      return `${Math.round(bytes / 1024)} KB`
+    }
+
+    function cleanTitle(filename: string) {
+      return path.parse(filename).name.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+    }
+
+    if (fs.existsSync(imagesDir)) {
+      const files = fs.readdirSync(imagesDir)
+      for (const file of files) {
+        if (file.startsWith('.') || file.endsWith('.txt') || file.endsWith('.md')) continue
+        const ext = path.extname(file).toLowerCase()
+        if (imageExts.has(ext)) {
+          const stat = fs.statSync(path.join(imagesDir, file))
+          images.push({
+            id: `local-img-${file}`,
+            title: cleanTitle(file),
+            filename: file,
+            url: `/backgrounds/images/${file}`,
+            sizeLabel: formatSize(stat.size),
+            mediaType: 'image',
+          })
+        }
+      }
+    }
+
+    if (fs.existsSync(videosDir)) {
+      const files = fs.readdirSync(videosDir)
+      for (const file of files) {
+        if (file.startsWith('.') || file.endsWith('.txt') || file.endsWith('.md')) continue
+        const ext = path.extname(file).toLowerCase()
+        if (videoExts.has(ext)) {
+          const stat = fs.statSync(path.join(videosDir, file))
+          videos.push({
+            id: `local-vid-${file}`,
+            title: cleanTitle(file),
+            filename: file,
+            url: `/backgrounds/videos/${file}`,
+            sizeLabel: formatSize(stat.size),
+            mediaType: 'video',
+          })
+        }
+      }
+    }
+
+    return { images, videos, folderPath: backgroundsDir }
+  }
+
+  function updateManifest() {
+    try {
+      if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true })
+      if (!fs.existsSync(videosDir)) fs.mkdirSync(videosDir, { recursive: true })
+      const data = scanMedia()
+      fs.writeFileSync(path.join(backgroundsDir, 'manifest.json'), JSON.stringify(data, null, 2))
+    } catch {
+      // ignore
+    }
+  }
+
+  return {
+    name: 'local-media-manager',
+    buildStart() {
+      updateManifest()
+    },
+    configureServer(server) {
+      updateManifest()
+
+      // Endpoint: GET /__api/local-media
+      server.middlewares.use('/__api/local-media', (req, res, next) => {
+        if (req.method === 'GET') {
+          const data = scanMedia()
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify(data))
+          return
+        }
+        next()
+      })
+
+      // Endpoint: POST /__api/open-folder
+      server.middlewares.use('/__api/open-folder', (req, res, next) => {
+        if (req.method === 'POST') {
+          exec(`open "${backgroundsDir}"`, (err) => {
+            res.setHeader('Content-Type', 'application/json')
+            if (err) {
+              res.end(JSON.stringify({ success: false, error: err.message, folderPath: backgroundsDir }))
+            } else {
+              res.end(JSON.stringify({ success: true, folderPath: backgroundsDir }))
+            }
+          })
+          return
+        }
+        next()
+      })
+
+      // Endpoint: POST /__api/upload-media
+      server.middlewares.use('/__api/upload-media', (req, res, next) => {
+        if (req.method === 'POST') {
+          const chunks: Buffer[] = []
+          req.on('data', (chunk) => chunks.push(chunk))
+          req.on('end', () => {
+            try {
+              const rawFilename = (req.headers['x-filename'] as string) || `media_${Date.now()}`
+              const filename = decodeURIComponent(rawFilename)
+              const isVideo =
+                (req.headers['x-media-type'] as string) === 'video' ||
+                /\.(mp4|webm|mov|m4v)$/i.test(filename)
+              const targetDir = isVideo ? videosDir : imagesDir
+              const buffer = Buffer.concat(chunks)
+              const filePath = path.join(targetDir, filename)
+              fs.writeFileSync(filePath, buffer)
+              updateManifest()
+              res.setHeader('Content-Type', 'application/json')
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  url: `/backgrounds/${isVideo ? 'videos' : 'images'}/${filename}`,
+                  filename,
+                  mediaType: isVideo ? 'video' : 'image',
+                }),
+              )
+            } catch (err: unknown) {
+              const message = err instanceof Error ? err.message : 'Upload failed'
+              res.statusCode = 500
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ success: false, error: message }))
+            }
+          })
+          return
+        }
+        next()
+      })
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), localMediaPlugin()],
   server: {
     allowedHosts: ['.monkeycode-ai.live'],
     headers: {

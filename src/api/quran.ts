@@ -37,16 +37,53 @@ export function getSurahMeta(surahNumber: number): SurahMeta | undefined {
 }
 
 export const POPULAR_EDITIONS: Edition[] = [
+  // ── English ──
   { id: 'en.sahih', name: 'Saheeh International', language: 'English' },
   { id: 'en.pickthall', name: 'Pickthall', language: 'English' },
   { id: 'en.asad', name: 'Muhammad Asad', language: 'English' },
-  { id: 'fr.hamidullah', name: 'Hamidullah', language: 'French' },
-  { id: 'ur.jalandhry', name: 'Jalandhry', language: 'Urdu' },
-  { id: 'tr.diyanet', name: 'Diyanet Isleri', language: 'Turkish' },
-  { id: 'id.indonesian', name: 'Bahasa Indonesia', language: 'Indonesian' },
-  { id: 'de.bubenheim', name: 'Bubenheim & Elyas', language: 'German' },
-  { id: 'bn.bengali', name: 'Muhiuddin Khan', language: 'Bengali' },
-  { id: 'hi.hindi', name: 'Suhel Farooq Khan', language: 'Hindi' },
+  { id: 'en.yusufali', name: 'Abdullah Yusuf Ali', language: 'English' },
+  // ── French (Français) ──
+  { id: 'fr.hamidullah', name: 'Muhammad Hamidullah', language: 'French (Français)' },
+  // ── Turkish (Türkçe) ──
+  { id: 'tr.diyanet', name: 'Diyanet İşleri', language: 'Turkish (Türkçe)' },
+  { id: 'tr.ozturk', name: 'Yaşar Nuri Öztürk', language: 'Turkish (Türkçe)' },
+  // ── Urdu (اردو) ──
+  { id: 'ur.jalandhry', name: 'Fateh Muhammad Jalandhry', language: 'Urdu (اردو)' },
+  { id: 'ur.ahmedali', name: 'Ahmed Ali', language: 'Urdu (اردو)' },
+  // ── Indonesian (Bahasa Indonesia) ──
+  { id: 'id.indonesian', name: 'Kemenag RI', language: 'Indonesian (Bahasa)' },
+  // ── German (Deutsch) ──
+  { id: 'de.bubenheim', name: 'Bubenheim & Elyas', language: 'German (Deutsch)' },
+  // ── Spanish (Español) ──
+  { id: 'es.cortes', name: 'Julio Cortés', language: 'Spanish (Español)' },
+  // ── Russian (Русский) ──
+  { id: 'ru.kuliev', name: 'Elmir Kuliev', language: 'Russian (Русский)' },
+  // ── Bengali (বাংলা) ──
+  { id: 'bn.bengali', name: 'Muhiuddin Khan', language: 'Bengali (বাংলা)' },
+  // ── Hindi (हिन्दी) ──
+  { id: 'hi.hindi', name: 'Suhel Farooq Khan', language: 'Hindi (हिन्दी)' },
+  // ── Italian (Italiano) ──
+  { id: 'it.piccardo', name: 'Hamza Roberto Piccardo', language: 'Italian (Italiano)' },
+  // ── Dutch (Nederlands) ──
+  { id: 'nl.siregar', name: 'Sofian S. Siregar', language: 'Dutch (Nederlands)' },
+  // ── Swedish (Svenska) ──
+  { id: 'sv.bernstrom', name: 'Knut Bernström', language: 'Swedish (Svenska)' },
+  // ── Portuguese (Português) ──
+  { id: 'pt.elhayek', name: 'Samir El-Hayek', language: 'Portuguese (Português)' },
+  // ── Bosnian (Bosanski) ──
+  { id: 'bs.korkut', name: 'Besim Korkut', language: 'Bosnian (Bosanski)' },
+  // ── Albanian (Shqip) ──
+  { id: 'sq.nahi', name: 'Hasan Efendi Nahi', language: 'Albanian (Shqip)' },
+  // ── Persian / Farsi (فارسی) ──
+  { id: 'fa.makarem', name: 'Naser Makarem Shirazi', language: 'Persian (فارسی)' },
+  // ── Malay (Bahasa Melayu) ──
+  { id: 'ms.basmeih', name: 'Abdullah Muhammad Basmeih', language: 'Malay (Melayu)' },
+  // ── Chinese (中文) ──
+  { id: 'zh.jian', name: 'Ma Jian (马坚)', language: 'Chinese (中文)' },
+  // ── Swahili (Kiswahili) ──
+  { id: 'sw.barwani', name: 'Ali Muhsin Al-Barwani', language: 'Swahili (Kiswahili)' },
+  // ── Hausa ──
+  { id: 'ha.gumi', name: 'Abubakar Mahmoud Gumi', language: 'Hausa' },
 ]
 
 export const ALL_RECITERS: Reciter[] = [

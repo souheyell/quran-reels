@@ -20,7 +20,83 @@ May Allah accept this humble endeavor from everyone who builds, reads, recites, 
 
 ---
 
-## 🌟 Key Features
+## 📸 Visual Showcase
+
+<div align="center">
+  <img src="docs/screenshots/01_studio_overview.png" alt="Islamic Reels Creator Studio Overview" width="100%" />
+  <p><em>Studio Workspace: Live Canvas Preview, Word-by-Word Sub-Ayah Karaoke Glow, Real-Time Spectrogram, and Studio Inspector</em></p>
+</div>
+
+<br/>
+
+| Bulk Reel Studio (Format 1 Manifest) | Direct Local Backgrounds Folder |
+| :---: | :---: |
+| <img src="docs/screenshots/03_bulk_generator_modal.png" width="100%" alt="Bulk Reel Studio Modal" /> | <img src="docs/screenshots/04_local_media_library.png" width="100%" alt="Local Backgrounds Folder & In-Finder Access" /> |
+| *Automated batch creation with master manifest.json* | *1-click Finder opening, drag-and-drop disk save & live scanning* |
+
+<br/>
+
+<div align="center">
+  <img src="docs/screenshots/05_quick_wizard_flow.png" alt="Quick Reel Wizard Flow" width="85%" />
+  <p><em>3-Step Quick Reel Wizard: Viral Surahs, Master Reciter Selection, and Instant Export</em></p>
+</div>
+
+---
+
+## 🌟 What's New in Recent Updates
+
+### 📦 1. Bulk Reel Studio & Master `manifest.json` Archive
+Generate entire Surah series, 30-day packs, or thematic collections in seconds:
+- **Whole Surah Split**: Automatically chunks long or short Surahs into optimal reel lengths (1 to 10 Ayat per video).
+- **Format 1 Master `manifest.json` Structure**: Videos sit at the root of the ZIP alongside a comprehensive manifest containing full Arabic & English titles, authentic virtues, Ayah numbers, reciters, and contextual hashtags for seamless social automation:
+
+```text
+quran_reels_pack.zip
+├── manifest.json
+├── 01_kahf_verses_1_10.mp4
+├── 02_maryam_verses_1_15.mp4
+└── 03_rahman_verses_1_25.mp4
+```
+
+```json
+[
+  {
+    "filename": "01_kahf_verses_1_10.mp4",
+    "title": "سورة الكهف | آيات 1-10",
+    "description": "تلاوة خاشعة عطرة بصوت القارئ مشاري العفاسي من سورة الكهف المباركة.\n\nفضل قراءة سورة الكهف يوم الجمعة أضاء له من النور ما بين الجمعتين.",
+    "surah": 18,
+    "surahName": "Al-Kahf",
+    "ayah": "1 - 10",
+    "reciter": "Mishary Rashid Alafasy",
+    "hashtags": ["#القرآن", "#سورة_الكهف", "#تلاوة"]
+  }
+]
+```
+
+### 📁 2. Direct Local Backgrounds & Videos Folder Access
+- **Direct Local Disk Folders**: Store your own 4K wallpapers and drone motion loops in `./backgrounds/images` and `./backgrounds/videos` (symlinked directly to `public/backgrounds`).
+- **1-Click Finder Integration**: Click **"📂 Open in Finder"** in the Studio to instantly reveal your local media directory.
+- **In-Browser Drag & Drop**: Drop files straight into the browser to stream them directly to your disk folder.
+- **Live Auto-Scanning**: Vite dev server scans disk additions live without needing server restarts.
+- **Batch Export Integration**: Bulk Reel Studio automatically cycles through your local media library during automated exports.
+
+### ⚡ 3. Quick Reel Wizard
+A rapid 3-step creation flow for beginners and fast creators:
+1. **Ayah & Reciter**: Pick from popular viral Surahs (Al-Mulk, Al-Kahf, Ar-Rahman, Ayat al-Kursi, etc.) or enter custom verses.
+2. **Aesthetic Theme**: Choose curated presets (Golden Medina, Royal Cordoba, Sacred Grove, Holy Quran Paper).
+3. **Export & Share**: 1-click generation ready for mobile distribution.
+
+### 🧪 4. Recipe Engine & Preset Vault
+- **Recipe Codes**: Share and fork your exact typography, background, particle, and audio visualizer setups with compact codes (e.g. `QRN-6CAB5F`).
+- **Generation History**: Automatically snapshots every creation so you never lose a design.
+- **URL Deeplinking**: Open the app with `?recipe=...` to load preconfigured themes instantly.
+
+### 📜 5. Holy Quran Paper & Mushaf Layout Mode
+- Authentic Mushaf layout mode rendering classic Quranic script with parchment textures, traditional margins, and authentic Hizb/Juz markers.
+
+---
+
+## 🌟 Core Features
 
 ### 📱 Native Android App (Official APK Release)
 - **Direct Download**: 📥 **[Download Quran Reels Creator APK v1.0.0 (7.48 MB)](https://github.com/souheyell/quran-reels/releases/download/v1.0.0/quran-reels-creator.apk)**
@@ -37,6 +113,7 @@ Instant, professional styling configurations tailored for high engagement on soc
 - **👑 Royal Cordoba**: Majestic Reem Kufi calligraphy, Moorish royal arch, starry dots matrix, Andalusian elegance.
 - **🏜️ Desert Twilight**: Warm sand glow, Tajawal font, Andalusian geometric frame, spectrum bars, meditative breathing pulse.
 - **🖤 Minimalist Dark**: Sleek monochrome, modern Cairo font, lower-third layout, clean canvas.
+- **📜 Holy Quran Paper**: Authentic warm Mushaf page texture with gold leaf embellishments.
 
 ---
 
@@ -64,25 +141,7 @@ Instant, professional styling configurations tailored for high engagement on soc
 
 ---
 
-### 📤 Custom Video/Image Backgrounds & Audio Upload
-- **Video Backgrounds**: Upload your own looped MP4/WebM drone footage (e.g., Kaaba aerials, drone nature footage).
-- **Custom Audio**: Upload your own local voiceover recordings or MP3 recitations with 1-click.
-
----
-
-### 🌍 Dual Multi-Language Subtitles
-- Display two translations simultaneously on the reel (e.g. English + French / Urdu / Turkish / Indonesian / German).
-
----
-
-### 📜 Authentic Thuluth Vector Calligraphy & Basmalah Centerpiece
-- **114 Classical Surah Title Emblems**: Vector glyphs rendered in traditional Thuluth script with high-DPI canvas caching.
-- **Sacred Thuluth Basmalah Emblem (`﷽`)**: Majestic centerpiece opening banner for Ayah 1 of any Surah with automatic text cleansing.
-- **Surah Title Header Continuity**: Top header displays the Surah emblem with Ayah number positioned underneath.
-
----
-
-### 🎙️ 25 Golden-Age & Contemporary Master Reciters (Qaris)
+### 🎙️ 25+ Golden-Age & Contemporary Master Reciters (Qaris)
 High-speed, sample-accurate audio recitations directly from the EveryAyah CDN:
 
 #### 👑 Golden Age Classical Masters (كبار قراء العصر الذهبي)
@@ -113,28 +172,6 @@ High-speed, sample-accurate audio recitations directly from the EveryAyah CDN:
 
 ---
 
-### 🌌 8 Cinematic Background Categories & Real-time Live Refresh
-Curated high-resolution stock photography library with instant 1-click **Live Refresh**:
-1. **Mosques & Holy Sites**: Masjid Al-Haram, Prophet's Mosque, Ottoman domes, Andalusian arches.
-2. **Mountains & Summits**: Dramatic misty peaks, Alpine sunrises, majestic ridges.
-3. **Oceans & Waterfalls**: Cascading waterfalls, gentle ocean tide reflections.
-4. **Forests & Redwoods**: Sunbeams piercing lush redwood canopies, misty cedar groves.
-5. **Deserts & Dunes**: Golden Sahara dunes, rippling sand waves at twilight.
-6. **Cosmos & Galaxies**: Starry night skies, nebulae, cosmic dust clouds.
-7. **Sunsets & Golden Hour**: Radiant horizon glows, amber evening clouds.
-8. **Rain & Fog**: Misty mountain roads, soothing rain on foliage.
-
----
-
-### ❄️ 5 Atmospheric Particle Effects
-- **Fireflies / Embers**: Floating glowing particles with warm breathing pulse.
-- **Slow Snow**: Gentle falling flakes with horizontal air drift.
-- **Sunbeam Dust Motes**: Golden ambient micro-particles floating in sunlight.
-- **Twinkling Night Stars**: Subtle glistening celestial field.
-- **Gentle Rain**: Diagonal rain streaks for contemplative Quran verses.
-
----
-
 ### 🎥 7 Cinematic Camera Motion Presets (Ken Burns)
 - **Ken Burns Zoom In**: Smooth, slow push-in towards the calligraphy centerpiece.
 - **Ken Burns Zoom Out**: Expansive reveal pulling back from the scene.
@@ -146,10 +183,12 @@ Curated high-resolution stock photography library with instant 1-click **Live Re
 
 ---
 
-### ⚡ Smart Multi-Ayah Sequence Loading
-- Load individual verses or sequences of **1 to 10 consecutive Ayat**.
-- Random discovery with smart genre pairing.
-- Automatic Basmalah insertion for opening verses.
+### ❄️ 5 Atmospheric Particle Effects
+- **Fireflies / Embers**: Floating glowing particles with warm breathing pulse.
+- **Slow Snow**: Gentle falling flakes with horizontal air drift.
+- **Sunbeam Dust Motes**: Golden ambient micro-particles floating in sunlight.
+- **Twinkling Night Stars**: Subtle glistening celestial field.
+- **Gentle Rain**: Diagonal rain streaks for contemplative Quran verses.
 
 ---
 
@@ -163,10 +202,10 @@ Curated high-resolution stock photography library with instant 1-click **Live Re
 ## 🛠️ Technology Stack
 - **Framework**: React 19 + TypeScript + Vite + Capacitor
 - **Mobile Engine**: Native Android WebView (Capacitor) with hardware acceleration
-- **Rendering Engine**: Canvas 2D with sub-pixel interpolation
-- **Video & Audio**: WebCodecs / MediaRecorder API + Web Audio
+- **Rendering Engine**: Canvas 2D with sub-pixel interpolation & Hermite curve smoothing
+- **Video & Audio**: WebCodecs / MediaRecorder API + Web Audio API
 - **Styling**: Vanilla CSS tokens (Dark theme, glassmorphism, responsive mobile layout)
-- **Testing**: Vitest + Oxlint
+- **Testing**: Vitest + Oxlint (112 automated test suites)
 
 ---
 
@@ -175,7 +214,7 @@ Curated high-resolution stock photography library with instant 1-click **Live Re
 ### Prerequisites
 - Node.js (v18 or higher)
 - npm or pnpm
-- Android SDK (for building Android APK)
+- Android SDK (optional, for building native Android APK)
 
 ### Installation
 ```bash
@@ -189,6 +228,26 @@ npm install
 npm run dev
 ```
 Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+### Adding Custom Backgrounds Directly
+Place your custom wallpapers and video loops into:
+```bash
+# Images:
+./backgrounds/images/
+# Videos:
+./backgrounds/videos/
+```
+Or click **"📂 Open in Finder"** in the **Local Folder** tab of the Studio.
+
+### Run Automated Tests
+```bash
+npm run test
+```
+
+### Build Production Bundle
+```bash
+npm run build
+```
 
 ### Build Android APK
 ```bash

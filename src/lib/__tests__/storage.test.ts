@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { loadSavedConfig, saveConfig, loadSavedLoaderState, saveLoaderState } from '../storage'
+import {
+  loadSavedConfig,
+  saveConfig,
+  loadSavedLoaderState,
+  saveLoaderState,
+  loadUserMediaLibrary,
+  saveUserMediaItem,
+  deleteUserMediaItem,
+  type UserUploadedMedia,
+} from '../storage'
 import { defaultConfig } from '../../renderer/reelRenderer'
 
 describe('storage helpers', () => {
@@ -74,5 +83,41 @@ describe('storage helpers', () => {
     expect(loaded.lockCount).toBe(true)
     expect(loaded.lockReciter).toBe(true)
     expect(loaded.fixedCount).toBe(3)
+  })
+
+  it('persists and manages user media library uploads', () => {
+    expect(loadUserMediaLibrary()).toEqual([])
+
+    const item1: UserUploadedMedia = {
+      id: 'media-1',
+      title: 'custom-loop.mp4',
+      url: 'blob:http://localhost/video-1',
+      thumb: 'data:image/jpeg;base64,123',
+      mediaType: 'video',
+      createdAt: Date.now(),
+      sizeLabel: '4.2 MB',
+    }
+
+    const item2: UserUploadedMedia = {
+      id: 'media-2',
+      title: 'kaaba-photo.jpg',
+      url: 'blob:http://localhost/image-2',
+      thumb: 'blob:http://localhost/image-2',
+      mediaType: 'image',
+      createdAt: Date.now(),
+      sizeLabel: '1.8 MB',
+    }
+
+    saveUserMediaItem(item1)
+    saveUserMediaItem(item2)
+
+    const library = loadUserMediaLibrary()
+    expect(library.length).toBe(2)
+    expect(library[0].id).toBe('media-2') // latest first
+    expect(library[1].id).toBe('media-1')
+
+    const afterDelete = deleteUserMediaItem('media-1')
+    expect(afterDelete.length).toBe(1)
+    expect(afterDelete[0].id).toBe('media-2')
   })
 })

@@ -1,4 +1,4 @@
-import type { ReelConfig } from '../types'
+import type { ReelConfig, ExportOptions } from '../types'
 import { ASPECT_SIZES, renderFrame } from '../renderer/reelRenderer'
 import type { Timeline, VerseSlot } from '../renderer/timeline'
 import { activeSlot, DEFAULT_AYAH_GAP_MS } from '../renderer/timeline'
@@ -11,11 +11,11 @@ export interface Mp4ExportHandle {
 }
 
 const CANDIDATE_CODECS = [
-  'avc1.4d002a', // Main Profile Level 4.2 (Universal 1080p standard)
-  'avc1.64002a', // High Profile Level 4.2
-  'avc1.42002a', // Baseline Profile Level 4.2
+  'avc1.64002a', // High Profile Level 4.2 (Highest quality standard for 1080p FB & Instagram)
   'avc1.640033', // High Profile Level 5.1
+  'avc1.4d002a', // Main Profile Level 4.2
   'avc1.4d0033', // Main Profile Level 5.1
+  'avc1.42002a', // Baseline Profile Level 4.2
   'avc1.42001f', // Baseline Profile Level 3.1
 ]
 
@@ -31,7 +31,7 @@ async function findSupportedVideoCodec(
   framerate: number,
 ): Promise<SupportedVideoConfig> {
   if (typeof VideoEncoder === 'undefined' || !VideoEncoder.isConfigSupported) {
-    return { codec: 'avc1.4d002a', hardwareAcceleration: 'no-preference' }
+    return { codec: 'avc1.64002a', hardwareAcceleration: 'no-preference' }
   }
 
   const accels: HardwareAcceleration[] = ['prefer-hardware', 'no-preference']
@@ -56,7 +56,7 @@ async function findSupportedVideoCodec(
     }
   }
 
-  return { codec: 'avc1.4d002a', hardwareAcceleration: 'no-preference' }
+  return { codec: 'avc1.64002a', hardwareAcceleration: 'no-preference' }
 }
 
 interface PreparedMedia {
@@ -258,14 +258,21 @@ export function exportMp4(
   image: CanvasImageSource | null,
   _timeline?: Timeline,
   onProgress?: (p: number) => void,
-  fps = 30,
+  options?: ExportOptions | number,
 ): Mp4ExportHandle {
-  const { width, height } = ASPECT_SIZES[config.aspectRatio]
+  const fps = typeof options === 'number' ? options : options?.fps ?? 30
+  const videoBitrate = typeof options === 'object' && options?.bitrate ? options.bitrate : 10_000_000 // 10 Mbps (FB & Instagram sweet spot)
+  const audioBitrate = typeof options === 'object' && options?.audioBitrate ? options.audioBitrate : 320_000 // 320 kbps AAC
+  const scale = typeof options === 'object' && options?.scale ? options.scale : 1
+
+  const baseSize = ASPECT_SIZES[config.aspectRatio]
+  const width = Math.round(baseSize.width * scale)
+  const height = Math.round(baseSize.height * scale)
+
   const canvas = new OffscreenCanvas(width, height)
   const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true })
   if (!ctx) throw new Error('OffscreenCanvas 2D context unavailable')
 
-  const videoBitrate = 7_500_000 // 7.5 Mbps: Crystal clear 1080p, ultra-reliable encoder throughput
   const sampleRate = 44100
 
   let cancelled = false
@@ -329,6 +336,7 @@ export function exportMp4(
           bitrate: videoBitrate,
           framerate: fps,
           hardwareAcceleration: videoCodec.hardwareAcceleration,
+          bitrateMode: 'variable',
         })
 
         let audioEncoder: AudioEncoder | null = null
@@ -352,7 +360,7 @@ export function exportMp4(
             codec: 'mp4a.40.2',
             numberOfChannels: 2,
             sampleRate,
-            bitrate: 128_000,
+            bitrate: audioBitrate,
           })
 
           const totalSamples = audioBuffer.length
@@ -407,7 +415,28 @@ export function exportMp4(
             const slot = activeSlot(timeline, timeMs)
 
             if (image && typeof HTMLVideoElement !== 'undefined' && image instanceof HTMLVideoElement && image.duration > 0) {
-              image.currentTime = (timeMs / 1000) % image.duration
+              const targetTime = (timeMs / 1000) % image.duration
+              if (Math.abs(image.currentTime - targetTime) > 0.02) {
+                await new Promise<void>((resolve) => {
+                  let resolved = false
+                  const onSeeked = () => {
+                    if (!resolved) {
+                      resolved = true
+                      image.removeEventListener('seeked', onSeeked)
+                      resolve()
+                    }
+                  }
+                  image.addEventListener('seeked', onSeeked, { once: true })
+                  image.currentTime = targetTime
+                  setTimeout(() => {
+                    if (!resolved) {
+                      resolved = true
+                      image.removeEventListener('seeked', onSeeked)
+                      resolve()
+                    }
+                  }, 60)
+                })
+              }
             }
 
             if (slot) {

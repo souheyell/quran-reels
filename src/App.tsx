@@ -12,15 +12,28 @@ import { WaveformPanel } from './components/WaveformPanel'
 import { LayoutPanel } from './components/LayoutPanel'
 import { MotionPanel } from './components/MotionPanel'
 import { EffectsPanel } from './components/EffectsPanel'
+import { CountdownPanel } from './components/CountdownPanel'
+import { RecipeModal } from './components/RecipeModal'
 import { FooterPanel } from './components/FooterPanel'
 import { PreviewCanvas } from './components/PreviewCanvas'
 import { AboutModal } from './components/AboutModal'
 import { BulkCreateModal } from './components/BulkCreateModal'
+import { QuickWizardModal } from './components/QuickWizardModal'
 import { getRandomStockImage } from './api/unsplash'
-import type { ReelConfig } from './types'
+import { loadSavedCustomFonts } from './lib/customFonts'
+import { getVaultMediaLiveUrl } from './lib/mediaDB'
+import {
+  encodeRecipe,
+  decodeRecipe,
+  computeShortHash,
+  generateRecipeSummary,
+  type DecodedRecipe,
+} from './lib/recipeEngine'
+import { addGenerationToHistory } from './lib/storage'
+import type { ReelConfig, ExportQualityPreset } from './types'
 import './App.css'
 
-type StudioTab = 'all' | 'verses' | 'media' | 'style' | 'borders' | 'motion'
+type StudioTab = 'all' | 'verses' | 'media' | 'typography' | 'effects' | 'studio'
 
 function App() {
   const {
@@ -54,6 +67,17 @@ function App() {
     setKaraokeHighlight,
     setHighlightColor,
     setSecondaryEditionId,
+    setShowReflectionCard,
+    setReflectionText,
+    setLayoutMode,
+    setMushafTheme,
+    setMushafGlowIntensity,
+    setCountdownEnabled,
+    setCountdownStyle,
+    setCountdownPosition,
+    setCountdownColor,
+    setCountdownShowTotal,
+    setCountdownOpacity,
     setFooterEnabled,
     setFooterText,
     setFooterIcon,
@@ -74,7 +98,26 @@ function App() {
   const [image, setImage] = useState<HTMLImageElement | HTMLVideoElement | null>(null)
   const [showAbout, setShowAbout] = useState(false)
   const [showBulkModal, setShowBulkModal] = useState(false)
+  const [showRecipeModal, setShowRecipeModal] = useState(false)
+  const [showQuickWizard, setShowQuickWizard] = useState(false)
   const [activeTab, setActiveTab] = useState<StudioTab>('all')
+  const [sidebarSearch, setSidebarSearch] = useState('')
+
+  // Re-register saved custom fonts on app boot
+  useEffect(() => {
+    void loadSavedCustomFonts()
+  }, [])
+
+  // Re-hydrate custom background footage from IndexedDB vault if saved
+  useEffect(() => {
+    if (config.background.vaultMediaId) {
+      void getVaultMediaLiveUrl(config.background.vaultMediaId).then((liveUrl) => {
+        if (liveUrl && liveUrl !== config.background.url) {
+          setBackgroundUrl(liveUrl, config.background.mediaType, config.background.vaultMediaId)
+        }
+      })
+    }
+  }, [])
 
   // Sync loaded verses into config
   useEffect(() => {
@@ -113,10 +156,161 @@ function App() {
     exportProgress,
     exportFormat,
     shareToast,
+    exportPreset,
+    exportOptions,
+    setExportPreset,
     handleExportVideo,
     handleShareReel,
     handleExportPng,
   } = useExport(config, image, timeline)
+
+  const handleRestoreRecipe = useCallback(
+    async (recipe: DecodedRecipe) => {
+      // 1. Apply config preset
+      applyPreset({
+        id: 'restored-recipe',
+        name: recipe.name || 'Restored Recipe',
+        icon: '🔖',
+        description: 'Restored from recipe code',
+        category: 'Mosques & Holy Sites',
+        config: recipe.config,
+      })
+
+      // 2. Set background
+      if (recipe.config.background?.url) {
+        setBackgroundUrl(recipe.config.background.url, recipe.config.background.mediaType)
+      }
+
+      // 3. Set text styles
+      if (recipe.config.text) {
+        if (recipe.config.text.arabicFont) setArabicFont(recipe.config.text.arabicFont)
+        if (recipe.config.text.arabicSize) setArabicSize(recipe.config.text.arabicSize)
+        if (recipe.config.text.translationFont) setTranslationFont(recipe.config.text.translationFont)
+        if (recipe.config.text.translationSize) setTranslationSize(recipe.config.text.translationSize)
+        if (recipe.config.text.textColor) setTextColor(recipe.config.text.textColor)
+        if (recipe.config.text.textPosition) setTextPosition(recipe.config.text.textPosition)
+        if (typeof recipe.config.text.showGlow === 'boolean') setShowGlow(recipe.config.text.showGlow)
+        if (typeof recipe.config.text.showTranslation === 'boolean') setShowTranslation(recipe.config.text.showTranslation)
+        if (recipe.config.text.surahHeaderPosition) setSurahHeaderPosition(recipe.config.text.surahHeaderPosition)
+        if (recipe.config.text.surahNameLanguage) setSurahNameLanguage(recipe.config.text.surahNameLanguage)
+        if (typeof recipe.config.text.ayahPauseDelay === 'number') setAyahPauseDelay(recipe.config.text.ayahPauseDelay)
+        if (typeof recipe.config.text.showBasmalah === 'boolean') setShowBasmalah(recipe.config.text.showBasmalah)
+        if (typeof recipe.config.text.karaokeHighlight === 'boolean') setKaraokeHighlight(recipe.config.text.karaokeHighlight)
+        if (recipe.config.text.highlightColor) setHighlightColor(recipe.config.text.highlightColor)
+        if (recipe.config.text.secondaryEditionId) setSecondaryEditionId(recipe.config.text.secondaryEditionId)
+        if (typeof recipe.config.text.showReflectionCard === 'boolean') setShowReflectionCard(recipe.config.text.showReflectionCard)
+        if (recipe.config.text.reflectionText) setReflectionText(recipe.config.text.reflectionText)
+      }
+
+      // 4. Set countdown
+      if (recipe.config.countdown) {
+        if (typeof recipe.config.countdown.enabled === 'boolean') setCountdownEnabled(recipe.config.countdown.enabled)
+        if (recipe.config.countdown.style) setCountdownStyle(recipe.config.countdown.style)
+        if (recipe.config.countdown.position) setCountdownPosition(recipe.config.countdown.position)
+        if (recipe.config.countdown.color) setCountdownColor(recipe.config.countdown.color)
+        if (typeof recipe.config.countdown.showTotalTime === 'boolean') setCountdownShowTotal(recipe.config.countdown.showTotalTime)
+        if (typeof recipe.config.countdown.opacity === 'number') setCountdownOpacity(recipe.config.countdown.opacity)
+      }
+
+      // 5. Load verses
+      if (recipe.surah && recipe.startAyat && recipe.ayahCount) {
+        await verseLoader.loadRange(
+          recipe.surah,
+          recipe.startAyat,
+          recipe.ayahCount,
+          recipe.editionId || verseLoader.editionId,
+          recipe.reciterId || verseLoader.reciterId,
+          recipe.secondaryEditionId,
+        )
+      } else if (recipe.config.verses && recipe.config.verses.length > 0) {
+        setVerses(recipe.config.verses)
+        verseLoader.setVerses(recipe.config.verses)
+      }
+    },
+    [
+      applyPreset,
+      setBackgroundUrl,
+      setArabicFont,
+      setArabicSize,
+      setTranslationFont,
+      setTranslationSize,
+      setTextColor,
+      setTextPosition,
+      setShowGlow,
+      setShowTranslation,
+      setSurahHeaderPosition,
+      setSurahNameLanguage,
+      setAyahPauseDelay,
+      setShowBasmalah,
+      setKaraokeHighlight,
+      setHighlightColor,
+      setSecondaryEditionId,
+      setShowReflectionCard,
+      setReflectionText,
+      setCountdownEnabled,
+      setCountdownStyle,
+      setCountdownPosition,
+      setCountdownColor,
+      setCountdownShowTotal,
+      setCountdownOpacity,
+      setVerses,
+      verseLoader,
+    ],
+  )
+
+  // Auto-load recipe from URL parameter on initial mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const recipeParam = params.get('recipe')
+      if (recipeParam) {
+        const decoded = decodeRecipe(recipeParam)
+        if (decoded) {
+          void handleRestoreRecipe(decoded)
+        }
+      }
+    }
+  }, [handleRestoreRecipe])
+
+  // Automatically snapshot creative generations into history
+  useEffect(() => {
+    if (config.verses.length > 0) {
+      const code = encodeRecipe(config, verseLoader.reciterId, verseLoader.editionId)
+      const shortHash = computeShortHash(code)
+      const primaryVerse = config.verses[0]
+      const summary = generateRecipeSummary({
+        surah: primaryVerse?.surah,
+        startAyat: primaryVerse?.ayat,
+        ayahCount: config.verses.length,
+        reciterId: verseLoader.reciterId,
+        config,
+      })
+
+      addGenerationToHistory({
+        id: `snap_${Date.now()}_${shortHash}`,
+        name: summary,
+        code,
+        shortHash,
+        createdAt: Date.now(),
+        surah: primaryVerse?.surah || 2,
+        startAyat: primaryVerse?.ayat || 255,
+        ayahCount: config.verses.length,
+        reciterId: verseLoader.reciterId,
+        editionId: verseLoader.editionId,
+        secondaryEditionId: config.text.secondaryEditionId,
+        config,
+      })
+    }
+  }, [
+    config.verses,
+    config.background.url,
+    config.effects.type,
+    config.motion.type,
+    config.countdown?.enabled,
+    config.countdown?.style,
+    verseLoader.reciterId,
+    verseLoader.editionId,
+  ])
 
   const handleRandomDiscovery = useCallback(async () => {
     const randomBg = getRandomStockImage()
@@ -153,6 +347,11 @@ function App() {
   const durationFormatted = `${Math.floor(totalDurationSec / 60)
     .toString()
     .padStart(2, '0')}:${(totalDurationSec % 60).toString().padStart(2, '0')}`
+
+  const currentRecipeShortHash = useMemo(() => {
+    const code = encodeRecipe(config, verseLoader.reciterId, verseLoader.editionId)
+    return computeShortHash(code)
+  }, [config, verseLoader.reciterId, verseLoader.editionId])
 
   return (
     <div className="app studio-app">
@@ -206,6 +405,91 @@ function App() {
         </div>
 
         <div className="header-actions">
+          {/* Quick 3-Step Wizard Button */}
+          <button
+            type="button"
+            className="btn-wizard-header"
+            onClick={() => setShowQuickWizard(true)}
+            title="3-Step Rapid Reel Creator (Ayah -> Style -> 1080p Export)"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(16, 185, 129, 0.2) 100%)',
+              border: '1px solid #f59e0b',
+              color: '#fbbf24',
+              padding: '0.42rem 0.85rem',
+              borderRadius: '8px',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              boxShadow: '0 0 14px rgba(245, 158, 11, 0.25)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span className="btn-icon">⚡</span>
+            <span>Quick Wizard</span>
+          </button>
+
+          {/* Random Discovery Button */}
+          <button
+            type="button"
+            className="btn-random-header"
+            onClick={handleRandomDiscovery}
+            title="Discover a random inspirational Quran ayah & background"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: '#d4e4fa',
+              padding: '0.4rem 0.75rem',
+              borderRadius: '8px',
+              fontWeight: 600,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span className="btn-icon">🎲</span>
+            <span>Random</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn-recipe-header"
+            onClick={() => setShowRecipeModal(true)}
+            title="View Recipe Code, Restore Saved Creations, or Browse History"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              background: 'rgba(245, 158, 11, 0.12)',
+              border: '1px solid rgba(245, 158, 11, 0.35)',
+              color: '#fbbf24',
+              padding: '0.4rem 0.75rem',
+              borderRadius: '8px',
+              fontWeight: 600,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span className="btn-icon">🔖</span>
+            <span>Recipe Vault</span>
+            <span
+              style={{
+                fontFamily: 'monospace',
+                background: 'rgba(0,0,0,0.35)',
+                padding: '0.1rem 0.35rem',
+                borderRadius: '4px',
+                fontSize: '0.74rem',
+              }}
+            >
+              {currentRecipeShortHash}
+            </span>
+          </button>
           <button
             type="button"
             className="btn-bulk-header"
@@ -232,14 +516,6 @@ function App() {
           >
             About &amp; Bio
           </button>
-          <a
-            href="https://alquran.cloud/api"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="header-link"
-          >
-            Quran API
-          </a>
         </div>
       </header>
 
@@ -247,6 +523,51 @@ function App() {
       <div className="layout studio-layout">
         {/* ── Left Column: Studio Navigation & Controls ─────────── */}
         <aside className="sidebar studio-sidebar">
+          {/* Quick Search / Filter for Effortless Navigation */}
+          <div className="sidebar-search-box" style={{ padding: '0.65rem 0.85rem 0.35rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <span style={{ position: 'absolute', left: '10px', fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }}>🔍</span>
+              <input
+                type="text"
+                placeholder="Dive into settings (font, reciter, frame, timer…)"
+                value={sidebarSearch}
+                onChange={(e) => {
+                  setSidebarSearch(e.target.value)
+                  if (e.target.value.trim() && activeTab !== 'all') {
+                    setActiveTab('all')
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  background: 'rgba(0,0,0,0.35)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '20px',
+                  padding: '0.35rem 0.85rem 0.35rem 2rem',
+                  fontSize: '0.78rem',
+                  color: '#fff',
+                  outline: 'none',
+                }}
+              />
+              {sidebarSearch && (
+                <button
+                  type="button"
+                  onClick={() => setSidebarSearch('')}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'rgba(255,255,255,0.5)',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Navigation Category Tabs */}
           <div className="studio-tabs-bar">
             <button
@@ -261,39 +582,40 @@ function App() {
               className={`studio-tab-btn ${activeTab === 'verses' ? 'active' : ''}`}
               onClick={() => setActiveTab('verses')}
             >
-              <span>📖</span> Verses
+              <span>📖</span> Scripture
             </button>
             <button
               type="button"
               className={`studio-tab-btn ${activeTab === 'media' ? 'active' : ''}`}
               onClick={() => setActiveTab('media')}
             >
-              <span>🌌</span> Media
+              <span>🎬</span> Footage
             </button>
             <button
               type="button"
-              className={`studio-tab-btn ${activeTab === 'style' ? 'active' : ''}`}
-              onClick={() => setActiveTab('style')}
+              className={`studio-tab-btn ${activeTab === 'typography' ? 'active' : ''}`}
+              onClick={() => setActiveTab('typography')}
             >
-              <span>🌟</span> Style
+              <span>✒️</span> Typography
             </button>
             <button
               type="button"
-              className={`studio-tab-btn ${activeTab === 'borders' ? 'active' : ''}`}
-              onClick={() => setActiveTab('borders')}
+              className={`studio-tab-btn ${activeTab === 'effects' ? 'active' : ''}`}
+              onClick={() => setActiveTab('effects')}
             >
-              <span>🕌</span> Frames
+              <span>🎨</span> Visual FX
             </button>
             <button
               type="button"
-              className={`studio-tab-btn ${activeTab === 'motion' ? 'active' : ''}`}
-              onClick={() => setActiveTab('motion')}
+              className={`studio-tab-btn ${activeTab === 'studio' ? 'active' : ''}`}
+              onClick={() => setActiveTab('studio')}
             >
-              <span>🎥</span> Motion
+              <span>📐</span> Studio
             </button>
           </div>
 
           <div className="studio-panels-container">
+            {/* 1. Scripture & Reciters */}
             {(activeTab === 'all' || activeTab === 'verses') && (
               <VersePanel
                 verses={config.verses}
@@ -321,6 +643,7 @@ function App() {
               />
             )}
 
+            {/* 2. Footage & Backgrounds */}
             {(activeTab === 'all' || activeTab === 'media') && (
               <BackgroundPanel
                 url={config.background.url}
@@ -331,7 +654,8 @@ function App() {
               />
             )}
 
-            {(activeTab === 'all' || activeTab === 'style') && (
+            {/* 3. Typography & Quran Layout Mode */}
+            {(activeTab === 'all' || activeTab === 'typography') && (
               <StylePanel
                 overlayColor={config.overlay.color}
                 overlayOpacity={config.overlay.opacity}
@@ -349,6 +673,11 @@ function App() {
                 karaokeHighlight={config.text.karaokeHighlight}
                 highlightColor={config.text.highlightColor}
                 secondaryEditionId={config.text.secondaryEditionId}
+                showReflectionCard={config.text.showReflectionCard}
+                reflectionText={config.text.reflectionText}
+                layoutMode={config.text.layoutMode}
+                mushafTheme={config.text.mushafTheme}
+                mushafGlowIntensity={config.text.mushafGlowIntensity}
                 onApplyPreset={applyPreset}
                 onOverlayColor={setOverlayColor}
                 onOverlayOpacity={setOverlayOpacity}
@@ -369,10 +698,16 @@ function App() {
                   setSecondaryEditionId(id)
                   void verseLoader.changeSecondaryEdition(id)
                 }}
+                onShowReflectionCard={setShowReflectionCard}
+                onReflectionText={setReflectionText}
+                onLayoutMode={setLayoutMode}
+                onMushafTheme={setMushafTheme}
+                onMushafGlowIntensity={setMushafGlowIntensity}
               />
             )}
 
-            {(activeTab === 'all' || activeTab === 'borders') && (
+            {/* 4. Visual FX: Frames, Waveforms & Particles */}
+            {(activeTab === 'all' || activeTab === 'effects') && (
               <>
                 <BorderPanel
                   borderType={config.border.type}
@@ -390,10 +725,19 @@ function App() {
                   onColor={setWaveformColor}
                   onOpacity={setWaveformOpacity}
                 />
+                <EffectsPanel
+                  effectType={config.effects.type}
+                  intensity={config.effects.intensity}
+                  speed={config.effects.speed}
+                  onEffectType={setEffectType}
+                  onIntensity={setEffectIntensity}
+                  onSpeed={setEffectSpeed}
+                />
               </>
             )}
 
-            {(activeTab === 'all' || activeTab === 'motion') && (
+            {/* 5. Studio & Format: Canvas Aspect Ratio, Motion, Timer, Social Branding */}
+            {(activeTab === 'all' || activeTab === 'studio') && (
               <>
                 <LayoutPanel
                   textPosition={config.text.textPosition}
@@ -407,13 +751,14 @@ function App() {
                   onMotionType={setMotionType}
                   onDuration={setDuration}
                 />
-                <EffectsPanel
-                  effectType={config.effects.type}
-                  intensity={config.effects.intensity}
-                  speed={config.effects.speed}
-                  onEffectType={setEffectType}
-                  onIntensity={setEffectIntensity}
-                  onSpeed={setEffectSpeed}
+                <CountdownPanel
+                  countdown={config.countdown}
+                  onToggleEnabled={setCountdownEnabled}
+                  onStyleChange={setCountdownStyle}
+                  onPositionChange={setCountdownPosition}
+                  onColorChange={setCountdownColor}
+                  onShowTotalChange={setCountdownShowTotal}
+                  onOpacityChange={setCountdownOpacity}
                 />
                 <FooterPanel
                   enabled={config.footer.enabled}
@@ -485,23 +830,33 @@ function App() {
             <div className="inspector-card">
               <h3 className="inspector-card-title">Video Quality</h3>
               <div className="inspector-field">
-                <label>Resolution</label>
-                <select className="inspector-select" defaultValue="1080x1920">
-                  <option value="1080x1920">1080x1920 (HD Reel · 9:16)</option>
-                  <option value="2160x3840">2160x3840 (4K Ultra HD · 9:16)</option>
+                <label>Export Preset</label>
+                <select
+                  className="inspector-select"
+                  value={exportPreset}
+                  onChange={(e) => setExportPreset(e.target.value as ExportQualityPreset)}
+                >
+                  <option value="instagram-fb">⭐ Instagram &amp; FB (1080p · 30fps · 10Mbps)</option>
+                  <option value="smooth-60fps">🎬 Smooth 60 FPS (1080p · 60fps · 14Mbps)</option>
+                  <option value="4k-master">👑 4K Master (2160x3840 · 30fps · 30Mbps)</option>
+                  <option value="compact">⚡ Compact Share (1080p · 30fps · 6Mbps)</option>
                 </select>
               </div>
               <div className="inspector-row">
-                <span>60 FPS Smooth Render</span>
-                <span className="badge-emerald">Active</span>
+                <span>Framerate</span>
+                <span className="badge-emerald">{exportOptions.fps ?? 30} FPS</span>
+              </div>
+              <div className="inspector-row">
+                <span>Video Bitrate</span>
+                <span className="badge-emerald">{Math.round((exportOptions.bitrate ?? 10_000_000) / 1_000_000)} Mbps VBR</span>
               </div>
               <div className="inspector-row">
                 <span>Audio Codec</span>
-                <span className="badge-dim">AAC Stereo 320k</span>
+                <span className="badge-dim">AAC Stereo {Math.round((exportOptions.audioBitrate ?? 320_000) / 1000)}k</span>
               </div>
               <div className="inspector-row">
                 <span>Video Codec</span>
-                <span className="badge-dim">H.264 (MP4)</span>
+                <span className="badge-dim">H.264 High Profile</span>
               </div>
             </div>
 
@@ -617,6 +972,49 @@ function App() {
         baseConfig={config}
         editionId={verseLoader.editionId}
         reciterId={verseLoader.reciterId}
+      />
+
+      {/* ── Recipe Codes & Generation History Modal ─────────────── */}
+      <RecipeModal
+        isOpen={showRecipeModal}
+        onClose={() => setShowRecipeModal(false)}
+        currentConfig={config}
+        currentReciterId={verseLoader.reciterId}
+        currentEditionId={verseLoader.editionId}
+        onRestoreRecipe={handleRestoreRecipe}
+      />
+
+      {/* ── 3-Step Quick Reel Wizard Modal ───────────────────────── */}
+      <QuickWizardModal
+        isOpen={showQuickWizard}
+        onClose={() => setShowQuickWizard(false)}
+        currentConfig={config}
+        onApplyConfig={(newConfig) => {
+          applyPreset({
+            id: 'wizard-applied',
+            name: 'Wizard Preset',
+            icon: '⚡',
+            description: 'Customized in Quick Wizard',
+            category: 'Mosques & Holy Sites',
+            config: newConfig,
+          })
+        }}
+        onLoadSurahRange={async (surah, startAyat, count, reciterId) => {
+          await verseLoader.loadRange(
+            surah,
+            startAyat,
+            count,
+            verseLoader.editionId,
+            reciterId || verseLoader.reciterId,
+            config.text.secondaryEditionId,
+          )
+        }}
+        onExportVideo={handleExportVideo}
+        onShareReel={handleShareReel}
+        exporting={exporting}
+        exportProgress={exportProgress}
+        exportPreset={exportPreset}
+        onExportPresetChange={setExportPreset}
       />
 
       {/* ── Share & Action Toast Notification ───────────────────── */}

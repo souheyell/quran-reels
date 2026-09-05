@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ReelConfig } from '../types'
+import type { ReelConfig, ExportQualityPreset, ExportOptions } from '../types'
+import { EXPORT_PRESETS_CONFIG } from '../types'
 import type { Timeline } from '../renderer/timeline'
 import {
   exportVideo,
@@ -19,6 +20,14 @@ export function useExport(
   const [exportProgress, setExportProgress] = useState(0)
   const [exportFormat, setExportFormat] = useState<'mp4' | 'webm'>('mp4')
   const [shareToast, setShareToast] = useState<string | null>(null)
+  const [exportPreset, setExportPresetState] = useState<ExportQualityPreset>('instagram-fb')
+  const [exportOptions, setExportOptions] = useState<ExportOptions>({
+    preset: 'instagram-fb',
+    fps: EXPORT_PRESETS_CONFIG['instagram-fb'].fps,
+    bitrate: EXPORT_PRESETS_CONFIG['instagram-fb'].bitrate,
+    audioBitrate: EXPORT_PRESETS_CONFIG['instagram-fb'].audioBitrate,
+    scale: EXPORT_PRESETS_CONFIG['instagram-fb'].scale,
+  })
   const [lastExportedBlob, setLastExportedBlob] = useState<{
     blob: Blob
     filename: string
@@ -26,6 +35,18 @@ export function useExport(
 
   const handleRef = useRef<{ cancel: () => void } | null>(null)
   const toastTimeoutRef = useRef<number | null>(null)
+
+  const setExportPreset = useCallback((preset: ExportQualityPreset) => {
+    setExportPresetState(preset)
+    const p = EXPORT_PRESETS_CONFIG[preset]
+    setExportOptions({
+      preset,
+      fps: p.fps,
+      bitrate: p.bitrate,
+      audioBitrate: p.audioBitrate,
+      scale: p.scale,
+    })
+  }, [])
 
   const showToast = (message: string) => {
     setShareToast(message)
@@ -47,7 +68,7 @@ export function useExport(
     try {
       const handle = exportVideo(config, image, timeline, (progress) => {
         setExportProgress(Math.round(progress * 100))
-      })
+      }, exportOptions)
       handleRef.current = handle
       const blob = await handle.done
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm'
@@ -79,7 +100,7 @@ export function useExport(
       setExportProgress(0)
       handleRef.current = null
     }
-  }, [config, image, timeline])
+  }, [config, image, timeline, exportOptions])
 
   const handleShareReel = useCallback(async () => {
     let blobToShare = lastExportedBlob?.blob
@@ -92,7 +113,7 @@ export function useExport(
       try {
         const handle = exportVideo(config, image, timeline, (progress) => {
           setExportProgress(Math.round(progress * 100))
-        })
+        }, exportOptions)
         handleRef.current = handle
         const blob = await handle.done
         const ext = blob.type.includes('mp4') ? 'mp4' : 'webm'
@@ -121,7 +142,7 @@ export function useExport(
       })
       showToast(result.message)
     }
-  }, [config, image, timeline, lastExportedBlob])
+  }, [config, image, timeline, lastExportedBlob, exportOptions])
 
   const handleExportPng = useCallback(async () => {
     const dataUrl = exportPng(config, image, timeline)
@@ -156,6 +177,10 @@ export function useExport(
     exportProgress,
     exportFormat,
     shareToast,
+    exportPreset,
+    exportOptions,
+    setExportPreset,
+    setExportOptions,
     handleExportVideo,
     handleShareReel,
     handleExportPng,

@@ -8,12 +8,22 @@ export interface BulkItem {
   reciterId?: string
 }
 
+export type PackCategory =
+  | 'all'
+  | 'popular'
+  | 'duas'
+  | 'protection'
+  | 'friday-night'
+  | 'jannah-akhirah'
+  | 'family-virtues'
+
 export interface BulkPackPreset {
   id: string
   title: string
   arabicTitle: string
   description: string
   icon: string
+  category?: PackCategory
   items: BulkItem[]
 }
 
@@ -225,6 +235,7 @@ export const RAMADAN_30_DAYS_PACK: BulkPackPreset = {
   arabicTitle: 'حزمة الـ 30 يوماً للتذكير والتدبر',
   description: '30 curated high-impact Ayahs across the Quran for daily Ramadan & social media posting.',
   icon: '🌙',
+  category: 'popular',
   items: [
     { id: 'day-1', title: 'Day 1: The Opening Du\'a', surah: 1, startAyat: 1, count: 7, theme: 'Al-Fatiha' },
     { id: 'day-2', title: 'Day 2: Ayat al-Kursi', surah: 2, startAyat: 255, count: 1, theme: 'The Greatest Ayah' },
@@ -260,15 +271,17 @@ export const RAMADAN_30_DAYS_PACK: BulkPackPreset = {
 }
 
 /**
- * Thematic Packs: Duas, Sabr, Juz Amma
+ * Thematic Packs: Duas, Sabr, Protection, Jummah, Tahajjud, Jannah, Mulk, Family, Rizq, etc.
  */
 export const THEMATIC_PACKS: BulkPackPreset[] = [
+  // 1. Duas
   {
     id: 'pack-duas',
     title: '10 Powerful Quranic Duas',
     arabicTitle: 'أدعية القرآن الكريم المستجابة',
     description: '10 timeless Quranic supplications starting with Rabbana & Rabbi for barakah, guidance, and forgiveness.',
     icon: '🤲',
+    category: 'duas',
     items: [
       { id: 'dua-1', title: 'Du\'a for Good in Both Worlds', surah: 2, startAyat: 201, count: 1, theme: 'Rabbana Atina Fid-Dunya' },
       { id: 'dua-2', title: 'Du\'a for Steadfastness', surah: 3, startAyat: 8, count: 1, theme: 'Rabbana La Tuzigh Quloobana' },
@@ -282,12 +295,15 @@ export const THEMATIC_PACKS: BulkPackPreset[] = [
       { id: 'dua-10', title: 'Du\'a for Patience & Victory', surah: 2, startAyat: 250, count: 1, theme: 'Rabbana Afrigh \'Alayna Sabran' },
     ],
   },
+
+  // 2. Patience & Hope
   {
     id: 'pack-sabr-hope',
     title: '10 Verses of Patience & Hope',
     arabicTitle: 'آيات الصبر والفرج والبشرى',
     description: '10 uplifting verses to strengthen the heart through trial, grief, and hardship.',
     icon: '🌿',
+    category: 'popular',
     items: [
       { id: 'sabr-1', title: 'With Hardship comes Ease', surah: 94, startAyat: 5, count: 2, theme: 'Ash-Sharh' },
       { id: 'sabr-2', title: 'Allah is with the Patient', surah: 2, startAyat: 153, count: 1, theme: 'Inna Allaha Ma\'as-Sabirin' },
@@ -301,12 +317,216 @@ export const THEMATIC_PACKS: BulkPackPreset[] = [
       { id: 'sabr-10', title: 'Glad Tidings for the Patient', surah: 2, startAyat: 155, count: 2, theme: 'Wa Bashshiris-Sabirin' },
     ],
   },
+
+  // 3. Ruqyah & Protection
+  {
+    id: 'pack-ruqyah-protection',
+    title: '12 Ayat of Protection & Ruqyah',
+    arabicTitle: 'آيات الحفظ والرقية والسكينة',
+    description: '12 essential verses of divine sanctuary, calming anxiety, and protection from evil and fear.',
+    icon: '🛡️',
+    category: 'protection',
+    items: [
+      { id: 'ruq-1', title: 'Ayat al-Kursi (Supreme Throne)', surah: 2, startAyat: 255, count: 1, theme: 'The Shield' },
+      { id: 'ruq-2', title: 'Closing of Al-Baqarah (Amanar-Rasool)', surah: 2, startAyat: 285, count: 2, theme: 'Night Protection' },
+      { id: 'ruq-3', title: 'Surah Al-Ikhlas (Sincere Purity)', surah: 112, startAyat: 1, count: 4, theme: 'Tawhid Shield' },
+      { id: 'ruq-4', title: 'Surah Al-Falaq (Daybreak Refuge)', surah: 113, startAyat: 1, count: 5, theme: 'Refuge from Evil' },
+      { id: 'ruq-5', title: 'Surah An-Nas (Mankind Refuge)', surah: 114, startAyat: 1, count: 6, theme: 'Refuge from Whispers' },
+      { id: 'ruq-6', title: 'Allah Smashes Evil & Illusion', surah: 7, startAyat: 117, count: 6, theme: 'Triumph of Truth' },
+      { id: 'ruq-7', title: 'Allah Nullifies Sorcery & Harm', surah: 10, startAyat: 81, count: 2, theme: 'Inna Allaha Sayubtiluh' },
+      { id: 'ruq-8', title: 'Fear Not, Indeed You are Triumphant', surah: 20, startAyat: 68, count: 3, theme: 'Courage from Allah' },
+      { id: 'ruq-9', title: 'Guardians of the Cosmic Heavens', surah: 37, startAyat: 1, count: 10, theme: 'Celestial Protection' },
+      { id: 'ruq-10', title: 'The Quran that Humbles Mountains', surah: 59, startAyat: 21, count: 4, theme: 'Majesty of the Word' },
+      { id: 'ruq-11', title: 'Protection from the Evil Eye', surah: 68, startAyat: 51, count: 2, theme: 'Wa In Yakadulladhina' },
+      { id: 'ruq-12', title: 'Allah is Sufficient for Me', surah: 9, startAyat: 128, count: 2, theme: 'Hasbiyallahu' },
+    ],
+  },
+
+  // 4. Friday & Surah Al-Kahf
+  {
+    id: 'pack-jummah-kahf',
+    title: '10 Friday & Surah Al-Kahf Gems',
+    arabicTitle: 'روائع سورة الكهف وسنن يوم الجمعة',
+    description: '10 essential passages from Surah Al-Kahf & Surah Al-Jumu\'ah for weekly Friday reminders.',
+    icon: '🕌',
+    category: 'friday-night',
+    items: [
+      { id: 'kahf-1', title: 'Al-Kahf: Opening 10 Ayahs (Light & Protection)', surah: 18, startAyat: 1, count: 10, theme: 'Dajjal Shield' },
+      { id: 'kahf-2', title: 'Al-Kahf: The Youth in the Cave', surah: 18, startAyat: 13, count: 4, theme: 'Steadfast Faith' },
+      { id: 'kahf-3', title: 'Al-Kahf: Parable of the Two Gardens', surah: 18, startAyat: 32, count: 5, theme: 'Masha\'Allahu La Quwwata' },
+      { id: 'kahf-4', title: 'Al-Kahf: Parable of Worldly Life', surah: 18, startAyat: 45, count: 2, theme: 'Eternal Good Deeds' },
+      { id: 'kahf-5', title: 'Al-Kahf: Musa & Al-Khidr Encounter', surah: 18, startAyat: 60, count: 7, theme: 'Journey for Wisdom' },
+      { id: 'kahf-6', title: 'Al-Kahf: The Unseen Wisdom of Allah', surah: 18, startAyat: 79, count: 4, theme: 'Divine Decree' },
+      { id: 'kahf-7', title: 'Al-Kahf: Dhul-Qarnayn & Rising Sun', surah: 18, startAyat: 83, count: 6, theme: 'Just Leadership' },
+      { id: 'kahf-8', title: 'Al-Kahf: Closing 10 Ayahs (Gardens of Firdaws)', surah: 18, startAyat: 101, count: 10, theme: 'Jannat al-Firdaws' },
+      { id: 'kahf-9', title: 'Surah Al-Jumu\'ah: Call to Friday Prayer', surah: 62, startAyat: 9, count: 3, theme: 'Friday Blessing' },
+      { id: 'kahf-10', title: 'Surah As-Sajdah: Prostration of the Believers', surah: 32, startAyat: 15, count: 3, theme: 'Humble Worship' },
+    ],
+  },
+
+  // 5. Tahajjud & Night Prayers
+  {
+    id: 'pack-tahajjud-night',
+    title: '10 Tahajjud & Night Devotion Verses',
+    arabicTitle: 'آيات قيام الليل والتهجد والاستغفار بالأسحار',
+    description: '10 profound verses celebrating the tranquility of night prayers, dawn istighfar, and intimate calling upon Allah.',
+    icon: '🌌',
+    category: 'friday-night',
+    items: [
+      { id: 'tah-1', title: 'Surah Al-Muzzammil: Arise the Night in Prayer', surah: 73, startAyat: 1, count: 10, theme: 'Qiyam al-Layl' },
+      { id: 'tah-2', title: 'Surah Al-Isra: Station of Praise & Honor', surah: 17, startAyat: 78, count: 5, theme: 'Maqam Mahmud' },
+      { id: 'tah-3', title: 'Surah Az-Zumar: Worship in the Hours of Night', surah: 39, startAyat: 9, count: 1, theme: 'Devotion in Darkness' },
+      { id: 'tah-4', title: 'Surah Al-Furqan: Night Prostrations of \'Ibadur-Rahman', surah: 25, startAyat: 63, count: 4, theme: 'Humility at Night' },
+      { id: 'tah-5', title: 'Surah As-Sajdah: Forsaking Soft Beds for Du\'a', surah: 32, startAyat: 16, count: 2, theme: 'Delight of the Eyes' },
+      { id: 'tah-6', title: 'Surah Adh-Dhariyat: Seeking Forgiveness at Dawn', surah: 51, startAyat: 15, count: 5, theme: 'Istighfar at Suhoor' },
+      { id: 'tah-7', title: 'Surah Al-Insan: Devotion Through the Long Night', surah: 76, startAyat: 25, count: 2, theme: 'Night Tasbeeh' },
+      { id: 'tah-8', title: 'Surah At-Tur: Glorifying Allah before Dawn', surah: 52, startAyat: 48, count: 2, theme: 'You are in Our Eyes' },
+      { id: 'tah-9', title: 'Surah Qaf: Prostration After the Prayers', surah: 50, startAyat: 39, count: 2, theme: 'Patience & Glorification' },
+      { id: 'tah-10', title: 'Surah Al-Munafiqun: True Wealth Before Death', surah: 63, startAyat: 9, count: 3, theme: 'Urgent Good Deeds' },
+    ],
+  },
+
+  // 6. Jannah & Eternal Gardens
+  {
+    id: 'pack-jannah-bliss',
+    title: '10 Descriptions of Jannah & Paradise',
+    arabicTitle: 'وصف الجنة والنعيم المقيم ولقاء الرحمن',
+    description: '10 breathtaking descriptions of the eternal gardens, springs, silk garments, and joy of the believers in Paradise.',
+    icon: '🌺',
+    category: 'jannah-akhirah',
+    items: [
+      { id: 'jan-1', title: 'Surah Al-Waqi\'ah: The Foremost in Faith', surah: 56, startAyat: 10, count: 17, theme: 'As-Sabiqun' },
+      { id: 'jan-2', title: 'Surah Al-Waqi\'ah: Companions of the Right', surah: 56, startAyat: 27, count: 14, theme: 'Ashab al-Yamin' },
+      { id: 'jan-3', title: 'Surah Ar-Rahman: The Two Sublime Gardens', surah: 55, startAyat: 46, count: 15, theme: 'Jannatani' },
+      { id: 'jan-4', title: 'Surah Ar-Rahman: Flowing Springs of Delight', surah: 55, startAyat: 62, count: 17, theme: 'Dark Green Gardens' },
+      { id: 'jan-5', title: 'Surah Al-Insan: Garments of Silk & Salsabil', surah: 76, startAyat: 11, count: 12, theme: 'Eternal Peace' },
+      { id: 'jan-6', title: 'Surah Al-Ghashiyah: Lofty Gardens of Serenity', surah: 88, startAyat: 8, count: 9, theme: 'Joyful Faces' },
+      { id: 'jan-7', title: 'Surah An-Naba: The Supreme Triumph', surah: 78, startAyat: 31, count: 6, theme: 'Gardens & Grapevines' },
+      { id: 'jan-8', title: 'Surah Al-Mutaffifin: The Pure Sealed Nectar', surah: 83, startAyat: 22, count: 7, theme: 'Tasneem & Musk' },
+      { id: 'jan-9', title: 'Surah Al-Kahf: Gardens of Al-Firdaws', surah: 18, startAyat: 107, count: 2, theme: 'Eternal Abode' },
+      { id: 'jan-10', title: 'Surah Al-Hijr: Enter in Peace & Security', surah: 15, startAyat: 45, count: 4, theme: 'No Rancour in Hearts' },
+    ],
+  },
+
+  // 7. Complete Surah Al-Mulk Suite (6 Reels)
+  {
+    id: 'pack-surah-mulk-full',
+    title: 'Surah Al-Mulk: Complete Night Protection',
+    arabicTitle: 'سورة الملك كاملة (6 مقاطع للتذكير اليومي)',
+    description: 'Complete 30 Ayahs of Surah Al-Mulk divided into 6 balanced reels for nightly protection in the grave.',
+    icon: '👑',
+    category: 'popular',
+    items: [
+      { id: 'mulk-1', title: 'Al-Mulk Part 1: Sovereignty & Life & Death (Ayat 1–5)', surah: 67, startAyat: 1, count: 5, theme: 'Tabarakalladhi' },
+      { id: 'mulk-2', title: 'Al-Mulk Part 2: Fear of the Unseen & Creator\'s Knowledge (Ayat 6–14)', surah: 67, startAyat: 6, count: 9, theme: 'He Knows the Secrets' },
+      { id: 'mulk-3', title: 'Al-Mulk Part 3: The Earth Made Submissive (Ayat 15–19)', surah: 67, startAyat: 15, count: 5, theme: 'Rizq & Safety' },
+      { id: 'mulk-4', title: 'Al-Mulk Part 4: The Sovereign Provider & Guidance (Ayat 20–24)', surah: 67, startAyat: 20, count: 5, theme: 'Gratitude for Senses' },
+      { id: 'mulk-5', title: 'Al-Mulk Part 5: The Inevitable Truth (Ayat 25–27)', surah: 67, startAyat: 25, count: 3, theme: 'Knowledge with Allah' },
+      { id: 'mulk-6', title: 'Al-Mulk Part 6: If Your Water Sinks Away (Ayat 28–30)', surah: 67, startAyat: 28, count: 3, theme: 'Who Brings Pure Water' },
+    ],
+  },
+
+  // 8. Parents & Family Virtues
+  {
+    id: 'pack-parents-family',
+    title: '10 Verses on Parents, Family & Children',
+    arabicTitle: 'بر الوالدين وصلاح الذرية والأسرة المسلمة',
+    description: '10 heartfelt verses on honoring mothers and fathers, praying for righteous spouses and pious children.',
+    icon: '💖',
+    category: 'family-virtues',
+    items: [
+      { id: 'fam-1', title: 'Surah Al-Isra: Honor Your Mother & Father', surah: 17, startAyat: 23, count: 2, theme: 'Wing of Humility' },
+      { id: 'fam-2', title: 'Surah Luqman: Luqman\'s Golden Advice to His Son', surah: 31, startAyat: 13, count: 6, theme: 'Gratitude to Parents' },
+      { id: 'fam-3', title: 'Surah Al-Ahqaf: Du\'a upon Reaching Maturity', surah: 46, startAyat: 15, count: 1, theme: 'Righteous Offspring' },
+      { id: 'fam-4', title: 'Surah Al-Furqan: Du\'a for Comfort of the Eyes', surah: 25, startAyat: 74, count: 1, theme: 'Qurrata A\'yun' },
+      { id: 'fam-5', title: 'Surah Ibrahim: Ibrahim\'s Du\'a for Prayer & Family', surah: 14, startAyat: 40, count: 2, theme: 'Steadfast in Salah' },
+      { id: 'fam-6', title: 'Surah Maryam: Yahya\'s Tenderness to Parents', surah: 19, startAyat: 12, count: 3, theme: 'Kindness & Humility' },
+      { id: 'fam-7', title: 'Surah At-Tahrim: Protecting Your Family with Faith', surah: 66, startAyat: 6, count: 1, theme: 'Protect Yourselves' },
+      { id: 'fam-8', title: 'Surah An-Nur: Modesty & Light of the Home', surah: 24, startAyat: 30, count: 2, theme: 'Purity of Heart' },
+      { id: 'fam-9', title: 'Surah At-Tahrim: Du\'a of Asiya (House in Jannah)', surah: 66, startAyat: 11, count: 1, theme: 'A Home Near Allah' },
+      { id: 'fam-10', title: 'Surah Ash-Shura: Love for Kinship', surah: 42, startAyat: 23, count: 1, theme: 'Bonds of Faith' },
+    ],
+  },
+
+  // 9. Rizq, Barakah & Gratitude
+  {
+    id: 'pack-rizq-barakah',
+    title: '10 Verses of Rizq, Barakah & Gratitude',
+    arabicTitle: 'آيات الرزق والبركة والاستغفار والشكر',
+    description: '10 powerful verses illustrating how gratitude, taqwa, and istighfar unlock abundant divine provision.',
+    icon: '🌾',
+    category: 'family-virtues',
+    items: [
+      { id: 'rzq-1', title: 'Surah Ibrahim: Gratitude Multiplies Blessings', surah: 14, startAyat: 7, count: 1, theme: 'La\'in Shakartum' },
+      { id: 'rzq-2', title: 'Surah Nuh: Istighfar Opens Rains & Wealth', surah: 71, startAyat: 10, count: 3, theme: 'Abundant Provision' },
+      { id: 'rzq-3', title: 'Surah At-Talaq: Rizq from Unimagined Sources', surah: 65, startAyat: 2, count: 2, theme: 'Tawakkul' },
+      { id: 'rzq-4', title: 'Surah Saba: Allah Expands Provision for Whom He Wills', surah: 34, startAyat: 39, count: 1, theme: 'He Replaces What You Give' },
+      { id: 'rzq-5', title: 'Surah Hud: Every Creature\'s Sustenance Guaranteed', surah: 11, startAyat: 6, count: 1, theme: 'Allah is the Provider' },
+      { id: 'rzq-6', title: 'Surah Al-Mulk: Walk in its Paths and Eat of His Provision', surah: 67, startAyat: 15, count: 1, theme: 'Seeking Livelihood' },
+      { id: 'rzq-7', title: 'Surah Al-Ankabut: How Many Creatures Carry Not Their Rizq', surah: 29, startAyat: 60, count: 3, theme: 'Trust in Allah' },
+      { id: 'rzq-8', title: 'Surah Fatir: Whatever Mercy Allah Opens None Can Withhold', surah: 35, startAyat: 2, count: 2, theme: 'Gates of Mercy' },
+      { id: 'rzq-9', title: 'Surah Az-Zumar: Unmeasured Reward for the Patient', surah: 39, startAyat: 10, count: 1, theme: 'Bi-Ghayri Hisab' },
+      { id: 'rzq-10', title: 'Surah At-Talaq: Allah Will Bring Ease After Hardship', surah: 65, startAyat: 7, count: 1, theme: 'Sayaj\'alullahu Yusra' },
+    ],
+  },
+
+  // 10. The 40 Rabbana Duas Gems
+  {
+    id: 'pack-40-rabbana',
+    title: '15 Timeless Rabbana Duas from the Quran',
+    arabicTitle: 'روائع أدعية (ربنا) الأربعون من محكم التنزيل',
+    description: '15 of the most celebrated invocations beginning with Rabbana for faith, forgiveness, guidance, and peace.',
+    icon: '✨',
+    category: 'duas',
+    items: [
+      { id: 'rab-1', title: 'Rabbana: Accept From Us', surah: 2, startAyat: 127, count: 2, theme: 'Taqabbal Minna' },
+      { id: 'rab-2', title: 'Rabbana: Good in this World & Hereafter', surah: 2, startAyat: 201, count: 1, theme: 'Fid-Dunya Hasanah' },
+      { id: 'rab-3', title: 'Rabbana: Pour Upon Us Patience', surah: 2, startAyat: 250, count: 1, theme: 'Afrigh \'Alayna Sabran' },
+      { id: 'rab-4', title: 'Rabbana: Do Not Lay on Us a Burden', surah: 2, startAyat: 286, count: 1, theme: 'Wa\'fu \'Anna' },
+      { id: 'rab-5', title: 'Rabbana: Do Not Deviate Our Hearts', surah: 3, startAyat: 8, count: 2, theme: 'La Tuzigh Quloobana' },
+      { id: 'rab-6', title: 'Rabbana: We Have Believed, Forgive Us', surah: 3, startAyat: 16, count: 1, theme: 'Faghfir Lana' },
+      { id: 'rab-7', title: 'Rabbana: You Did Not Create This in Vain', surah: 3, startAyat: 191, count: 4, theme: 'Subhanaka' },
+      { id: 'rab-8', title: 'Rabbana: We Have Wronged Ourselves', surah: 7, startAyat: 23, count: 1, theme: 'Zalamna Anfusana' },
+      { id: 'rab-9', title: 'Rabbana: Do Not Place Us with the Wrongdoers', surah: 7, startAyat: 47, count: 1, theme: 'Ma\'al Qawmiz-Zalimin' },
+      { id: 'rab-10', title: 'Rabbana: Pour Patience & Cause Us to Die Muslims', surah: 7, startAyat: 126, count: 1, theme: 'Tawaffana Muslimin' },
+      { id: 'rab-11', title: 'Rabbana: Forgive Me & My Parents & Believers', surah: 14, startAyat: 41, count: 1, theme: 'Yawma Yaqoomul Hisab' },
+      { id: 'rab-12', title: 'Rabbana: Grant Us Mercy From Yourself', surah: 18, startAyat: 10, count: 1, theme: 'Hayyi\' Lana Min Amrina' },
+      { id: 'rab-13', title: 'Rabbana: Avert From Us the Punishment of Hell', surah: 25, startAyat: 65, count: 2, theme: 'Asrif \'Anna \'Adhaba Jahannam' },
+      { id: 'rab-14', title: 'Rabbana: Grant Us Comfort in Spouses & Children', surah: 25, startAyat: 74, count: 1, theme: 'Qurrata A\'yun' },
+      { id: 'rab-15', title: 'Rabbana: Forgive Us & Our Preceding Brothers in Faith', surah: 59, startAyat: 10, count: 1, theme: 'No Malice in Hearts' },
+    ],
+  },
+
+  // 11. Day of Awakening & Akhirah
+  {
+    id: 'pack-day-of-judgment',
+    title: '10 Verses on the Day of Awakening',
+    arabicTitle: 'آيات يوم القيامة والبعث واليقين والرجوع إلى الله',
+    description: '10 deeply moving verses awakening the soul to the reality of the Day of Judgment and standing before Allah.',
+    icon: '⚖️',
+    category: 'jannah-akhirah',
+    items: [
+      { id: 'jud-1', title: 'Surah Al-Qiyamah: When the Vision is Dazzled', surah: 75, startAyat: 1, count: 15, theme: 'The Inevitable Day' },
+      { id: 'jud-2', title: 'Surah At-Takwir: When the Sun is Wrapped in Darkness', surah: 81, startAyat: 1, count: 14, theme: 'Cosmic Upheaval' },
+      { id: 'jud-3', title: 'Surah Al-Infitar: When the Sky is Cleft Asunder', surah: 82, startAyat: 1, count: 12, theme: 'What Deceived You?' },
+      { id: 'jud-4', title: 'Surah Al-Inshiqaq: He Given His Record in Right Hand', surah: 84, startAyat: 1, count: 15, theme: 'Easy Reckoning' },
+      { id: 'jud-5', title: 'Surah Az-Zalzalah: The Weight of an Atom of Good', surah: 99, startAyat: 1, count: 8, theme: 'Mithqala Dharratin' },
+      { id: 'jud-6', title: 'Surah Al-Qari\'ah: The Striking Calamity & Scales', surah: 101, startAyat: 1, count: 11, theme: 'Heavy Scales' },
+      { id: 'jud-7', title: 'Surah An-Nazi\'at: The Overwhelming Calamity', surah: 79, startAyat: 34, count: 8, theme: 'Remembering One\'s Striving' },
+      { id: 'jud-8', title: 'Surah Al-Haqqah: The Inevitable Reality & Trumpet', surah: 69, startAyat: 13, count: 12, theme: 'Take and Read My Book' },
+      { id: 'jud-9', title: 'Surah Qaf: Stupor of Death & The Nearness of Allah', surah: 50, startAyat: 16, count: 7, theme: 'Nearer than Jugular Vein' },
+      { id: 'jud-10', title: 'Surah Al-Hashr: What You Have Put Forward for Tomorrow', surah: 59, startAyat: 18, count: 3, theme: 'Taqwa & Preparation' },
+    ],
+  },
+
+  // 12. Juz Amma Gems
   {
     id: 'pack-juz-amma',
     title: '15 Juz Amma Surah Gems',
     arabicTitle: 'روائع قصار السور من جزء عم',
     description: '15 beloved short Surahs and Ayahs ideal for TikTok, Instagram Reels, and YouTube Shorts.',
     icon: '🕋',
+    category: 'popular',
     items: [
       { id: 'juz-1', title: 'Surah Al-Ikhlas (Purity)', surah: 112, startAyat: 1, count: 4, theme: 'Tawhid' },
       { id: 'juz-2', title: 'Surah Al-Falaq (Daybreak)', surah: 113, startAyat: 1, count: 5, theme: 'Protection' },
@@ -326,3 +546,4 @@ export const THEMATIC_PACKS: BulkPackPreset[] = [
     ],
   },
 ]
+

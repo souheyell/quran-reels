@@ -12,6 +12,57 @@ export interface ReelPreset {
 
 export const AESTHETIC_PRESETS: ReelPreset[] = [
   {
+    id: 'holy-quran-paper',
+    name: 'Holy Quran Paper',
+    icon: '📜',
+    description: 'Authentic Medina Mushaf paper, classical ink script, zero effects, pure selected ayat',
+    category: 'Mosques & Holy Sites',
+    config: {
+      text: {
+        arabicFont: '"Amiri Quran", "Amiri", serif',
+        arabicSize: 68,
+        translationFont: '"Inter", sans-serif',
+        translationSize: 36,
+        textPosition: 'center',
+        textColor: '#171412',
+        showGlow: false,
+        showTranslation: false,
+        surahHeaderPosition: 'top',
+        surahNameLanguage: 'arabic',
+        ayahPauseDelay: 0.0,
+        showBasmalah: true,
+        karaokeHighlight: false,
+        highlightColor: '#c59b27',
+        secondaryEditionId: 'none',
+        layoutMode: 'holy-quran-paper',
+        mushafTheme: 'madani-cream',
+      },
+      overlay: {
+        color: '#000000',
+        opacity: 0,
+      },
+      effects: {
+        type: 'none',
+        intensity: 0,
+        speed: 1,
+      },
+      border: {
+        type: 'none',
+        color: '#ffd700',
+        opacity: 0,
+      },
+      waveform: {
+        type: 'none',
+        color: '#ffd700',
+        opacity: 0,
+      },
+      motion: {
+        type: 'static',
+        duration: 15,
+      },
+    },
+  },
+  {
     id: 'golden-medina',
     name: 'Golden Medina',
     icon: '🌟',
