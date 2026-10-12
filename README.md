@@ -1,5 +1,14 @@
 # Islamic Reels Creator & Bulk Publisher Studio 🎬📖✨
 
+<div align="center">
+
+[![Release](https://img.shields.io/badge/Release-v1.1.0-D4AF37?style=for-the-badge&logo=android&logoColor=white)](https://github.com/souheyell/quran-reels/releases/tag/v1.1.0)
+[![Download APK](https://img.shields.io/badge/Download_APK-v1.1.0_(30MB)-10b981?style=for-the-badge&logo=android&logoColor=white)](https://github.com/souheyell/quran-reels/releases/download/v1.1.0/quran-reels-creator.apk)
+[![License: MIT](https://img.shields.io/badge/License-MIT-38bdf8?style=for-the-badge)](LICENSE)
+[![Tests: 131 Passing](https://img.shields.io/badge/Tests-131_Passing-10b981?style=for-the-badge&logo=vitest&logoColor=white)](https://github.com/souheyell/quran-reels)
+
+</div>
+
 > **بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ**  
 > ﴿ وَذَكِّرْ فَإِنَّ الذِّكْرَىٰ تَنفَعُ الْمُؤْمِنِينَ ﴾  
 > *“And remind, for indeed, the reminder benefits the believers.”* — Surah Adh-Dhariyat (51:55)
@@ -38,7 +47,7 @@ May Allah accept this humble endeavor from everyone who recites, builds, designs
 
 | 📁 Export Packs & Disk Batches | 📱 Connected Meta Channels |
 | :---: | :---: |
-| <img src="docs/screenshots/04_export_packs_view.png" width="100%" alt="Export Packs Explorer" /> | <img src="docs/screenshots/" width="100%" alt="Connected Facebook Pages and Instagram Accounts" /> |
+| <img src="docs/screenshots/04_export_packs_view.png" width="100%" alt="Export Packs Explorer" /> | <img src="docs/screenshots/05_meta_channels_view.png" width="100%" alt="Connected Facebook Pages and Instagram Accounts" /> |
 | *Automated disk library scanning, human-friendly relative dates & 1-click queue ingestion* | *Facebook Pages & Instagram profiles, token health diagnostics & audience stats* |
 
 <br/>
@@ -162,9 +171,17 @@ Audio fetched on-demand from the EveryAyah high-bitrate CDN:
 ### 🎥 7 Cinematic Camera Motion Presets (Ken Burns)
 * Slow push-in, expansive reveal, horizontal pan, ascending tilt, diagonal glide, contemplative breathing pulse, and static framing.
 
-### 📱 Native Android App (Official APK Release)
-* **Direct Download**: 📥 **[Download Quran Reels Creator APK v1.0.0 (7.48 MB)](https://github.com/souheyell/quran-reels/releases/download/v1.0.0/quran-reels-creator.apk)**
-* Standalone installable Android APK powered by Capacitor with GPU hardware acceleration, WebCodecs 60FPS video rendering, and native Android Share sheet integration.
+### 📱 Native Android App (Official Release v1.1.0)
+* **Direct APK Download**: 📥 **[Download Quran Reels Creator APK v1.1.0 (30.1 MB)](https://github.com/souheyell/quran-reels/releases/download/v1.1.0/quran-reels-creator.apk)**
+* **Alternative Direct Link**: 💾 **[Raw Repository APK Download](https://github.com/souheyell/quran-reels/raw/main/quran-reels-creator.apk)**
+* **Release Page & Tag**: 🏷️ **[GitHub Release v1.1.0](https://github.com/souheyell/quran-reels/releases/tag/v1.1.0)**
+
+#### 🌟 What's New in Mobile v1.1.0:
+* **All-in-One Studio Integration**: Full mobile-optimized access to the Canvas Studio, Quick Reel Wizard, Bulk Reel Generator modal, Reel Queue, and Accurate Publishing Calendar.
+* **Offline High-Res Background Pack**: Pre-packaged with atmospheric Islamic architectural photography, minarets, and celestial starscapes for instant, zero-data rendering.
+* **Hardware-Accelerated WebCodecs**: Full 60 FPS Canvas rendering, real-time audio spectrogram, sub-pixel Arabic typography (Thuluth, Amiri, Naskh), and MP4 export.
+* **Native Android Share Sheet**: One-tap native sharing direct to Instagram Reels, WhatsApp Status, TikTok, YouTube Shorts, and local device gallery.
+* **100% Local-First Privacy**: Video rendering and audio synthesis happen completely on your device; no video or voice data is ever transmitted to third-party servers.
 
 ---
 
@@ -238,6 +255,21 @@ npm run typecheck
 
 # Build optimized production bundle
 npm run build
+```
+
+### 📱 Building the Native Android APK
+```bash
+# 1. Compile web bundle and sync native Capacitor container
+npm run build
+npx cap sync android
+
+# 2. Build debug APK using Gradle (Requires Android SDK & JDK 21+)
+export ANDROID_HOME=$HOME/Library/Android/sdk # (macOS) or your Android SDK path
+cd android && ./gradlew assembleDebug && cd ..
+
+# 3. Copy generated APK to root
+cp android/app/build/outputs/apk/debug/app-debug.apk ./quran-reels-creator.apk
+# Ready to install on any Android phone or tablet!
 ```
 
 ---
