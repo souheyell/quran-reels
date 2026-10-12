@@ -13,6 +13,7 @@ import {
   STOCK_CATEGORIES,
   getLocalMediaCurated,
   getAllStockVideoLoops,
+  getRandomScene,
 } from '../api/unsplash'
 
 export interface ManifestItem {
@@ -46,7 +47,14 @@ export interface BatchItemStatus {
   durationMs?: number
 }
 
-export type BackgroundStrategy = 'current' | 'cycle-wallpapers' | 'cycle-videos'
+export type BackgroundStrategy =
+  | 'random-scenes'
+  | 'random-videos'
+  | 'random-wallpapers'
+  | 'cycle-wallpapers'
+  | 'cycle-videos'
+  | 'current'
+  | 'random-all'
 export type ReciterStrategy = 'selected' | 'shuffle'
 
 export const POPULAR_SHUFFLE_RECITERS = [
@@ -118,9 +126,10 @@ export async function renderBulkItem(
   baseConfig: ReelConfig,
   editionId: string,
   reciterId: string,
-  bgStrategy: BackgroundStrategy,
+  bgStrategy: BackgroundStrategy = 'random-scenes',
   onProgress: (status: string, percent: number) => void,
   reciterStrategy: ReciterStrategy = 'selected',
+  preassignedScene?: { url: string; mediaType: 'image' | 'video'; title?: string },
 ): Promise<{ blob: Blob; caption: string; verses: Verse[]; durationMs: number }> {
   // Determine effective reciter for this reel
   let effectiveReciter = item.reciterId || reciterId
@@ -167,7 +176,25 @@ export async function renderBulkItem(
   let bgUrl = baseConfig.background.url
   let bgType: 'image' | 'video' = baseConfig.background.mediaType || 'image'
 
-  if (bgStrategy === 'cycle-wallpapers') {
+  if (item.backgroundUrl) {
+    bgUrl = item.backgroundUrl
+    bgType = item.backgroundType || (/\.(mp4|webm|mov|m4v)($|\?)/i.test(item.backgroundUrl) ? 'video' : 'image')
+  } else if (preassignedScene?.url) {
+    bgUrl = preassignedScene.url
+    bgType = preassignedScene.mediaType
+  } else if (bgStrategy === 'random-scenes' || bgStrategy === 'random-all') {
+    const scene = getRandomScene('all')
+    bgUrl = scene.full
+    bgType = scene.mediaType
+  } else if (bgStrategy === 'random-videos') {
+    const scene = getRandomScene('video')
+    bgUrl = scene.full
+    bgType = scene.mediaType
+  } else if (bgStrategy === 'random-wallpapers') {
+    const scene = getRandomScene('image')
+    bgUrl = scene.full
+    bgType = scene.mediaType
+  } else if (bgStrategy === 'cycle-wallpapers') {
     const localCurated = getLocalMediaCurated()
     if (localCurated.images.length > 0) {
       const picked = localCurated.images[itemIndex % localCurated.images.length]

@@ -364,7 +364,11 @@ export function QuickWizardModal({
                             background: {
                               ...currentConfig.background,
                               url: video.full,
-                              mediaType: 'video',
+                              mediaType:
+                                video.mediaType === 'video' &&
+                                !video.full.startsWith('https://images.unsplash.com')
+                                  ? 'video'
+                                  : 'image',
                             },
                           })
                         }}

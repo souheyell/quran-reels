@@ -263,7 +263,12 @@ export function BackgroundPanel({
       const randomVid = STOCK_VIDEO_LOOPS[randIdx]
       if (randomVid) {
         setSelectedCategory(randomVid.category)
-        onUrlChange(randomVid.full, 'video')
+        const vidType =
+          randomVid.mediaType === 'video' &&
+          !randomVid.full.startsWith('https://images.unsplash.com')
+            ? 'video'
+            : 'image'
+        onUrlChange(randomVid.full, vidType)
       }
     } else {
       const randomImg = getRandomStockImage()
@@ -683,15 +688,18 @@ export function BackgroundPanel({
               <div className="thumbs">
                 {displayedLocalItems.map((item) => {
                   const isSelected = item.url === url
+                  const isRealVideo =
+                    item.mediaType === 'video' &&
+                    !item.url.startsWith('https://images.unsplash.com')
                   return (
                     <button
                       key={item.id}
                       type="button"
                       className={`thumb ${isSelected ? 'active' : ''}`}
-                      title={`${item.title} (${item.mediaType === 'video' ? 'Video Loop' : '4K Photo'})`}
-                      onClick={() => onUrlChange(item.url, item.mediaType)}
+                      title={`${item.title} (${isRealVideo ? 'Video Loop' : '4K Visual'})`}
+                      onClick={() => onUrlChange(item.url, isRealVideo ? 'video' : 'image')}
                     >
-                      {item.mediaType === 'video' ? (
+                      {isRealVideo ? (
                         <video
                           src={item.url}
                           muted
@@ -704,7 +712,7 @@ export function BackgroundPanel({
                       )}
                       <div className="thumb-overlay">
                         <span className="thumb-badge">
-                          {item.mediaType === 'video' ? '🎬 Video' : '📷 Photo'}
+                          {isRealVideo ? '🎬 Video' : '📷 Visual'}
                         </span>
                         {item.sizeLabel && (
                           <span className="thumb-size-pill">{item.sizeLabel}</span>

@@ -310,8 +310,155 @@ export function getAllStockVideoLoops(): CuratedMedia[] {
   return [...localCuratedVideos, ...STOCK_VIDEO_LOOPS]
 }
 
+/**
+ * Retrieve all available video scenes (local videos + stock loops).
+ */
+export function getAllAvailableVideos(): CuratedMedia[] {
+  return getAllStockVideoLoops()
+}
+
+/**
+ * Retrieve all available wallpaper scenes (local photos + curated 4K wallpapers across all categories).
+ */
+export function getAllAvailableWallpapers(): CuratedMedia[] {
+  const seen = new Set<string>()
+  const wallpapers: CuratedMedia[] = []
+
+  for (const img of localCuratedImages) {
+    if (!seen.has(img.full)) {
+      seen.add(img.full)
+      wallpapers.push(img)
+    }
+  }
+
+  for (const cat of STOCK_CATEGORIES) {
+    const photos = getImagesForCategory(cat, 0)
+    for (const p of photos) {
+      if (!seen.has(p.full)) {
+        seen.add(p.full)
+        wallpapers.push(p)
+      }
+    }
+  }
+
+  return wallpapers
+}
+
+/**
+ * Retrieve all unique curated scenes (wallpapers + video loops + local media).
+ */
+export function getAllAvailableScenes(): CuratedMedia[] {
+  const seen = new Set<string>()
+  const scenes: CuratedMedia[] = []
+
+  // 1. Local and stock videos
+  const videos = getAllStockVideoLoops()
+  for (const v of videos) {
+    if (!seen.has(v.full)) {
+      seen.add(v.full)
+      scenes.push(v)
+    }
+  }
+
+  // 2. Local images
+  for (const img of localCuratedImages) {
+    if (!seen.has(img.full)) {
+      seen.add(img.full)
+      scenes.push(img)
+    }
+  }
+
+  // 3. Stock wallpapers across all categories
+  for (const cat of STOCK_CATEGORIES) {
+    const photos = getImagesForCategory(cat, 0)
+    for (const p of photos) {
+      if (!seen.has(p.full)) {
+        seen.add(p.full)
+        scenes.push(p)
+      }
+    }
+  }
+
+  return scenes
+}
+
 export const DEFAULT_BACKGROUND_URL = makeUnsplashUrl(
   PHOTO_DATABASE['Mosques & Holy Sites'][0].id,
   1080,
   1920,
 )
+
+/**
+ * Select a 100% random scene across all available media or filtered by type.
+ */
+export function getRandomScene(mode: 'all' | 'video' | 'image' = 'all'): CuratedMedia {
+  let pool: CuratedMedia[] = []
+  if (mode === 'video') {
+    pool = getAllAvailableVideos()
+  } else if (mode === 'image') {
+    pool = getAllAvailableWallpapers()
+  } else {
+    pool = getAllAvailableScenes()
+  }
+
+  if (pool.length === 0) {
+    return {
+      id: 'default-scene',
+      category: 'Mosques & Holy Sites',
+      title: 'Grand Mosque Dome & Minarets',
+      source: 'Unsplash',
+      full: DEFAULT_BACKGROUND_URL,
+      thumb: DEFAULT_BACKGROUND_URL,
+      mediaType: 'image',
+    }
+  }
+
+  const randIdx = Math.floor(Math.random() * pool.length)
+  return pool[randIdx]
+}
+
+/**
+ * Generate a non-repeating, 100% randomly shuffled batch of scenes of length `count`.
+ * Guarantees zero duplicates when count <= pool size.
+ */
+export function getRandomScenesBatch(
+  count: number,
+  mode: 'all' | 'video' | 'image' = 'all',
+): CuratedMedia[] {
+  let pool: CuratedMedia[] = []
+  if (mode === 'video') {
+    pool = getAllAvailableVideos()
+  } else if (mode === 'image') {
+    pool = getAllAvailableWallpapers()
+  } else {
+    pool = getAllAvailableScenes()
+  }
+
+  if (pool.length === 0) {
+    const fallback = getRandomScene(mode)
+    return Array.from({ length: count }, () => fallback)
+  }
+
+  // Fisher-Yates shuffle
+  const shuffleArray = <T>(arr: T[]): T[] => {
+    const copy = [...arr]
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[copy[i], copy[j]] = [copy[j], copy[i]]
+    }
+    return copy
+  }
+
+  const result: CuratedMedia[] = []
+  while (result.length < count) {
+    const shuffled = shuffleArray(pool)
+    // Avoid adjacent duplicates when chaining passes
+    if (result.length > 0 && shuffled.length > 1 && shuffled[0].full === result[result.length - 1].full) {
+      const last = shuffled.length - 1
+      ;[shuffled[0], shuffled[last]] = [shuffled[last], shuffled[0]]
+    }
+    result.push(...shuffled)
+  }
+
+  return result.slice(0, count)
+}

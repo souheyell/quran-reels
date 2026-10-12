@@ -97,16 +97,16 @@ export function drawBackground(
   transform: Transform,
   fit: 'cover-crop' | 'blur-fill',
 ): void {
-  ctx.save()
-  if (fit === 'blur-fill') {
-    ctx.filter = 'blur(14px)'
-    ctx.fillStyle = '#000'
-    ctx.fillRect(0, 0, width, height)
+  const isVideo = typeof HTMLVideoElement !== 'undefined' && image instanceof HTMLVideoElement
+
+  // Check if video is loaded and has decoded dimensions
+  if (isVideo) {
+    const vid = image as HTMLVideoElement
+    if (vid.videoWidth === 0 || vid.readyState < 2) {
+      // Frame not yet ready for drawing; skip cleanly
+      return
+    }
   }
-  ctx.translate(width / 2, height / 2)
-  ctx.scale(transform.scale, transform.scale)
-  ctx.translate(transform.x * width, transform.y * height)
-  ctx.translate(-width / 2, -height / 2)
 
   const imgW =
     (image as HTMLImageElement).naturalWidth ||
@@ -118,10 +118,68 @@ export function drawBackground(
     (image as HTMLVideoElement).videoHeight ||
     (image as HTMLCanvasElement).height ||
     height
-  const target = fit === 'blur-fill' ? 1.25 : 1
-  const cover = Math.max(width / imgW, height / imgH) * target
+
+  if (imgW <= 0 || imgH <= 0) return
+
+  // For video footage which already contains camera motion, restrain Ken Burns scale to prevent extreme cropping
+  const effectiveScale = isVideo ? Math.min(transform.scale, 1.04) : transform.scale
+  const effectivePanX = isVideo ? transform.x * 0.4 : transform.x
+  const effectivePanY = isVideo ? transform.y * 0.4 : transform.y
+
+  if (fit === 'blur-fill') {
+    // 1. Draw blurred, cinematic pillarbox background covering the canvas
+    ctx.save()
+    ctx.filter = 'blur(16px) brightness(0.55)'
+    ctx.fillStyle = '#000'
+    ctx.fillRect(0, 0, width, height)
+    const bgCover = Math.max(width / imgW, height / imgH) * 1.15
+    const bgDrawW = imgW * bgCover
+    const bgDrawH = imgH * bgCover
+    try {
+      ctx.drawImage(image, (width - bgDrawW) / 2, (height - bgDrawH) / 2, bgDrawW, bgDrawH)
+    } catch {
+      // ignore
+    }
+    ctx.restore()
+
+    // 2. Draw sharp, unblurred foreground fitted within canvas dimensions (contain)
+    ctx.save()
+    ctx.translate(width / 2, height / 2)
+    ctx.scale(effectiveScale, effectiveScale)
+    ctx.translate(effectivePanX * width, effectivePanY * height)
+    ctx.translate(-width / 2, -height / 2)
+
+    const contain = Math.min(width / imgW, height / imgH)
+    const fgDrawW = imgW * contain
+    const fgDrawH = imgH * contain
+
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.75)'
+    ctx.shadowBlur = 18
+    try {
+      ctx.drawImage(image, (width - fgDrawW) / 2, (height - fgDrawH) / 2, fgDrawW, fgDrawH)
+    } catch {
+      // ignore
+    }
+    ctx.restore()
+    return
+  }
+
+  // Cover-crop layout
+  ctx.save()
+  ctx.translate(width / 2, height / 2)
+  ctx.scale(effectiveScale, effectiveScale)
+  ctx.translate(effectivePanX * width, effectivePanY * height)
+  ctx.translate(-width / 2, -height / 2)
+
+  const cover = Math.max(width / imgW, height / imgH)
   const drawW = imgW * cover
   const drawH = imgH * cover
-  ctx.drawImage(image, (width - drawW) / 2, (height - drawH) / 2, drawW, drawH)
+
+  try {
+    ctx.drawImage(image, (width - drawW) / 2, (height - drawH) / 2, drawW, drawH)
+  } catch {
+    // Graceful fallback if video frame unavailable
+  }
   ctx.restore()
 }
+

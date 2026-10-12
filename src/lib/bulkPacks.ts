@@ -6,6 +6,9 @@ export interface BulkItem {
   count: number
   theme?: string
   reciterId?: string
+  backgroundUrl?: string
+  backgroundType?: 'image' | 'video'
+  backgroundTitle?: string
 }
 
 export type PackCategory =

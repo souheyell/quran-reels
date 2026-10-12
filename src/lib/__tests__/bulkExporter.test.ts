@@ -206,4 +206,42 @@ describe('bulkExporter service', () => {
     expect(POPULAR_SHUFFLE_RECITERS.some((r) => r.id === 'ar.minshawi')).toBe(true)
     expect(POPULAR_SHUFFLE_RECITERS.some((r) => r.id === 'ar.sudais')).toBe(true)
   })
+
+  it('selects 100% random scenes with support for all, video, and image modes', async () => {
+    const { getRandomScene, getAllAvailableScenes } = await import('../../api/unsplash')
+    const allScenes = getAllAvailableScenes()
+    expect(allScenes.length).toBeGreaterThanOrEqual(50)
+
+    const randomScene = getRandomScene('all')
+    expect(randomScene).toBeDefined()
+    expect(randomScene.full).toBeTruthy()
+    expect(['image', 'video']).toContain(randomScene.mediaType)
+
+    const randomVideo = getRandomScene('video')
+    expect(randomVideo.id.startsWith('video-') || randomVideo.mediaType === 'video').toBe(true)
+
+    const randomWallpaper = getRandomScene('image')
+    expect(randomWallpaper.mediaType).toBe('image')
+  })
+
+  it('generates a non-repeating random scenes batch for bulk reels generation', async () => {
+    const { getRandomScenesBatch } = await import('../../api/unsplash')
+
+    // Generate batch of 10 items
+    const batch10 = getRandomScenesBatch(10, 'all')
+    expect(batch10.length).toBe(10)
+
+    // Verify all 10 URLs are distinct (zero duplicates within batch)
+    const urls10 = new Set(batch10.map((s) => s.full))
+    expect(urls10.size).toBe(10)
+
+    // Generate video-only batch
+    const videoBatch = getRandomScenesBatch(5, 'video')
+    expect(videoBatch.length).toBe(5)
+    expect(videoBatch.every((v) => v.id.startsWith('video-') || v.mediaType === 'video')).toBe(true)
+
+    // Generate large batch beyond single pool size to ensure multi-pass chaining
+    const largeBatch = getRandomScenesBatch(90, 'all')
+    expect(largeBatch.length).toBe(90)
+  })
 })

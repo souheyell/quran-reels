@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useReelConfig } from './hooks/useReelConfig'
 import { useVerseLoader } from './hooks/useVerseLoader'
 import { useExport } from './hooks/useExport'
@@ -19,8 +19,7 @@ import { PreviewCanvas } from './components/PreviewCanvas'
 import { AboutModal } from './components/AboutModal'
 import { BulkCreateModal } from './components/BulkCreateModal'
 import { QuickWizardModal } from './components/QuickWizardModal'
-import { ExportCliPopup, isCliPopupDisabled } from './components/ExportCliPopup'
-import { buildUploaderCliCommand } from './lib/exportDestination'
+import { AutoUploadDock } from './components/AutoUploadDock'
 import { getRandomStockImage } from './api/unsplash'
 import { loadSavedCustomFonts } from './lib/customFonts'
 import { getVaultMediaLiveUrl } from './lib/mediaDB'
@@ -32,10 +31,35 @@ import {
   type DecodedRecipe,
 } from './lib/recipeEngine'
 import { addGenerationToHistory } from './lib/storage'
-import type { ReelConfig, ExportQualityPreset } from './types'
+import { Play, Pause } from 'lucide-react'
+import { useStudio } from './publisher/context/StudioContext'
+import { OverviewStudio } from './publisher/components/dashboard/OverviewStudio'
+import { ReelQueueGrid } from './publisher/components/queue/ReelQueueGrid'
+import { ReelDetailDrawer } from './publisher/components/queue/ReelDetailDrawer'
+import { CreateBatchModal } from './publisher/components/batches/CreateBatchModal'
+import { FacebookPagesView } from './publisher/components/pages/FacebookPagesView'
+import { ConnectPageModal } from './publisher/components/pages/ConnectPageModal'
+import { FetchPagesModal } from './publisher/components/pages/FetchPagesModal'
+import { SchedulingCalendar } from './publisher/components/scheduling/SchedulingCalendar'
+import { FailureDiagnosticsModal } from './publisher/components/history/FailureDiagnosticsModal'
+import { BulkCaptionModal } from './publisher/components/modals/BulkCaptionModal'
+import { BulkScheduleModal } from './publisher/components/modals/BulkScheduleModal'
+import { PublishReelModal } from './publisher/components/modals/PublishReelModal'
+import { LocalFileExplorerModal } from './publisher/components/modals/LocalFileExplorerModal'
+import { ExportPacksView } from './components/ExportPacksView'
+import { Toast } from './publisher/components/shared/Toast'
+import type { ReelConfig } from './types'
 import './App.css'
 
-type StudioTab = 'all' | 'verses' | 'media' | 'typography' | 'effects' | 'studio'
+type StudioTab = 'verses' | 'media' | 'typography' | 'effects'
+export type StudioWorkflow =
+  | 'creator'
+  | 'bulk'
+  | 'queue'
+  | 'schedule'
+  | 'exports'
+  | 'pages'
+  | 'dashboard'
 
 function App() {
   const {
@@ -91,6 +115,68 @@ function App() {
     applyPreset,
   } = useReelConfig()
 
+  const studio = useStudio()
+  const {
+    reels,
+    pages,
+    isWorkerRunning,
+    toggleWorker,
+    activeTab: publisherActiveTab,
+    setActiveTab: setPublisherActiveTab,
+    addReels,
+  } = studio
+
+  const [workflowMode, setWorkflowMode] = useState<StudioWorkflow>('creator')
+
+  const lastPublisherActiveTabRef = useRef(publisherActiveTab)
+
+  const handleSwitchWorkflow = useCallback(
+    (mode: StudioWorkflow) => {
+      setWorkflowMode(mode)
+      if (mode === 'queue') {
+        lastPublisherActiveTabRef.current = 'queue'
+        setPublisherActiveTab('queue')
+      } else if (mode === 'schedule') {
+        lastPublisherActiveTabRef.current = 'schedule'
+        setPublisherActiveTab('schedule')
+      } else if (mode === 'exports') {
+        lastPublisherActiveTabRef.current = 'exports'
+        setPublisherActiveTab('exports')
+      } else if (mode === 'pages') {
+        lastPublisherActiveTabRef.current = 'pages'
+        setPublisherActiveTab('pages')
+      } else if (mode === 'dashboard') {
+        lastPublisherActiveTabRef.current = 'dashboard'
+        setPublisherActiveTab('dashboard')
+      }
+    },
+    [setPublisherActiveTab],
+  )
+
+  // Sync only when publisherActiveTab was explicitly changed internally by a child component
+  useEffect(() => {
+    if (lastPublisherActiveTabRef.current !== publisherActiveTab) {
+      lastPublisherActiveTabRef.current = publisherActiveTab
+      if (publisherActiveTab === 'queue') {
+        setWorkflowMode('queue')
+      } else if (publisherActiveTab === 'schedule') {
+        setWorkflowMode('schedule')
+      } else if (publisherActiveTab === 'exports') {
+        setWorkflowMode('exports')
+      } else if (publisherActiveTab === 'pages') {
+        setWorkflowMode('pages')
+      } else if (
+        publisherActiveTab === 'dashboard' ||
+        publisherActiveTab === 'batches' ||
+        publisherActiveTab === 'history' ||
+        publisherActiveTab === 'settings' ||
+        publisherActiveTab === 'upload'
+      ) {
+        setWorkflowMode('dashboard')
+      }
+    }
+  }, [publisherActiveTab])
+
   const verseLoader = useVerseLoader({
     initialSurah: 2,
     initialAyat: 255,
@@ -102,8 +188,7 @@ function App() {
   const [showBulkModal, setShowBulkModal] = useState(false)
   const [showRecipeModal, setShowRecipeModal] = useState(false)
   const [showQuickWizard, setShowQuickWizard] = useState(false)
-  const [activeTab, setActiveTab] = useState<StudioTab>('all')
-  const [sidebarSearch, setSidebarSearch] = useState('')
+  const [activeTab, setActiveTab] = useState<StudioTab>('verses')
 
   // Re-register saved custom fonts on app boot
   useEffect(() => {
@@ -154,9 +239,7 @@ function App() {
 
   const {
     exporting,
-    exportError,
     exportProgress,
-    exportFormat,
     shareToast,
     exportPreset,
     exportOptions,
@@ -164,48 +247,55 @@ function App() {
     handleExportVideo,
     handleShareReel,
     handleExportPng,
+    lastExportedBlob,
     lastSaveResult,
-    clearLastSaveResult,
   } = useExport(config, image, timeline)
 
-  const [showCliPopup, setShowCliPopup] = useState<boolean>(false)
-  const [manualCliResult, setManualCliResult] = useState<{
-    path: string
-    folderPath?: string
-    cliCommand?: string
-    message?: string
-  } | null>(null)
-
-  // Show popup upon export completion unless user has disabled it
+  // Seamless integration: automatically ingest Canvas-exported reel into Publisher Queue
   useEffect(() => {
-    if (lastSaveResult?.cliCommand) {
-      if (!isCliPopupDisabled()) {
-        setShowCliPopup(true)
-      }
-    }
-  }, [lastSaveResult])
+    if (lastExportedBlob?.blob) {
+      const first = config.verses[0]
+      const last = config.verses[config.verses.length - 1]
+      const surahNum = first?.surah || 1
+      const surahName = first?.surahName || 'Quran'
+      const ayahRange = config.verses.length > 1 ? `${first?.ayat || 1} - ${last?.ayat || 1}` : `${first?.ayat || 1}`
+      const filename = lastExportedBlob.filename || `reel_${surahNum}_${Date.now()}.mp4`
+      const defaultPageIds = pages.length > 0 ? [pages[0].id] : ['fb-page-ajr']
+      const caption = config.verses.map((v) => v.translation).join(' ')
 
-  const activeCliResult = lastSaveResult || manualCliResult
-
-  const handleToggleCliHub = () => {
-    if (showCliPopup && activeCliResult) {
-      setShowCliPopup(false)
-    } else {
-      if (!lastSaveResult) {
-        const first = config.verses[0]
-        const fallbackFilename = `islamic-reel-${first?.surah || 1}-${first?.ayat || 1}.mp4`
-        const fallbackPath = `exports/single/${fallbackFilename}`
-        const cmd = buildUploaderCliCommand({ filePath: fallbackPath })
-        setManualCliResult({
-          path: fallbackPath,
-          folderPath: 'exports/single',
-          cliCommand: cmd,
-          message: 'Single Reel CLI Command',
-        })
-      }
-      setShowCliPopup(true)
+      addReels([
+        {
+          id: `canvas-${Date.now()}`,
+          filename,
+          title: `Surah ${surahName} (${ayahRange})`,
+          surahNumber: surahNum,
+          surahName,
+          ayahRange,
+          reciterName: verseLoader.reciterId.split('-')[0].replace('_', ' '),
+          durationSeconds: Math.round(timeline.totalMs / 1000),
+          resolution: config.aspectRatio === '9:16' ? '1080x1920' : '1080x1080',
+          fps: 60,
+          codec: 'H.264 (MP4)',
+          fileSizeMb: Number((lastExportedBlob.blob.size / (1024 * 1024)).toFixed(1)),
+          status: 'READY',
+          uploadProgress: 0,
+          captionArabic: config.verses.map((v) => v.arabic).join(' ۝ '),
+          captionEnglish: caption,
+          hashtags: ['#Quran', '#IslamicReels', `#Surah${surahName.replace(/[^a-zA-Z0-9]/g, '')}`, '#Tilawah', '#Ajr'],
+          targetPageIds: defaultPageIds,
+          targetPlatforms: ['facebook', 'instagram'],
+          audioLufs: -14.0,
+          audioNormalized: true,
+          videoValid: true,
+          resolutionValid: true,
+          durationValid: true,
+          videoFile: lastExportedBlob.blob,
+          videoUrl: URL.createObjectURL(lastExportedBlob.blob),
+          createdAt: new Date().toISOString(),
+        },
+      ])
     }
-  }
+  }, [lastExportedBlob])
 
   const handleRestoreRecipe = useCallback(
     async (recipe: DecodedRecipe) => {
@@ -398,7 +488,7 @@ function App() {
 
   return (
     <div className="app studio-app">
-      {/* ── Studio Top Navigation Bar ──────────────────────────── */}
+      {/* ── Studio Top Navigation Bar (Unified All-in-One Command Center) ── */}
       <header className="header studio-header">
         <div className="header-brand">
           <div className="brand-icon-wrapper">
@@ -416,10 +506,9 @@ function App() {
           </div>
           <div className="brand-text-col">
             <div className="brand-title-row">
-              <h1 className="brand-title">Islamic Reels Creator</h1>
-              <span className="header-badge-pro">STUDIO PRO</span>
+              <h1 className="brand-title">Noor Studio</h1>
+              <span className="header-badge-pro">PRO</span>
             </div>
-            <span className="brand-subtitle">Quran Video Production Suite · 4K 60FPS</span>
           </div>
           <button
             type="button"
@@ -431,209 +520,208 @@ function App() {
           </button>
         </div>
 
+        {/* ── Unified Workflow Navigation Bar (Segmented Tabs) ──────────── */}
+        <nav className="studio-unified-nav" aria-label="Studio Workflows">
+          <button
+            type="button"
+            className={`workflow-tab-btn ${workflowMode === 'creator' ? 'active' : ''}`}
+            onClick={() => handleSwitchWorkflow('creator')}
+            title="Interactive 9:16 Canvas Studio (Verses, Audio, Motion, Effects, 4K Export)"
+          >
+            <span className="tab-icon">🎨</span>
+            <span className="tab-label">Canvas Studio</span>
+          </button>
+
+          <button
+            type="button"
+            className={`workflow-tab-btn ${workflowMode === 'bulk' ? 'active' : ''}`}
+            onClick={() => handleSwitchWorkflow('bulk')}
+            title="Bulk Batch Generator (Ramadan 30-Day Pack, Whole Surah Split, Thematic Packs)"
+          >
+            <span className="tab-icon">⚡</span>
+            <span className="tab-label">Bulk Generator</span>
+          </button>
+
+          <button
+            type="button"
+            className={`workflow-tab-btn ${workflowMode === 'queue' ? 'active' : ''}`}
+            onClick={() => handleSwitchWorkflow('queue')}
+            title="Publisher Reel Queue (Audio Loudness Normalization, Captions & Meta Publishing)"
+          >
+            <span className="tab-icon">📋</span>
+            <span className="tab-label">Queue</span>
+            {reels.length > 0 && (
+              <span className="tab-badge badge-glow">{reels.length}</span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            className={`workflow-tab-btn ${workflowMode === 'schedule' ? 'active' : ''}`}
+            onClick={() => handleSwitchWorkflow('schedule')}
+            title="1-Click Prayer Times Scheduling Engine (Fajr, Dhuhr, Asr, Maghrib, Isha)"
+          >
+            <span className="tab-icon">📅</span>
+            <span className="tab-label">Scheduler</span>
+          </button>
+
+          <button
+            type="button"
+            className={`workflow-tab-btn ${workflowMode === 'exports' ? 'active' : ''}`}
+            onClick={() => handleSwitchWorkflow('exports')}
+            title="Export Packs & Disk Library (Full Timestamps, Relative Dates, 1-Click Ingest)"
+          >
+            <span className="tab-icon">📁</span>
+            <span className="tab-label">Export Packs</span>
+          </button>
+
+          <button
+            type="button"
+            className={`workflow-tab-btn ${workflowMode === 'pages' ? 'active' : ''}`}
+            onClick={() => handleSwitchWorkflow('pages')}
+            title="Connected Facebook Pages & Meta Accounts"
+          >
+            <span className="tab-icon">📱</span>
+            <span className="tab-label">Meta Channels</span>
+            {pages.length > 0 && <span className="tab-badge-subtle">{pages.length}</span>}
+          </button>
+
+          <button
+            type="button"
+            className={`workflow-tab-btn ${workflowMode === 'dashboard' ? 'active' : ''}`}
+            onClick={() => handleSwitchWorkflow('dashboard')}
+            title="Publishing Performance Dashboard & Telemetry"
+          >
+            <span className="tab-icon">📊</span>
+            <span className="tab-label">Overview</span>
+          </button>
+        </nav>
+
         {/* Live Studio Telemetry Bar in Header */}
-        <div className="header-telemetry-pill">
-          <span className="telemetry-item">
-            <span className="telemetry-dot" />
-            {primaryVerse ? `Surah ${primaryVerse.surah} : ${primaryVerse.ayat}` : 'Surah 2:255'}
-          </span>
-          <span className="telemetry-divider">·</span>
-          <span className="telemetry-item">
-            {config.verses.length} {config.verses.length === 1 ? 'Ayah' : 'Ayat'} ({durationFormatted})
-          </span>
-          <span className="telemetry-divider">·</span>
-          <span className="telemetry-item reciter-pill">
-            🎙️ {verseLoader.reciterId.split('-')[0].replace('_', ' ')}
-          </span>
-        </div>
+        {workflowMode === 'creator' ? (
+          <div className="header-telemetry-pill">
+            <span className="telemetry-item">
+              <span className="telemetry-dot" />
+              {primaryVerse ? `Surah ${primaryVerse.surah} : ${primaryVerse.ayat}` : 'Surah 2:255'}
+            </span>
+            <span className="telemetry-divider">·</span>
+            <span className="telemetry-item">
+              {config.verses.length} {config.verses.length === 1 ? 'Ayah' : 'Ayat'} ({durationFormatted})
+            </span>
+            <span className="telemetry-divider">·</span>
+            <span className="telemetry-item reciter-pill">
+              🎙️ {verseLoader.reciterId.split('-')[0].replace('_', ' ')}
+            </span>
+          </div>
+        ) : (
+          <div className="header-telemetry-pill">
+            <span className="telemetry-item">
+              <span
+                className={`telemetry-dot ${isWorkerRunning ? 'animate-pulse' : ''}`}
+                style={{ backgroundColor: isWorkerRunning ? '#10B981' : '#F59E0B' }}
+              />
+              Engine: {isWorkerRunning ? 'LIVE' : 'PAUSED'}
+            </span>
+            <span className="telemetry-divider">·</span>
+            <span className="telemetry-item">
+              {pages.filter((p) => p.status === 'CONNECTED').length} Pages Active
+            </span>
+            <span className="telemetry-divider">·</span>
+            <span className="telemetry-item" style={{ color: '#34D399' }}>
+              Bridge 3001
+            </span>
+          </div>
+        )}
 
         <div className="header-actions">
-          {/* Quick 3-Step Wizard Button */}
-          <button
-            type="button"
-            className="btn-wizard-header"
-            onClick={() => setShowQuickWizard(true)}
-            title="3-Step Rapid Reel Creator (Ayah -> Style -> 1080p Export)"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(16, 185, 129, 0.2) 100%)',
-              border: '1px solid #f59e0b',
-              color: '#fbbf24',
-              padding: '0.42rem 0.85rem',
-              borderRadius: '8px',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              boxShadow: '0 0 14px rgba(245, 158, 11, 0.25)',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span className="btn-icon">⚡</span>
-            <span>Quick Wizard</span>
-          </button>
+          {workflowMode === 'creator' ? (
+            <>
+              {/* Quick 3-Step Wizard Button */}
+              <button
+                type="button"
+                className="btn-header-action"
+                onClick={() => setShowQuickWizard(true)}
+                title="3-Step Rapid Reel Creator (Ayah -> Style -> 1080p Export)"
+              >
+                <span className="btn-icon">⚡</span>
+                <span>Wizard</span>
+              </button>
 
-          {/* Random Discovery Button */}
-          <button
-            type="button"
-            className="btn-random-header"
-            onClick={handleRandomDiscovery}
-            title="Discover a random inspirational Quran ayah & background"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              color: '#d4e4fa',
-              padding: '0.4rem 0.75rem',
-              borderRadius: '8px',
-              fontWeight: 600,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span className="btn-icon">🎲</span>
-            <span>Random</span>
-          </button>
+              {/* Recipe Code Vault */}
+              <button
+                type="button"
+                className="btn-header-action btn-recipe-badge"
+                onClick={() => setShowRecipeModal(true)}
+                title="View Recipe Code, Restore Saved Creations, or Browse History"
+              >
+                <span className="btn-icon">🔖</span>
+                <span className="recipe-tag">{currentRecipeShortHash}</span>
+              </button>
 
-          <button
-            type="button"
-            className="btn-recipe-header"
-            onClick={() => setShowRecipeModal(true)}
-            title="View Recipe Code, Restore Saved Creations, or Browse History"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              background: 'rgba(245, 158, 11, 0.12)',
-              border: '1px solid rgba(245, 158, 11, 0.35)',
-              color: '#fbbf24',
-              padding: '0.4rem 0.75rem',
-              borderRadius: '8px',
-              fontWeight: 600,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span className="btn-icon">🔖</span>
-            <span>Recipe Vault</span>
-            <span
-              style={{
-                fontFamily: 'monospace',
-                background: 'rgba(0,0,0,0.35)',
-                padding: '0.1rem 0.35rem',
-                borderRadius: '4px',
-                fontSize: '0.74rem',
-              }}
-            >
-              {currentRecipeShortHash}
-            </span>
-          </button>
-          <button
-            type="button"
-            className="btn-bulk-header"
-            onClick={() => setShowBulkModal(true)}
-            title="Bulk Reel Generator (Whole Surah, 30-Day Packs, ZIP Export)"
-          >
-            <span className="btn-icon">📦</span>
-            Bulk Studio
-          </button>
-          <button
-            type="button"
-            className="btn-bulk-header"
-            style={{
-              background: showCliPopup ? 'rgba(56, 189, 248, 0.22)' : 'rgba(56, 189, 248, 0.1)',
-              borderColor: showCliPopup ? '#38bdf8' : 'rgba(56, 189, 248, 0.3)',
-              color: '#38bdf8',
-            }}
-            onClick={handleToggleCliHub}
-            title="Toggle Bulk Uploader CLI Hub & Export Paths"
-          >
-            <span className="btn-icon">💻</span>
-            CLI Hub
-          </button>
-          <button
-            type="button"
-            className="btn-quick-export"
-            onClick={handleExportVideo}
-            disabled={exporting}
-            title="Fast 1080p MP4 Export"
-          >
-            <span className="btn-icon">⚡</span>
-            {exporting ? `Exporting ${exportProgress}%` : 'Quick Export'}
-          </button>
-          <button
-            type="button"
-            className="header-link about-btn"
-            onClick={() => setShowAbout(true)}
-          >
-            About &amp; Bio
-          </button>
+              {/* Random Discovery Button */}
+              <button
+                type="button"
+                className="btn-header-action"
+                onClick={handleRandomDiscovery}
+                title="Discover a random inspirational Quran ayah & background"
+              >
+                <span className="btn-icon">🎲</span>
+                <span>Random</span>
+              </button>
+
+              {/* Quick 1080p Export CTA (Visible in Creator mode) */}
+              <button
+                type="button"
+                className="btn-quick-export"
+                onClick={handleExportVideo}
+                disabled={exporting}
+                title="Fast 1080p MP4 Export"
+              >
+                <span className="btn-icon">⚡</span>
+                {exporting ? `Exporting ${exportProgress}%` : 'Quick Export'}
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Publishing Engine Worker Toggle */}
+              <button
+                type="button"
+                className="btn-header-action"
+                onClick={() => toggleWorker()}
+                title={isWorkerRunning ? 'Pause automated publishing engine' : 'Start automated publishing engine'}
+                style={{
+                  borderColor: isWorkerRunning ? 'rgba(16,185,129,0.4)' : 'rgba(245,158,11,0.4)',
+                  background: isWorkerRunning ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
+                  color: isWorkerRunning ? '#34D399' : '#FBBF24',
+                }}
+              >
+                {isWorkerRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                <span>{isWorkerRunning ? 'Engine Live' : 'Engine Paused'}</span>
+              </button>
+
+              {/* Quick 3-Step Wizard Button */}
+              <button
+                type="button"
+                className="btn-header-action"
+                onClick={() => setShowQuickWizard(true)}
+                title="Create a new reel via Quick Wizard"
+              >
+                <span className="btn-icon">⚡</span>
+                <span>Wizard</span>
+              </button>
+            </>
+          )}
         </div>
       </header>
 
       {/* ── 3-Column Studio Workspace ──────────────────────────── */}
-      <div className="layout studio-layout">
+      {workflowMode === 'creator' && (
+        <>
+          <div className="layout studio-layout">
         {/* ── Left Column: Studio Navigation & Controls ─────────── */}
         <aside className="sidebar studio-sidebar">
-          {/* Quick Search / Filter for Effortless Navigation */}
-          <div className="sidebar-search-box" style={{ padding: '0.65rem 0.85rem 0.35rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <span style={{ position: 'absolute', left: '10px', fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }}>🔍</span>
-              <input
-                type="text"
-                placeholder="Dive into settings (font, reciter, frame, timer…)"
-                value={sidebarSearch}
-                onChange={(e) => {
-                  setSidebarSearch(e.target.value)
-                  if (e.target.value.trim() && activeTab !== 'all') {
-                    setActiveTab('all')
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  background: 'rgba(0,0,0,0.35)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '20px',
-                  padding: '0.35rem 0.85rem 0.35rem 2rem',
-                  fontSize: '0.78rem',
-                  color: '#fff',
-                  outline: 'none',
-                }}
-              />
-              {sidebarSearch && (
-                <button
-                  type="button"
-                  onClick={() => setSidebarSearch('')}
-                  style={{
-                    position: 'absolute',
-                    right: '8px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'rgba(255,255,255,0.5)',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
-
           {/* Navigation Category Tabs */}
           <div className="studio-tabs-bar">
-            <button
-              type="button"
-              className={`studio-tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-              onClick={() => setActiveTab('all')}
-            >
-              <span>✨</span> All
-            </button>
             <button
               type="button"
               className={`studio-tab-btn ${activeTab === 'verses' ? 'active' : ''}`}
@@ -646,7 +734,7 @@ function App() {
               className={`studio-tab-btn ${activeTab === 'media' ? 'active' : ''}`}
               onClick={() => setActiveTab('media')}
             >
-              <span>🎬</span> Footage
+              <span>🎬</span> Footage &amp; Layout
             </button>
             <button
               type="button"
@@ -660,20 +748,13 @@ function App() {
               className={`studio-tab-btn ${activeTab === 'effects' ? 'active' : ''}`}
               onClick={() => setActiveTab('effects')}
             >
-              <span>🎨</span> Visual FX
-            </button>
-            <button
-              type="button"
-              className={`studio-tab-btn ${activeTab === 'studio' ? 'active' : ''}`}
-              onClick={() => setActiveTab('studio')}
-            >
-              <span>📐</span> Studio
+              <span>✨</span> Visual FX
             </button>
           </div>
 
           <div className="studio-panels-container">
             {/* 1. Scripture & Reciters */}
-            {(activeTab === 'all' || activeTab === 'verses') && (
+            {activeTab === 'verses' && (
               <VersePanel
                 verses={config.verses}
                 editionId={verseLoader.editionId}
@@ -700,19 +781,27 @@ function App() {
               />
             )}
 
-            {/* 2. Footage & Backgrounds */}
-            {(activeTab === 'all' || activeTab === 'media') && (
-              <BackgroundPanel
-                url={config.background.url}
-                fit={config.background.fit}
-                mediaType={config.background.mediaType}
-                onUrlChange={setBackgroundUrl}
-                onFitChange={setBackgroundFit}
-              />
+            {/* 2. Footage, Backgrounds & Layout Mode */}
+            {activeTab === 'media' && (
+              <>
+                <BackgroundPanel
+                  url={config.background.url}
+                  fit={config.background.fit}
+                  mediaType={config.background.mediaType}
+                  onUrlChange={setBackgroundUrl}
+                  onFitChange={setBackgroundFit}
+                />
+                <LayoutPanel
+                  textPosition={config.text.textPosition}
+                  aspectRatio={config.aspectRatio}
+                  onTextPosition={setTextPosition}
+                  onAspectRatio={setAspectRatio}
+                />
+              </>
             )}
 
-            {/* 3. Typography & Quran Layout Mode */}
-            {(activeTab === 'all' || activeTab === 'typography') && (
+            {/* 3. Typography & Quran Styling */}
+            {activeTab === 'typography' && (
               <StylePanel
                 overlayColor={config.overlay.color}
                 overlayOpacity={config.overlay.opacity}
@@ -763,8 +852,8 @@ function App() {
               />
             )}
 
-            {/* 4. Visual FX: Frames, Waveforms & Particles */}
-            {(activeTab === 'all' || activeTab === 'effects') && (
+            {/* 4. Visual FX, Frames, Waveform, Particles & Details */}
+            {activeTab === 'effects' && (
               <>
                 <BorderPanel
                   borderType={config.border.type}
@@ -789,18 +878,6 @@ function App() {
                   onEffectType={setEffectType}
                   onIntensity={setEffectIntensity}
                   onSpeed={setEffectSpeed}
-                />
-              </>
-            )}
-
-            {/* 5. Studio & Format: Canvas Aspect Ratio, Motion, Timer, Social Branding */}
-            {(activeTab === 'all' || activeTab === 'studio') && (
-              <>
-                <LayoutPanel
-                  textPosition={config.text.textPosition}
-                  aspectRatio={config.aspectRatio}
-                  onTextPosition={setTextPosition}
-                  onAspectRatio={setAspectRatio}
                 />
                 <MotionPanel
                   motionType={config.motion.type}
@@ -839,160 +916,25 @@ function App() {
           <div className="canvas-viewport-wrapper">
             <PreviewCanvas config={config} image={image} timeline={timeline} />
           </div>
-
-          {/* ── Fast Mobile / APK Action Bar ─────────────────────── */}
-          <div className="mobile-action-bar">
-            <button
-              id="mobile-export-video-btn"
-              type="button"
-              className="btn btn-mobile-export"
-              onClick={handleExportVideo}
-              disabled={exporting}
-            >
-              <span className="btn-icon">⚡</span>
-              {exporting ? `Exporting… ${exportProgress}%` : `Export ${exportFormat.toUpperCase()} Reel`}
-            </button>
-            <button
-              id="mobile-share-reel-btn"
-              type="button"
-              className="btn btn-mobile-share"
-              onClick={handleShareReel}
-              disabled={exporting}
-            >
-              <span className="btn-icon">📲</span>
-              Share
-            </button>
-            <button
-              id="mobile-export-png-btn"
-              type="button"
-              className="btn btn-mobile-png"
-              onClick={handleExportPng}
-              disabled={exporting}
-            >
-              <span className="btn-icon">🖼️</span>
-              PNG
-            </button>
-          </div>
         </main>
 
-        {/* ── Right Column: Studio Pro Inspector & Export Toolbar ─ */}
+        {/* ── Right Column: Auto-Ready Upload Dock & Social Bridge ─ */}
         <aside className="studio-inspector">
-          <div className="inspector-header">
-            <h2 className="inspector-title">Inspector</h2>
-            <span className="inspector-sub">Quality &amp; Export</span>
-          </div>
-
-          <div className="inspector-content">
-            {/* Video Quality Card */}
-            <div className="inspector-card">
-              <h3 className="inspector-card-title">Video Quality</h3>
-              <div className="inspector-field">
-                <label>Export Preset</label>
-                <select
-                  className="inspector-select"
-                  value={exportPreset}
-                  onChange={(e) => setExportPreset(e.target.value as ExportQualityPreset)}
-                >
-                  <option value="instagram-fb">⭐ Instagram &amp; FB (1080p · 30fps · 10Mbps)</option>
-                  <option value="smooth-60fps">🎬 Smooth 60 FPS (1080p · 60fps · 14Mbps)</option>
-                  <option value="4k-master">👑 4K Master (2160x3840 · 30fps · 30Mbps)</option>
-                  <option value="compact">⚡ Compact Share (1080p · 30fps · 6Mbps)</option>
-                </select>
-              </div>
-              <div className="inspector-row">
-                <span>Framerate</span>
-                <span className="badge-emerald">{exportOptions.fps ?? 30} FPS</span>
-              </div>
-              <div className="inspector-row">
-                <span>Video Bitrate</span>
-                <span className="badge-emerald">{Math.round((exportOptions.bitrate ?? 10_000_000) / 1_000_000)} Mbps VBR</span>
-              </div>
-              <div className="inspector-row">
-                <span>Audio Codec</span>
-                <span className="badge-dim">AAC Stereo {Math.round((exportOptions.audioBitrate ?? 320_000) / 1000)}k</span>
-              </div>
-              <div className="inspector-row">
-                <span>Video Codec</span>
-                <span className="badge-dim">H.264 High Profile</span>
-              </div>
-            </div>
-
-            {/* Project Stats Telemetry Card */}
-            <div className="inspector-card">
-              <h3 className="inspector-card-title">Project Telemetry</h3>
-              <div className="telemetry-grid">
-                <div className="telemetry-stat">
-                  <span className="stat-label">Duration</span>
-                  <span className="stat-value font-mono">{durationFormatted}</span>
-                </div>
-                <div className="telemetry-stat">
-                  <span className="stat-label">Total Ayat</span>
-                  <span className="stat-value font-mono">{config.verses.length}</span>
-                </div>
-                <div className="telemetry-stat">
-                  <span className="stat-label">Particles</span>
-                  <span className="stat-value">{config.effects.type !== 'none' ? '✨ Active' : 'Off'}</span>
-                </div>
-                <div className="telemetry-stat">
-                  <span className="stat-label">Frame</span>
-                  <span className="stat-value">{config.border.type !== 'none' ? '🕌 Active' : 'None'}</span>
-                </div>
-              </div>
-              <div className="status-row">
-                <span className="status-indicator-dot" />
-                <span className="status-text">Hardware Acceleration: Ready</span>
-              </div>
-            </div>
-
-            {/* Error Message if any */}
-            {exportError && <p className="error inspector-error">{exportError}</p>}
-
-            {/* Export Command Center */}
-            <div className="inspector-actions">
-              <button
-                id="share-reel-btn"
-                type="button"
-                className="btn btn-share-primary"
-                onClick={handleShareReel}
-                disabled={exporting}
-                title="Direct share to Instagram Stories, TikTok, WhatsApp or copy caption"
-              >
-                <span className="export-icon">📲</span>
-                {exporting ? `Rendering… ${exportProgress}%` : 'Share Reel to Socials'}
-              </button>
-
-              <div className="export-btn-wrap">
-                <button
-                  id="export-video-btn"
-                  type="button"
-                  className="btn btn-export-primary"
-                  onClick={handleExportVideo}
-                  disabled={exporting}
-                >
-                  <span className="export-icon">⚡</span>
-                  {exporting
-                    ? `Exporting Reel… ${exportProgress}%`
-                    : `Download ${exportFormat.toUpperCase()} Reel`}
-                </button>
-                {exporting && (
-                  <div
-                    className="export-progress-bar"
-                    style={{ width: `${exportProgress}%` }}
-                  />
-                )}
-              </div>
-
-              <button
-                id="export-png-btn"
-                type="button"
-                className="btn btn-export-secondary"
-                onClick={handleExportPng}
-                disabled={exporting}
-              >
-                Download 4K PNG Frame
-              </button>
-            </div>
-          </div>
+          <AutoUploadDock
+            exporting={exporting}
+            exportProgress={exportProgress}
+            exportPreset={exportPreset}
+            exportOptions={exportOptions}
+            onExportPresetChange={setExportPreset}
+            lastSaveResult={lastSaveResult}
+            lastExportedBlob={lastExportedBlob}
+            config={config}
+            totalDurationFormatted={durationFormatted}
+            onSwitchToPublisher={() => handleSwitchWorkflow('queue')}
+            onExportNow={handleExportVideo}
+            onShareReel={handleShareReel}
+            onExportPng={handleExportPng}
+          />
         </aside>
       </div>
 
@@ -1018,18 +960,57 @@ function App() {
           </div>
         </div>
       </footer>
+        </>
+      )}
+
+      {/* ── Main Workspace: Embedded Bulk Generator ──────────────── */}
+      {workflowMode === 'bulk' && (
+        <BulkCreateModal
+          isOpen={true}
+          embedded={true}
+          onClose={() => handleSwitchWorkflow('creator')}
+          baseConfig={config}
+          editionId={verseLoader.editionId}
+          reciterId={verseLoader.reciterId}
+          onOpenPublisher={() => handleSwitchWorkflow('schedule')}
+        />
+      )}
+
+      {/* ── Main Workspace: Unified Publisher Engine & Queue ──────── */}
+      {workflowMode !== 'creator' && workflowMode !== 'bulk' && (
+        <div className="publisher-embedded-workspace">
+          <main className="publisher-main-workarea">
+            {workflowMode === 'queue' && <ReelQueueGrid />}
+            {workflowMode === 'schedule' && <SchedulingCalendar />}
+            {workflowMode === 'exports' && (
+              <ExportPacksView
+                onSwitchToQueue={() => handleSwitchWorkflow('queue')}
+                onSwitchToBulkGenerator={() => handleSwitchWorkflow('bulk')}
+              />
+            )}
+            {workflowMode === 'pages' && <FacebookPagesView />}
+            {workflowMode === 'dashboard' && <OverviewStudio />}
+          </main>
+        </div>
+      )}
 
       {/* ── Sadaqah Jariyah & Bio Modal ────────────────────────── */}
       <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
 
-      {/* ── Bulk Reel Generator & Batch Studio Modal ────────────── */}
-      <BulkCreateModal
-        isOpen={showBulkModal}
-        onClose={() => setShowBulkModal(false)}
-        baseConfig={config}
-        editionId={verseLoader.editionId}
-        reciterId={verseLoader.reciterId}
-      />
+      {/* ── Popup Bulk Reel Generator Modal ────────────── */}
+      {showBulkModal && (
+        <BulkCreateModal
+          isOpen={showBulkModal}
+          onClose={() => setShowBulkModal(false)}
+          baseConfig={config}
+          editionId={verseLoader.editionId}
+          reciterId={verseLoader.reciterId}
+          onOpenPublisher={() => {
+            setShowBulkModal(false)
+            handleSwitchWorkflow('schedule')
+          }}
+        />
+      )}
 
       {/* ── Recipe Codes & Generation History Modal ─────────────── */}
       <RecipeModal
@@ -1074,22 +1055,17 @@ function App() {
         onExportPresetChange={setExportPreset}
       />
 
-      {/* ── Resizable, Draggable, Dismissible CLI Export Popup ── */}
-      {showCliPopup && activeCliResult?.cliCommand && (
-        <ExportCliPopup
-          result={activeCliResult}
-          onClose={() => {
-            setShowCliPopup(false)
-            clearLastSaveResult()
-            setManualCliResult(null)
-          }}
-          onToggleDisable={(disabled) => {
-            if (disabled) {
-              setShowCliPopup(false)
-            }
-          }}
-        />
-      )}
+      {/* ── Global Publisher Drawers & Modals ────────────────────── */}
+      <ReelDetailDrawer />
+      <FailureDiagnosticsModal />
+      <CreateBatchModal />
+      <ConnectPageModal />
+      <FetchPagesModal />
+      <PublishReelModal />
+      <BulkCaptionModal />
+      <BulkScheduleModal />
+      <LocalFileExplorerModal />
+      <Toast />
 
       {/* ── Share & Action Toast Notification ───────────────────── */}
       {shareToast && (

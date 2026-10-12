@@ -195,8 +195,11 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   useEffect(() => {
     const isVideo =
       image instanceof HTMLVideoElement ||
-      config.background.mediaType === 'video' ||
-      /\.(mp4|webm|mov|m4v)($|\?)/i.test(config.background.url)
+      (Boolean(config.background.url) &&
+        !config.background.url.startsWith('https://images.unsplash.com') &&
+        !/\.(jpe?g|png|webp|gif|svg)($|\?)/i.test(config.background.url) &&
+        (config.background.mediaType === 'video' ||
+          /\.(mp4|webm|mov|m4v)($|\?)/i.test(config.background.url)))
 
     if (!isVideo) {
       if (videoRef.current) {
@@ -236,7 +239,11 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       v.loop = true
       v.muted = true
       v.playsInline = true
-      v.crossOrigin = 'anonymous'
+      const isLocal =
+        config.background.url.startsWith('blob:') || config.background.url.startsWith('data:')
+      if (!isLocal) {
+        v.crossOrigin = 'anonymous'
+      }
       v.preload = 'auto'
       if (playing) {
         v.play().catch(() => {})
@@ -381,6 +388,27 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     if (playing) {
       slotStartRef.current = performance.now()
       rafRef.current = requestAnimationFrame(loop)
+    } else {
+      // Render static frame when paused so visual changes reflect immediately
+      const canvas = canvasRef.current
+      if (canvas) {
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          const currentIndex = indexRef.current
+          const activeVerse = verses[currentIndex] || verses[0]
+          const activeSlot = timeline.slots[currentIndex] || timeline.slots[0]
+          const verseOffsetMs = Math.max(0, currentProgressMs - (activeSlot?.startMs || 0))
+          renderFrame(ctx, {
+            timeMs: currentProgressMs,
+            config,
+            image: videoRef.current || image,
+            verse: activeVerse,
+            verseTimeMs: verseOffsetMs,
+            slotDurationMs: activeSlot?.durationMs || 1000,
+            totalDurationMs: Math.max(1, timeline.totalMs),
+          })
+        }
+      }
     }
 
     return () => {
@@ -393,6 +421,7 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
     config,
     image,
     advanceTo,
+    currentProgressMs,
   ])
 
   // Pause / resume audio when play state changes
@@ -475,6 +504,24 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
       if (videoRef.current && Number.isFinite(videoRef.current.duration) && videoRef.current.duration > 0) {
         videoRef.current.currentTime = (clampedMs / 1000) % videoRef.current.duration
       }
+
+      if (!playingRef.current) {
+        const canvas = canvasRef.current
+        if (canvas) {
+          const ctx = canvas.getContext('2d')
+          if (ctx) {
+            renderFrame(ctx, {
+              timeMs: clampedMs,
+              config,
+              image: videoRef.current || image,
+              verse: verses[safeIdx] || verses[0],
+              verseTimeMs: offsetMs,
+              slotDurationMs: targetSlot.durationMs || 1000,
+              totalDurationMs: totalMs,
+            })
+          }
+        }
+      }
     }
   }
 
@@ -507,85 +554,43 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
   return (
     <div className="preview-container">
       {/* ── Viewport Floating Toolbar (Safe Zones & Aspect) ──── */}
-      <div className="viewport-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: '380px', marginBottom: '0.5rem', padding: '0 0.25rem' }}>
-        <div style={{ display: 'flex', gap: '0.35rem', background: 'rgba(5, 20, 36, 0.7)', backdropFilter: 'blur(12px)', padding: '0.2rem 0.35rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="viewport-toolbar">
+        <div className="viewport-toolbar-pills">
           <button
             type="button"
             onClick={() => setSafeZone('none')}
             title="Clean Viewport"
-            style={{
-              background: safeZone === 'none' ? '#f59e0b' : 'transparent',
-              color: safeZone === 'none' ? '#000' : 'rgba(255,255,255,0.7)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '0.2rem 0.55rem',
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            className={`viewport-pill-btn ${safeZone === 'none' ? 'active' : ''}`}
           >
             Clean
           </button>
           <button
             type="button"
-            onClick={() => setSafeZone(safeZone === 'instagram' ? 'none' : 'instagram')}
+            onClick={() => setSafeZone('instagram')}
             title="Toggle Instagram Reels Safe Zone"
-            style={{
-              background: safeZone === 'instagram' ? '#f59e0b' : 'transparent',
-              color: safeZone === 'instagram' ? '#000' : 'rgba(255,255,255,0.7)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '0.2rem 0.55rem',
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-            }}
+            className={`viewport-pill-btn ${safeZone === 'instagram' ? 'active' : ''}`}
           >
             <span>📱</span> IG Reels
           </button>
           <button
             type="button"
-            onClick={() => setSafeZone(safeZone === 'tiktok' ? 'none' : 'tiktok')}
+            onClick={() => setSafeZone('tiktok')}
             title="Toggle TikTok Safe Zone"
-            style={{
-              background: safeZone === 'tiktok' ? '#f59e0b' : 'transparent',
-              color: safeZone === 'tiktok' ? '#000' : 'rgba(255,255,255,0.7)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '0.2rem 0.55rem',
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-            }}
+            className={`viewport-pill-btn ${safeZone === 'tiktok' ? 'active' : ''}`}
           >
             <span>🎵</span> TikTok
           </button>
           <button
             type="button"
-            onClick={() => setSafeZone(safeZone === 'grid' ? 'none' : 'grid')}
+            onClick={() => setSafeZone('grid')}
             title="Toggle Rule-of-Thirds Composition Grid"
-            style={{
-              background: safeZone === 'grid' ? '#f59e0b' : 'transparent',
-              color: safeZone === 'grid' ? '#000' : 'rgba(255,255,255,0.7)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '0.2rem 0.55rem',
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            className={`viewport-pill-btn ${safeZone === 'grid' ? 'active' : ''}`}
           >
             📐 Grid
           </button>
         </div>
 
-        <div style={{ fontSize: '0.72rem', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '0.2rem 0.5rem', borderRadius: '12px', fontWeight: 600 }}>
+        <div className="aspect-badge">
           {config.aspectRatio} · {width}x{height}
         </div>
       </div>
@@ -594,8 +599,6 @@ export function PreviewCanvas({ config, image, timeline }: PreviewCanvasProps) {
         className="preview-wrapper"
         style={{
           aspectRatio: config.aspectRatio.replace(':', '/'),
-          cursor: 'pointer',
-          position: 'relative',
         }}
         onClick={() => {
           if (autoplayBlocked) {

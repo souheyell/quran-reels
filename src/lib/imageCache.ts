@@ -47,8 +47,13 @@ function evict(): void {
 }
 
 export function isVideoUrl(url: string, explicitType?: 'image' | 'video'): boolean {
-  if (explicitType === 'video') return true
+  if (!url) return false
   if (explicitType === 'image') return false
+  // Image hosts or image file extensions can never be decoded by an HTMLVideoElement
+  if (/^https?:\/\/images\.unsplash\.com/i.test(url)) return false
+  if (/\.(jpe?g|png|webp|gif|svg)($|\?)/i.test(url)) return false
+
+  if (explicitType === 'video') return true
   return /\.(mp4|webm|mov|m4v)($|\?)/i.test(url)
 }
 

@@ -37,8 +37,18 @@ import {
   getSocialDurationCategory,
 } from '../lib/durationEstimator'
 import { ALL_RECITERS } from '../api/quran'
+import {
+  getAllAvailableScenes,
+  getAllStockVideoLoops,
+  getLocalMediaCurated,
+  STOCK_CATEGORIES,
+  getImagesForCategory,
+  getRandomScene,
+  getRandomScenesBatch,
+} from '../api/unsplash'
 import { shareReelVideo } from '../lib/share'
 import { saveAndDownloadBlob } from '../lib/export'
+import { useStudio } from '../publisher/context/StudioContext'
 
 interface BulkCreateModalProps {
   isOpen: boolean
@@ -46,6 +56,8 @@ interface BulkCreateModalProps {
   baseConfig: ReelConfig
   editionId: string
   reciterId: string
+  onOpenPublisher?: (packFolder?: string) => void
+  embedded?: boolean
 }
 
 type BulkTab = 'surah' | 'ramadan' | 'themes' | 'custom'
@@ -96,7 +108,10 @@ export function BulkCreateModal({
   baseConfig,
   editionId,
   reciterId,
+  onOpenPublisher,
+  embedded = false,
 }: BulkCreateModalProps) {
+  const studio = useStudio()
   const [activeTab, setActiveTab] = useState<BulkTab>('surah')
 
   // Surah splitter state
@@ -144,9 +159,23 @@ export function BulkCreateModal({
   }, [themeCategory, activeTab, filteredThemes, selectedThemeId])
 
   // Background & Reciter Strategies
-  const [bgStrategy, setBgStrategy] = useState<BackgroundStrategy>('cycle-wallpapers')
+  const [bgStrategy, setBgStrategy] = useState<BackgroundStrategy>('random-scenes')
   const [reciterStrategy, setReciterStrategy] = useState<ReciterStrategy>('selected')
   const [bulkReciterId, setBulkReciterId] = useState<string>(reciterId || 'ar.alafasy')
+
+  // Available scenes memoized for the selectors
+  const allAvailableScenes = useMemo(() => getAllAvailableScenes(), [])
+  const availableVideos = useMemo(() => getAllStockVideoLoops(), [])
+  const localImages = useMemo(() => getLocalMediaCurated().images, [])
+  const popularWallpapers = useMemo(() => {
+    const raw = STOCK_CATEGORIES.flatMap((cat) => getImagesForCategory(cat).slice(0, 2))
+    const seen = new Set<string>()
+    return raw.filter((p) => {
+      if (seen.has(p.full)) return false
+      seen.add(p.full)
+      return true
+    })
+  }, [])
 
   // Grouped reciters for the selector
   const groupedReciters = useMemo(() => {
@@ -178,6 +207,93 @@ export function BulkCreateModal({
     setQueue((prev) =>
       prev.map((it) => (it.id === itemId ? { ...it, reciterId: newReciterId || undefined } : it)),
     )
+  }
+
+  // Update scene for individual reel in queue
+  const updateItemScene = (itemId: string, newSceneUrl: string) => {
+    if (!newSceneUrl) {
+      setQueue((prev) =>
+        prev.map((it) =>
+          it.id === itemId
+            ? { ...it, backgroundUrl: undefined, backgroundType: undefined, backgroundTitle: undefined }
+            : it,
+        ),
+      )
+      return
+    }
+    const found = allAvailableScenes.find((s) => s.full === newSceneUrl)
+    setQueue((prev) =>
+      prev.map((it) =>
+        it.id === itemId
+          ? {
+              ...it,
+              backgroundUrl: newSceneUrl,
+              backgroundType:
+                found?.mediaType ||
+                (/\.(mp4|webm|mov|m4v)($|\?)/i.test(newSceneUrl) ? 'video' : 'image'),
+              backgroundTitle: found?.title || 'Custom Scene',
+            }
+          : it,
+      ),
+    )
+  }
+
+  // Randomize scene for single queue item
+  const randomizeSingleItemScene = (itemId: string) => {
+    const mode =
+      bgStrategy === 'random-videos'
+        ? 'video'
+        : bgStrategy === 'random-wallpapers'
+          ? 'image'
+          : 'all'
+    const scene = getRandomScene(mode)
+    setQueue((prev) =>
+      prev.map((it) =>
+        it.id === itemId
+          ? {
+              ...it,
+              backgroundUrl: scene.full,
+              backgroundType: scene.mediaType,
+              backgroundTitle: scene.title,
+            }
+          : it,
+      ),
+    )
+    showToast(`🎲 Assigned random scene: ${scene.title}`)
+  }
+
+  // Randomize all scenes across queue with 100% unique selection
+  const handleRandomizeAllScenes = () => {
+    if (queue.length === 0) return
+    const mode =
+      bgStrategy === 'random-videos'
+        ? 'video'
+        : bgStrategy === 'random-wallpapers'
+          ? 'image'
+          : 'all'
+    const randomBatch = getRandomScenesBatch(queue.length, mode)
+    setQueue((prev) =>
+      prev.map((it, idx) => ({
+        ...it,
+        backgroundUrl: randomBatch[idx]?.full,
+        backgroundType: randomBatch[idx]?.mediaType,
+        backgroundTitle: randomBatch[idx]?.title,
+      })),
+    )
+    showToast(`🎲 100% Random scenes assigned to all ${queue.length} reels!`)
+  }
+
+  // Reset all scenes in queue to dynamic auto
+  const handleResetAllScenes = () => {
+    setQueue((prev) =>
+      prev.map((it) => ({
+        ...it,
+        backgroundUrl: undefined,
+        backgroundType: undefined,
+        backgroundTitle: undefined,
+      })),
+    )
+    showToast('Reset all reels to dynamic random scenes')
   }
 
   // Generation queue state
@@ -395,11 +511,38 @@ export function BulkCreateModal({
       durationMs: number
     }> = []
 
+    // Pre-generate a 100% unique batch of random scenes for items without explicit scene overrides
+    const isRandomMode =
+      bgStrategy === 'random-scenes' ||
+      bgStrategy === 'random-videos' ||
+      bgStrategy === 'random-wallpapers' ||
+      bgStrategy === 'random-all'
+
+    const randomModeType =
+      bgStrategy === 'random-videos'
+        ? 'video'
+        : bgStrategy === 'random-wallpapers'
+          ? 'image'
+          : 'all'
+
+    const preassignedBatchScenes = isRandomMode
+      ? getRandomScenesBatch(itemsToProcess.length, randomModeType)
+      : []
+
     for (let i = 0; i < itemsToProcess.length; i++) {
       if (isCancelledRef.current) break
 
       const item = itemsToProcess[i]
       setCurrentQueueIndex(i)
+
+      const preassigned =
+        !item.backgroundUrl && preassignedBatchScenes[i]
+          ? {
+              url: preassignedBatchScenes[i].full,
+              mediaType: preassignedBatchScenes[i].mediaType,
+              title: preassignedBatchScenes[i].title,
+            }
+          : undefined
 
       setBatchStatuses((prev) => ({
         ...prev,
@@ -431,6 +574,7 @@ export function BulkCreateModal({
             }))
           },
           reciterStrategy,
+          preassigned,
         )
 
         const videoUrl = URL.createObjectURL(result.blob)
@@ -578,6 +722,57 @@ export function BulkCreateModal({
 
       if (res.success) {
         showToast(`💾 Saved ${files.length} reels + manifest.json to ${res.folderPath}`)
+
+        // Seamless integration: Automatically populate Publishing Queue
+        if (sourceResults.length > 0 && studio?.addReels) {
+          const defaultPageIds = studio.pages && studio.pages.length > 0 ? [studio.pages[0].id] : ['fb-page-ajr']
+          const newReels = sourceResults.map((resItem, idx) => {
+            const v0 = resItem.verses[0]
+            const vLast = resItem.verses[resItem.verses.length - 1]
+            const surahNum = v0?.surah || resItem.item.surah || 1
+            const surahMeta = SURAHS_INDEX.find((s) => s.number === surahNum)
+            const surahName = v0?.surahName || surahMeta?.englishName || 'Quran'
+            const ayahRange = resItem.verses.length > 1 ? `${v0?.ayat || 1} - ${vLast?.ayat || 1}` : `${v0?.ayat || 1}`
+            const durationSec = Math.round((resItem.durationMs || 30000) / 1000)
+            const sizeMb = resItem.blob ? Number((resItem.blob.size / (1024 * 1024)).toFixed(1)) : 32.5
+            const filename = `${resItem.item.title.replace(/[\s/\\?%*:|"<>]+/g, '_').toLowerCase()}.mp4`
+
+            return {
+              id: `bulk-${packFolderName}-${idx}`,
+              filename,
+              title: resItem.item.title,
+              surahNumber: surahNum,
+              surahName,
+              ayahRange,
+              reciterName: bulkReciterId.split('-')[0].replace('_', ' '),
+              durationSeconds: durationSec,
+              resolution: '1080x1920',
+              fps: 60,
+              codec: 'H.264 (MP4)',
+              fileSizeMb: sizeMb,
+              status: 'READY' as const,
+              uploadProgress: 0,
+              captionArabic: resItem.verses.map((v) => v.arabic).join(' ۝ '),
+              captionEnglish: resItem.caption || resItem.verses.map((v) => v.translation).join(' '),
+              hashtags: ['#Quran', '#IslamicReels', `#Surah${surahName.replace(/[^a-zA-Z0-9]/g, '')}`, '#Tilawah', '#Ajr'],
+              targetPageIds: defaultPageIds,
+              targetPlatforms: ['facebook', 'instagram'] as ('facebook' | 'instagram')[],
+              audioLufs: -14.0,
+              audioNormalized: true,
+              videoValid: true,
+              resolutionValid: true,
+              durationValid: true,
+              videoFile: resItem.blob,
+              videoUrl: URL.createObjectURL(resItem.blob),
+              batchName: packFolderName,
+              createdAt: new Date().toISOString(),
+            }
+          })
+          studio.addReels(newReels)
+          // Lock selection exclusively to newly generated batch
+          const newIds = newReels.map((r) => r.id)
+          studio.setSelectedReelIds(newIds)
+        }
       } else {
         showToast(`⚠️ Server save incomplete: ${res.error || 'Check server logs'}`)
       }
@@ -684,8 +879,8 @@ export function BulkCreateModal({
   const completedCount = Object.values(batchStatuses).filter((s) => s.status === 'completed').length
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="bulk-modal-dialog" onClick={(e) => e.stopPropagation()}>
+    <div className={embedded ? 'bulk-embedded-wrapper' : 'modal-overlay'} onClick={embedded ? undefined : onClose}>
+      <div className={`bulk-modal-dialog ${embedded ? 'embedded-view' : ''}`} onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
         <div className="bulk-modal-header">
           <div className="bulk-header-left">
@@ -967,30 +1162,57 @@ export function BulkCreateModal({
               </div>
             )}
 
-            {/* Background Strategy Bar */}
+            {/* Scene Strategy Bar */}
             <div className="bulk-strategy-row">
               <div className="strategy-label">
-                <span className="strategy-icon">🎨</span> Background:
+                <span className="strategy-icon">🎨</span> Scene Strategy:
               </div>
               <div className="strategy-buttons">
                 <button
                   type="button"
+                  className={`strategy-btn ${bgStrategy === 'random-scenes' ? 'active' : ''}`}
+                  onClick={() => setBgStrategy('random-scenes')}
+                  title="100% Random selection across all local videos, stock video loops, and 4K wallpapers"
+                >
+                  🎲 100% Random Scenes
+                </button>
+                <button
+                  type="button"
+                  className={`strategy-btn ${bgStrategy === 'random-videos' ? 'active' : ''}`}
+                  onClick={() => setBgStrategy('random-videos')}
+                  title="100% Random cinematic video loops"
+                >
+                  🎬 100% Random Videos
+                </button>
+                <button
+                  type="button"
+                  className={`strategy-btn ${bgStrategy === 'random-wallpapers' ? 'active' : ''}`}
+                  onClick={() => setBgStrategy('random-wallpapers')}
+                  title="100% Random 4K wallpapers across all categories"
+                >
+                  📸 100% Random Wallpapers
+                </button>
+                <button
+                  type="button"
                   className={`strategy-btn ${bgStrategy === 'cycle-wallpapers' ? 'active' : ''}`}
                   onClick={() => setBgStrategy('cycle-wallpapers')}
+                  title="Cycle sequentially through 4K wallpapers"
                 >
-                  📸 Cycle 4K Wallpapers
+                  🔄 Cycle Wallpapers
                 </button>
                 <button
                   type="button"
                   className={`strategy-btn ${bgStrategy === 'cycle-videos' ? 'active' : ''}`}
                   onClick={() => setBgStrategy('cycle-videos')}
+                  title="Cycle sequentially through video loops"
                 >
-                  🎬 Cycle Video Loops
+                  🔄 Cycle Videos
                 </button>
                 <button
                   type="button"
                   className={`strategy-btn ${bgStrategy === 'current' ? 'active' : ''}`}
                   onClick={() => setBgStrategy('current')}
+                  title="Keep current media from preview canvas"
                 >
                   🖼️ Keep Current Media
                 </button>
@@ -1085,6 +1307,24 @@ export function BulkCreateModal({
               </span>
             </div>
             <div className="queue-header-right">
+              <button
+                type="button"
+                className="btn btn-xs btn-randomize-scenes"
+                onClick={handleRandomizeAllScenes}
+                title="Shuffle and randomly assign 100% unique scenes to all queued reels"
+              >
+                🎲 Randomize All Scenes
+              </button>
+              {queue.some((it) => it.backgroundUrl) && (
+                <button
+                  type="button"
+                  className="btn btn-xs"
+                  onClick={handleResetAllScenes}
+                  title="Reset all assigned scenes back to dynamic auto-random"
+                >
+                  Reset Scenes
+                </button>
+              )}
               <button type="button" className="btn btn-xs" onClick={toggleSelectAll}>
                 {selectedItemIds.size === queue.length ? 'Deselect All' : 'Select All'}
               </button>
@@ -1142,6 +1382,25 @@ export function BulkCreateModal({
                         <span className="queue-reciter-tag">
                           🎙️ {getItemReciterName(item, idx)}
                         </span>
+                        <span
+                          className="queue-scene-tag"
+                          title={item.backgroundTitle ? `Assigned scene: ${item.backgroundTitle}` : 'Auto-selected scene'}
+                        >
+                          {item.backgroundTitle ? (
+                            <>
+                              {item.backgroundType === 'video' ? '🎬' : '📸'} {item.backgroundTitle}
+                            </>
+                          ) : (
+                            <>
+                              {bgStrategy === 'random-scenes' && '🎲 100% Random Scene'}
+                              {bgStrategy === 'random-videos' && '🎬 100% Random Video'}
+                              {bgStrategy === 'random-wallpapers' && '📸 100% Random Wallpaper'}
+                              {bgStrategy === 'cycle-wallpapers' && `🔄 Cycle Wallpaper #${(idx % 12) + 1}`}
+                              {bgStrategy === 'cycle-videos' && `🔄 Cycle Video #${(idx % 8) + 1}`}
+                              {bgStrategy === 'current' && '🖼️ Current Media'}
+                            </>
+                          )}
+                        </span>
                         {statusObj?.durationMs ? (
                           <span
                             className="queue-duration-badge completed"
@@ -1167,6 +1426,55 @@ export function BulkCreateModal({
                   </div>
 
                   <div className="queue-item-right">
+                    {/* Per-Reel Scene Customizer */}
+                    {!isProcessing && statusObj?.status !== 'completed' && (
+                      <div className="queue-scene-control-group">
+                        <select
+                          className="queue-item-scene-select"
+                          value={item.backgroundUrl || ''}
+                          onChange={(e) => updateItemScene(item.id, e.target.value)}
+                          title="Select specific scene or keep 100% random"
+                        >
+                          <option value="">
+                            🎲 (100% Random {bgStrategy === 'random-videos' ? 'Video' : bgStrategy === 'random-wallpapers' ? 'Wallpaper' : 'Scene'})
+                          </option>
+                          {availableVideos.length > 0 && (
+                            <optgroup label="🎬 Video Loops">
+                              {availableVideos.map((v) => (
+                                <option key={v.full} value={v.full}>
+                                  🎬 {v.title}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
+                          {localImages.length > 0 && (
+                            <optgroup label="📁 Local Uploads">
+                              {localImages.map((img) => (
+                                <option key={img.full} value={img.full}>
+                                  📁 {img.title}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
+                          <optgroup label="📸 4K Wallpapers">
+                            {popularWallpapers.map((p) => (
+                              <option key={p.full} value={p.full}>
+                                📸 {p.title}
+                              </option>
+                            ))}
+                          </optgroup>
+                        </select>
+                        <button
+                          type="button"
+                          className="queue-scene-reroll-btn"
+                          onClick={() => randomizeSingleItemScene(item.id)}
+                          title="Reroll a random scene for this reel"
+                        >
+                          🎲
+                        </button>
+                      </div>
+                    )}
+
                     {/* Per-Reel Reciter Customizer */}
                     {!isProcessing && statusObj?.status !== 'completed' && (
                       <select
@@ -1338,6 +1646,12 @@ export function BulkCreateModal({
                       {copiedField === 'folder' ? '✅ Copied!' : '📋 Copy Path'}
                     </button>
                   </div>
+                  {serverSaveStatus?.saved && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', fontSize: '0.74rem', color: '#34d399', fontFamily: 'monospace' }}>
+                      <span>🕒 Updated: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · {new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                      <span style={{ padding: '1px 6px', borderRadius: '9999px', background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16, 185, 129, 0.4)', fontWeight: 'bold', fontSize: '0.68rem' }}>Just now</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* CLI Command Row */}
@@ -1452,6 +1766,46 @@ export function BulkCreateModal({
                     <option value="keyValue">Key-Value Dictionary &#123; &#125;</option>
                   </select>
                 </label>
+                {onOpenPublisher && (
+                  <button
+                    type="button"
+                    className="btn btn-publisher-open"
+                    onClick={() => {
+                      const activePack = lastPackFolderName || (serverSaveStatus?.folderPath ? serverSaveStatus.folderPath.split('/').pop() : '') || ''
+                      if (studio?.setSelectedReelIds) {
+                        const batchReelIds = activePack ? studio.reels.filter((r) => r.batchName === activePack).map((r) => r.id) : []
+                        if (batchReelIds.length > 0) {
+                          studio.setSelectedReelIds(batchReelIds)
+                        } else {
+                          const completedCount = Object.values(batchStatuses).filter((s) => s.status === 'completed').length
+                          if (completedCount > 0 && activePack) {
+                            studio.setSelectedReelIds(Array.from({ length: completedCount }, (_, idx) => `bulk-${activePack}-${idx}`))
+                          }
+                        }
+                      }
+                      onClose()
+                      onOpenPublisher(serverSaveStatus?.folderPath)
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#ffffff',
+                      border: '1px solid #34d399',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      padding: '0.45rem 0.95rem',
+                      borderRadius: '8px',
+                      boxShadow: '0 0 14px rgba(16, 185, 129, 0.4)',
+                      cursor: 'pointer',
+                    }}
+                    title="Open newly generated batch in Bulk Publisher Studio to pre-schedule drops"
+                  >
+                    <span>🚀</span>
+                    <span>Manage &amp; Schedule in Bulk Publisher</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1466,15 +1820,52 @@ export function BulkCreateModal({
                 ⏹ Stop Batch
               </button>
             ) : batchDone ? (
-              <button
-                type="button"
-                className="btn btn-bulk-primary"
-                disabled
-                title="Batch already generated — change your selection or settings to run again"
-                style={{ opacity: 0.7, cursor: 'not-allowed' }}
-              >
-                ✅ Batch Complete — {completedCount} Reels Done
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn btn-bulk-publisher"
+                  onClick={() => {
+                    const activePack = lastPackFolderName || (serverSaveStatus?.folderPath ? serverSaveStatus.folderPath.split('/').pop() : '') || ''
+                    if (studio?.setSelectedReelIds) {
+                      const batchReelIds = activePack ? studio.reels.filter((r) => r.batchName === activePack).map((r) => r.id) : []
+                      if (batchReelIds.length > 0) {
+                        studio.setSelectedReelIds(batchReelIds)
+                      } else {
+                        const completedCount = Object.values(batchStatuses).filter((s) => s.status === 'completed').length
+                        if (completedCount > 0 && activePack) {
+                          studio.setSelectedReelIds(Array.from({ length: completedCount }, (_, idx) => `bulk-${activePack}-${idx}`))
+                        }
+                      }
+                    }
+                    if (onOpenPublisher) {
+                      onOpenPublisher(activePack)
+                    } else if (studio?.setActiveTab) {
+                      studio.setActiveTab('schedule')
+                    }
+                  }}
+                  title="Open Publisher Queue with newly generated reels ready to schedule & publish"
+                  style={{
+                    background: 'linear-gradient(135deg, #10B981, #059669)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    boxShadow: '0 0 16px rgba(16,185,129,0.4)',
+                    padding: '8px 18px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  🚀 Go to Publishing Queue ({completedCount} Reels Ready)
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-bulk-primary"
+                  onClick={() => setBatchDone(false)}
+                  title="Generate another batch"
+                  style={{ opacity: 0.8 }}
+                >
+                  🔄 New Batch
+                </button>
+              </div>
             ) : (
               <button
                 type="button"

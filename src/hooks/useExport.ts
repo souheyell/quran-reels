@@ -193,6 +193,7 @@ export function useExport(
     handleShareReel,
     handleExportPng,
     cancelExport,
+    lastExportedBlob,
     lastSaveResult,
     clearLastSaveResult: () => setLastSaveResult(null),
   }

@@ -1,4 +1,4 @@
-# Islamic Reels Creator (Studio & Mobile App) 🎬📖✨
+# Islamic Reels Creator & Bulk Publisher Studio 🎬📖✨
 
 > **بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ**  
 > ﴿ وَذَكِّرْ فَإِنَّ الذِّكْرَىٰ تَنفَعُ الْمُؤْمِنِينَ ﴾  
@@ -14,9 +14,9 @@
 >
 > *The Messenger of Allah ﷺ said: “When a human being dies, their deeds come to an end except for three: an ongoing charity (Sadaqah Jariyah), beneficial knowledge, or a righteous child who prays for them.”* — (Sahih Muslim 1631)
 
-**Islamic Reels Creator** is created purely for the sake of Allah ﷻ as an ongoing charity (**Sadaqah Jariyah**). It empowers every Muslim, content creator, and seeker of truth to produce breathtaking, studio-grade Quran video reels for **Instagram Reels, TikTok, YouTube Shorts, and WhatsApp Status** with ease, beauty, and reverence.
+**Islamic Reels Creator & Bulk Publisher** is built purely for the sake of Allah ﷻ as an ongoing charity (**Sadaqah Jariyah**). It is a unified, all-in-one production workstation and social distribution pipeline designed to empower Muslims, content creators, and organizations worldwide to produce breathtaking, studio-grade Quran video reels for **Instagram Reels, Facebook Reels, TikTok, YouTube Shorts, and WhatsApp Status** with ease, reverence, and automated multi-channel scheduling.
 
-May Allah accept this humble endeavor from everyone who builds, reads, recites, designs, creates, and shares these sacred verses.
+May Allah accept this humble endeavor from everyone who recites, builds, designs, creates, and shares these sacred verses.
 
 ---
 
@@ -24,12 +24,12 @@ May Allah accept this humble endeavor from everyone who builds, reads, recites, 
 
 <div align="center">
   <img src="docs/screenshots/01_studio_overview.png" alt="Islamic Reels Creator Studio Overview" width="100%" />
-  <p><em>Studio Workspace: Live Canvas Preview, Word-by-Word Sub-Ayah Karaoke Glow, Real-Time Spectrogram, and Studio Inspector</em></p>
+  <p><em>Unified Studio Workspace: Live Canvas Preview, Word-by-Word Sub-Ayah Karaoke Glow, Real-Time Audio Spectrogram, and Studio Inspector</em></p>
 </div>
 
 <br/>
 
-| Bulk Reel Studio (Format 1 Manifest) | Direct Local Backgrounds Folder |
+| Bulk Generator & Master Manifest | Direct Local Backgrounds & Media Library |
 | :---: | :---: |
 | <img src="docs/screenshots/03_bulk_generator_modal.png" width="100%" alt="Bulk Reel Studio Modal" /> | <img src="docs/screenshots/04_local_media_library.png" width="100%" alt="Local Backgrounds Folder & In-Finder Access" /> |
 | *Automated batch creation with master manifest.json* | *1-click Finder opening, drag-and-drop disk save & live scanning* |
@@ -43,188 +43,141 @@ May Allah accept this humble endeavor from everyone who builds, reads, recites, 
 
 ---
 
-## 🌟 What's New in Recent Updates
+## 🌟 Major Suite Upgrade — What's New
 
-### 📦 1. Bulk Reel Studio & Master `manifest.json` Archive
-Generate entire Surah series, 30-day packs, or thematic collections in seconds:
-- **Whole Surah Split**: Automatically chunks long or short Surahs into optimal reel lengths (1 to 10 Ayat per video).
-- **Format 1 Master `manifest.json` Structure**: Videos sit at the root of the ZIP alongside a comprehensive manifest containing full Arabic & English titles, authentic virtues, Ayah numbers, reciters, and contextual hashtags for seamless social automation:
+### 🚀 1. Complete All-in-One Studio Integration
+The entire creation, batch processing, and multi-channel publishing ecosystem is now consolidated into a single unified application with matching celestial dark aesthetics (`#051424`, obsidian glass, gold accents):
+* **🎨 Canvas Studio**: Real-time rendering engine with sub-pixel typography, 25+ classical and contemporary Qaris, audio spectrogram visualizers, particles, and 1080p 60FPS video export.
+* **⚡ Bulk Generator**: Rapid chunking of entire Surahs or thematic packs into 1–10 Ayah reel series with master `manifest.json` indexing.
+* **📋 Reel Queue Library**: Production review grid with batch-level filtering, caption editing, hashtag management, and status tracking (`READY`, `SCHEDULED`, `PUBLISHED`, `FAILED`).
+* **📅 Accurate Publishing Calendar**: Interactive calendar view with day/week/month matrix, local timezone preservation, and solar prayer time scheduling.
+* **📁 Export Packs Explorer**: Instant disk scanning of `./exports/` folder showing updated timestamps, video counts, and manifest availability.
+* **📱 Meta Channels Hub**: Facebook Pages and linked Instagram accounts management, follower statistics, and token health monitors.
+* **📊 Production Nerd Stats**: Live diagnostics monitor for video resolution, frame rate (60 FPS), duration standards, and audio LUFS normalization.
+
+---
+
+### 🕌 2. Accurate Publishing Calendar with Solar Prayer Pacing
+* **Astronomical Solar Prayer Alignment**: Pre-schedule Quran video drops aligned with authentic prayer times:
+  - 🌅 **Fajr** (Dawn til Sunrise)
+  - ☀️ **Dhuhr** (Midday Sun)
+  - 🌤️ **Asr** (Afternoon)
+  - 🌇 **Maghrib** (Sunset)
+  - 🌌 **Isha** (Night)
+  - 🌙 **Tahajjud** (Last Third of the Night)
+* **Local Timezone Preservation**: Eliminates UTC time drift bugs. The schedule calculator uses local clock time (`YYYY-MM-DD` and `HH:mm`) to ensure each post publishes at your exact target local hour.
+* **Custom Pacing Sequences**: Choose between Solar Prayer intervals, fixed pacing (e.g. every 3 hours), or daily drops (1 reel per 24 hours).
+
+---
+
+### ☁️ 3. Meta Cloud Pre-Scheduling (Zero-Laptop Dependency)
+* **Direct Cloud Ingestion**: Streams video files directly to Meta Graph API data centers using official 3-step Resumable Video Upload sessions.
+* **Turn Off Your Computer**: By submitting videos with a future `scheduled_publish_time` timestamp (between 10 minutes and 75 days in advance), Meta holds and automatically publishes your Reels on Facebook and Instagram at the designated time—**no local machine, background tab, or daemon needs to stay awake**.
+* **Automatic Instagram Relay**: For connected Instagram Business accounts (`@username`), the studio worker coordinates publishing triggers seamlessly.
+
+---
+
+### 🛡️ 4. Batch Isolation & Anti-Duplicate Queue Engine
+* **Strict Scope Isolation**: When sending newly generated bulks into the scheduler, the system automatically isolates the target scope:
+  - **`🎯 Latest Batch`**: Targets strictly the reels from your most recent generation (`latestBatchName`), preventing old generations from being bundled in.
+  - **`✨ Selected in Queue`**: Targets only the reels you manually selected in the Queue library.
+  - **`📋 All Ready`**: Explicit opt-in mode if you intentionally want to schedule your historical backlog.
+* **Interactive Checklist with Batch Badges**: Inspect every targeted reel before confirming. Reels are labeled with <span style="color:#34d399">`LATEST BATCH`</span> or `OLD BATCH` tags with individual toggle checkboxes.
+* **Deterministic ID & Hash Deduplication**: Reels are assigned deterministic identifiers (`bulk-${packFolderName}-${idx}`) and deduplicated by filename and batch hash upon ingestion, preventing duplicate cards when re-saving or re-exporting.
+* **1-Click Queue Clean-Up**:
+  - `🧹 Clear Unscheduled`: Clears unscheduled and failed draft reels while preserving already scheduled drops.
+  - `✅ Clear Published`: Purges completed historical posts.
+  - `⚠️ Clear All`: Full queue reset.
+
+---
+
+### 📁 5. Format 1 Master `manifest.json` Support & Export Explorer
+The studio creates and reads standardized master manifest files for seamless archiving and third-party automation:
+* **Dual Format Parser**: Reads both **Format 1 (Array `[ ... ]`)** and **Key-Value Dictionary (`{ ... }`)** manifest structures.
+* **Rich Metadata Tagging**: Preserves Surah number, English & Arabic names, Ayah ranges, Qari reciters, authentic tafsir virtues, and context hashtags.
+* **Human-Friendly Date Tracking**: The Export Packs explorer highlights folder modification times, relative time ago (e.g., *"15 mins ago"*), and formatted dates.
 
 ```text
-quran_reels_pack.zip
+exports/quran_pack_kahf_20261013_1200/
 ├── manifest.json
-├── 01_kahf_verses_1_10.mp4
-├── 02_maryam_verses_1_15.mp4
-└── 03_rahman_verses_1_25.mp4
+├── 01_al_kahf_verses_1_10.mp4
+├── 02_al_kahf_verses_11_20.mp4
+└── 03_al_kahf_verses_21_31.mp4
 ```
 
-```json
-[
-  {
-    "filename": "01_kahf_verses_1_10.mp4",
-    "title": "سورة الكهف | آيات 1-10",
-    "description": "تلاوة خاشعة عطرة بصوت القارئ مشاري العفاسي من سورة الكهف المباركة.\n\nفضل قراءة سورة الكهف يوم الجمعة أضاء له من النور ما بين الجمعتين.",
-    "surah": 18,
-    "surahName": "Al-Kahf",
-    "ayah": "1 - 10",
-    "reciter": "Mishary Rashid Alafasy",
-    "hashtags": ["#القرآن", "#سورة_الكهف", "#تلاوة"]
-  }
-]
+---
+
+### 🎛️ 6. Video Player & Canvas Studio Overhaul
+* **Aspect Ratio & Scale Optimization**: Removed accidental zoom and clipping from the canvas preview. Controls and video frames maintain strict 9:16 vertical proportion on all viewport dimensions.
+* **Interactive Audio & Scrubbing Controls**: Synchronized playhead scrubber, audio mute toggles, duration countdowns, and real-time canvas resizing.
+* **Offline Audio Normalization**: Automatic compliance checks targeting social standard **-14.0 LUFS** with integrated loudness headroom analysis.
+
+---
+
+### 🐍 7. Unified Python CLI Toolkit (`scripts/bulk_uploader.py`)
+For power users and server automation, the included Python CLI tool offers head-less manifest ingestion and resumable Meta Cloud uploads:
+
+```bash
+# Display help and available options
+python3 scripts/bulk_uploader.py --help
+
+# Dry-run validation (checks video files, sizes, captions without uploading)
+python3 scripts/bulk_uploader.py --dry-run
+
+# Pre-schedule export folder across daily Islamic prayer times
+python3 scripts/bulk_uploader.py --folder "exports/quran_pack_kahf_20261013_1200" --prayer-times
+
+# Pre-schedule drops at 3-hour intervals
+python3 scripts/bulk_uploader.py --folder "exports/quran_pack_kahf_20261013_1200" --interval 180
+
+# Publish immediately
+python3 scripts/bulk_uploader.py --folder "exports/quran_pack_kahf_20261013_1200" --publish-now
 ```
 
-### 📁 2. Direct Local Backgrounds & Videos Folder Access
-- **Direct Local Disk Folders**: Store your own 4K wallpapers and drone motion loops in `./backgrounds/images` and `./backgrounds/videos` (symlinked directly to `public/backgrounds`).
-- **1-Click Finder Integration**: Click **"📂 Open in Finder"** in the Studio to instantly reveal your local media directory.
-- **In-Browser Drag & Drop**: Drop files straight into the browser to stream them directly to your disk folder.
-- **Live Auto-Scanning**: Vite dev server scans disk additions live without needing server restarts.
-- **Batch Export Integration**: Bulk Reel Studio automatically cycles through your local media library during automated exports.
-
-### ⚡ 3. Quick Reel Wizard
-A rapid 3-step creation flow for beginners and fast creators:
-1. **Ayah & Reciter**: Pick from popular viral Surahs (Al-Mulk, Al-Kahf, Ar-Rahman, Ayat al-Kursi, etc.) or enter custom verses.
-2. **Aesthetic Theme**: Choose curated presets (Golden Medina, Royal Cordoba, Sacred Grove, Holy Quran Paper).
-3. **Export & Share**: 1-click generation ready for mobile distribution.
-
-### 🧪 4. Recipe Engine & Preset Vault
-- **Recipe Codes**: Share and fork your exact typography, background, particle, and audio visualizer setups with compact codes (e.g. `QRN-6CAB5F`).
-- **Generation History**: Automatically snapshots every creation so you never lose a design.
-- **URL Deeplinking**: Open the app with `?recipe=...` to load preconfigured themes instantly.
-
-### 📜 5. Holy Quran Paper & Mushaf Layout Mode
-- Authentic Mushaf layout mode rendering classic Quranic script with parchment textures, traditional margins, and authentic Hizb/Juz markers.
-
-### 🚀 6. Cloudspace Disk Exports & Bulk Uploader CLI Hub
-Designed specifically for creators running on cloudspaces (Codespaces, cloud servers, or local machines):
-- **Direct Server Disk Exports**: Batch exports automatically save directly to `./exports/<pack_name>/` on the server filesystem alongside `manifest.json`, eliminating the need to download large ZIP files to your laptop and re-upload.
-- **Ready-to-Use CLI Command**: Each export generates a 1-click copyable terminal command:
-  ```bash
-  python scripts/bulk_uploader.py --folder "exports/quran_pack_kahf_20260905_1200"
-  ```
-- **Custom Script Templates**: Configure your own CLI command pattern (e.g. `python upload.py --dir {folder}` or `node uploader.js`), automatically saved to `localStorage`.
-- **Included Starter CLI Script (`scripts/bulk_uploader.py`)**: Built-in Python CLI tool that parses Format 1 master `manifest.json`, validates video files, and connects to social media distribution pipelines.
-
 ---
 
-## 🌟 Core Features
+## 🌟 Core Creation Capabilities
 
-### 📱 Native Android App (Official APK Release)
-- **Direct Download**: 📥 **[Download Quran Reels Creator APK v1.0.0 (7.48 MB)](https://github.com/souheyell/quran-reels/releases/download/v1.0.0/quran-reels-creator.apk)**
-- **Official Release Page**: 🏷️ **[GitHub Releases v1.0.0](https://github.com/souheyell/quran-reels/releases/tag/v1.0.0)**
-- Standalone installable Android APK with full GPU hardware acceleration, WebCodecs 60FPS video rendering, 50+ Qaris, and native Android Filesystem storage & Share sheet integration.
-
----
-
-### 🌟 1-Click Aesthetic Themes & Presets
-Instant, professional styling configurations tailored for high engagement on social platforms:
-- **🌟 Golden Medina**: Deep amber calligraphy, glowing fireflies, gilded arabesque frame, resonant spectrum bars, cinematic zoom.
-- **🌌 Midnight Reflection**: Cool cyan/silver glow, Amiri Quran font, gentle falling snow, cinematic vignette, fluid sine wave.
-- **🌿 Sacred Grove**: Crisp white Naskh, sunbeam dust motes, misty redwood forest canopy, voice pulse line, ascending tilt.
-- **👑 Royal Cordoba**: Majestic Reem Kufi calligraphy, Moorish royal arch, starry dots matrix, Andalusian elegance.
-- **🏜️ Desert Twilight**: Warm sand glow, Tajawal font, Andalusian geometric frame, spectrum bars, meditative breathing pulse.
-- **🖤 Minimalist Dark**: Sleek monochrome, modern Cairo font, lower-third layout, clean canvas.
-- **📜 Holy Quran Paper**: Authentic warm Mushaf page texture with gold leaf embellishments.
-
----
+### 🎙️ 25+ Classical & Contemporary Master Reciters (Qaris)
+Audio fetched on-demand from the EveryAyah high-bitrate CDN:
+* **Golden Age Masters**: Mahmoud Khalil Al-Husary, Abdulbasit Abdussamad, Mohamed Siddiq Al-Minshawi, Mustafa Ismail, Mohammad Mahmoud Al-Tablawi, Mahmoud Ali Al-Banna, Ali Jaber, Muhammad Ayyub, Ali Al-Hudhaify.
+* **Contemporary Imams**: Mishary Rashid Alafasy, Abdulrahman Al-Sudais, Saud Al-Shuraim, Yasser Al-Dossari, Maher Al-Muaiqly, Nasser Al-Qatami, Abu Bakr Al-Shatri, Saad Al-Ghamdi, Fares Abbad, Hani Ar-Rifai.
 
 ### ✨ Ultra-Smooth Continuous Karaoke Glow
-- **Fluid Sub-Word Interpolation**: As the Qari recites each word, Arabic calligraphy illuminates with a continuous Hermite cosine light transition rather than harsh stepping.
-- **Blooming Golden Flare**: Active words bloom with a soft radiating flare (`#ffd700` or custom color), while upcoming words stay delicately dimmed for maximal engagement and contemplation.
-
----
+* Continuous Hermite-cosine light transitions illuminating Arabic calligraphy word-by-word with blooming golden radiance (`#ffd700` or custom tint).
 
 ### 🎨 Authentic Islamic Arabesque Frames & Gilded Borders
-- **🌟 Gilded Arabesque Corners**: Intricate Ottoman floral leaf scrollwork and 8-pointed star rosettes framing the video corners.
-- **🕌 Andalusian Geometric Double Frame**: Classical double gold inlay lines punctuated with Rub el Hizb rosettes.
-- **👑 Moorish Royal Arch**: Majestic horseshoe arch canopy framing the sacred Surah title and Ayah text.
-- **🎬 Cinematic Vignette**: Smooth feathered radial gradient drawing the viewer's focus to the center holy calligraphy.
-- Fully customizable frame color and opacity.
+* Gilded Ottoman floral arabesques, Andalusian geometric double frames, Moorish royal horseshoe arches, and smooth radial cinematic vignettes.
 
----
-
-### 🌊 Voice Audio Spectrum & Waveform Visualizer
-- **📊 Symmetric Bars**: Symmetrical vertical frequency spectrum bars pulsing in harmonic resonance with the Qari's voice.
-- **🌊 Glowing Wave**: Fluid sine-modulated bezier curve with soft ambient glow.
-- **⚡ Voice Pulse Line**: Clean horizontal presence line with central vocal envelope heartbeat spike.
-- **✨ Radiant Dots Matrix**: Matrix of glowing harmonic particles vibrating rhythmically.
-- Fully deterministic in real-time preview and 1080p 60fps MP4 export.
-
----
-
-### 🎙️ 25+ Golden-Age & Contemporary Master Reciters (Qaris)
-High-speed, sample-accurate audio recitations directly from the EveryAyah CDN:
-
-#### 👑 Golden Age Classical Masters (كبار قراء العصر الذهبي)
-- **Mahmoud Khalil Al-Husary** (Murattal & Mujawwad) — الشيخ محمود خليل الحصري
-- **Abdulbasit Abdussamad** (Murattal & Mujawwad) — الشيخ عبد الباسط عبد الصمد
-- **Mohamed Siddiq Al-Minshawi** (Murattal & Mujawwad) — الشيخ محمد صديق المنشاوي
-- **Mustafa Ismail** — الشيخ مصطفى إسماعيل
-- **Mohammad Mahmoud Al-Tablawi** — الشيخ محمد محمود الطبلاوي
-- **Mahmoud Ali Al-Banna** — الشيخ محمود علي البنا
-- **Ali Hajjaj Al-Suwaisi** — الشيخ علي حجاج السويسي
-- **Ali Jaber (Former Imam of Masjid Al-Haram)** — الشيخ علي جابر
-- **Muhammad Ayyub (Former Imam of Masjid An-Nabawi)** — الشيخ محمد أيوب
-- **Ali Al-Hudhaify (Madinah Imam)** — الشيخ علي الحذيفي
-- **Ibrahim Al-Akhdar** — الشيخ إبراهيم الأخضر
-
-#### 🕌 Contemporary Masters & Haram Imams (أئمة الحرمين وكبار القراء)
-- **Mishary Rashid Alafasy** — الشيخ مشاري راشد العفاسي
-- **Abdulrahman Al-Sudais (Imam of Masjid Al-Haram)** — الشيخ عبد الرحمن السديس
-- **Saud Al-Shuraim** — الشيخ سعود الشريم
-- **Yasser Al-Dossari (Imam of Masjid Al-Haram)** — الشيخ ياسر الدوسري
-- **Maher Al-Muaiqly (Imam of Masjid Al-Haram)** — الشيخ ماهر المعيقلي
-- **Nasser Al-Qatami** — الشيخ ناصر القطامي
-- **Abu Bakr Al-Shatri** — الشيخ أبو بكر الشاطري
-- **Saad Al-Ghamdi** — الشيخ سعد الغامدي
-- **Fares Abbad** — الشيخ فارس عباد
-- **Hani Ar-Rifai** — الشيخ هاني الرفاعي
-- **Salah Al-Budair (Madinah Imam)** — الشيخ صلاح البدير
-
----
+### 🌊 Voice Waveform & Spectrum Visualizers
+* Real-time audio spectrum bars, fluid bezier sine waves, vocal pulse lines, and harmonic particle grids rendered in hardware-accelerated 60 FPS.
 
 ### 🎥 7 Cinematic Camera Motion Presets (Ken Burns)
-- **Ken Burns Zoom In**: Smooth, slow push-in towards the calligraphy centerpiece.
-- **Ken Burns Zoom Out**: Expansive reveal pulling back from the scene.
-- **Horizontal Pan**: Gentle cinematic glide from left to right.
-- **Ascending Tilt**: Slow upward drift towards the heavens.
-- **Diagonal Glide**: Dynamic diagonal pan with subtle scale.
-- **Contemplative Pulse**: Rhythmic, meditative breathing zoom.
-- **Static**: Crisp, motionless frame.
+* Slow push-in, expansive reveal, horizontal pan, ascending tilt, diagonal glide, contemplative breathing pulse, and static framing.
 
----
-
-### ❄️ 5 Atmospheric Particle Effects
-- **Fireflies / Embers**: Floating glowing particles with warm breathing pulse.
-- **Slow Snow**: Gentle falling flakes with horizontal air drift.
-- **Sunbeam Dust Motes**: Golden ambient micro-particles floating in sunlight.
-- **Twinkling Night Stars**: Subtle glistening celestial field.
-- **Gentle Rain**: Diagonal rain streaks for contemplative Quran verses.
-
----
-
-### 🚀 Hardware-Accelerated 1080p 60FPS Video Export
-- **Off-screen Canvas Pipeline**: Frame-by-frame rendering with backpressure control (<50MB RAM).
-- **Audio Mixing**: High-fidelity stereo AAC audio multiplexed directly in the browser/app via WebCodecs/MediaRecorder.
-- Instant single-frame **4K PNG snapshot download**.
+### 📱 Native Android App (Official APK Release)
+* **Direct Download**: 📥 **[Download Quran Reels Creator APK v1.0.0 (7.48 MB)](https://github.com/souheyell/quran-reels/releases/download/v1.0.0/quran-reels-creator.apk)**
+* Standalone installable Android APK powered by Capacitor with GPU hardware acceleration, WebCodecs 60FPS video rendering, and native Android Share sheet integration.
 
 ---
 
 ## 🛠️ Technology Stack
-- **Framework**: React 19 + TypeScript + Vite + Capacitor
-- **Mobile Engine**: Native Android WebView (Capacitor) with hardware acceleration
-- **Rendering Engine**: Canvas 2D with sub-pixel interpolation & Hermite curve smoothing
-- **Video & Audio**: WebCodecs / MediaRecorder API + Web Audio API
-- **Styling**: Vanilla CSS tokens (Dark theme, glassmorphism, responsive mobile layout)
-- **Testing**: Vitest + Oxlint (112 automated test suites)
+* **Frontend**: React 19, TypeScript, Vite 8, Tailwind CSS v4, Vanilla CSS Design Tokens
+* **Video & Audio Pipeline**: WebCodecs API, MediaRecorder API, MP4-Muxer, Web Audio API (AnalyserNode)
+* **Rendering Engine**: HTML5 Canvas 2D with sub-pixel interpolation and offscreen backpressure streaming
+* **Mobile Runtime**: Capacitor 8 (Android SDK)
+* **Cloud Bridge Daemon**: Node.js HTTP Streaming Server (port 3001)
+* **CLI Engine**: Python 3 (urllib, pathlib, json)
+* **Quality & Testing**: Vitest 4 (22 test suites, 131 automated unit tests), Oxlint, TypeScript Compiler
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v18 or higher)
-- npm or pnpm
-- Android SDK (optional, for building native Android APK)
+* **Node.js**: v18.0.0 or higher
+* **npm** or **pnpm**
+* **Python 3**: (optional, for running `scripts/bulk_uploader.py`)
 
 ### Installation
 ```bash
@@ -233,40 +186,62 @@ cd quran-reels
 npm install
 ```
 
-### Development Server (Web)
+### Environment Configuration (Optional)
+To connect your own Facebook Pages or configure default tokens without committing them to git:
+1. Copy the environment template:
+   ```bash
+   cp .env.example .env
+   ```
+2. Open `.env` and fill in your Meta credentials:
+   ```env
+   VITE_META_APP_ID=your_meta_app_id
+   VITE_META_USER_ACCESS_TOKEN=your_user_access_token
+   VITE_FB_PAGE_ACCESS_TOKEN=your_page_access_token
+   ```
+
+### 1-Click Launch (Unified Studio + Cloud Bridge)
+Launch the unified web application, start the Cloud Bridge daemon, and open your browser automatically:
+```bash
+./start.sh
+# or
+npm start
+```
+* **Unified Studio**: [http://localhost:5173/](http://localhost:5173/)
+* **Cloud Bridge**: [http://localhost:3001/](http://localhost:3001/)
+
+To cleanly shut down all running background services:
+```bash
+./shutdown.sh
+# or
+npm stop
+```
+
+### Development Server Only
 ```bash
 npm run dev
 ```
-Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-### Adding Custom Backgrounds Directly
-Place your custom wallpapers and video loops into:
+### Automated Testing & Type Checking
 ```bash
-# Images:
-./backgrounds/images/
-# Videos:
-./backgrounds/videos/
-```
-Or click **"📂 Open in Finder"** in the **Local Folder** tab of the Studio.
+# Run Vitest test suites (131 tests)
+npm test
 
-### Run Automated Tests
-```bash
-npm run test
-```
+# Run strict TypeScript compiler validation
+npm run typecheck
 
-### Build Production Bundle
-```bash
+# Build optimized production bundle
 npm run build
 ```
 
-### Build Android APK
-```bash
-npm run build:apk
-```
-The compiled APK will be generated at:
-`./quran-reels-creator.apk`
+---
+
+## 🔒 Security & Privacy Practices
+* **Zero Hardcoded Secrets**: No sensitive access tokens, private keys, or passwords are baked into source code or repository commits.
+* **Environment Separation**: All credentials rely on local environment variables (`.env`, `.env.local`), which are strictly ignored in `.gitignore`.
+* **Local-First Processing**: Video rendering, audio mixing, and manifest generation occur 100% locally inside your browser or device without transmitting media to third-party proprietary servers.
+* **Cloud Safety**: Direct Meta Graph API requests are routed strictly to official Meta endpoints (`graph.facebook.com/v20.0`) with OAuth 2.0 authorization headers.
 
 ---
 
 ## 📄 License & Dedication
-Open-source under the [MIT License](LICENSE). Built for Quran Dawah, spiritual reflection, and educational purposes as a **Sadaqah Jariyah (صدقة جارية إن شاء الله)**.
+Open-source under the [MIT License](LICENSE). Built for Quran Dawah, spiritual reflection, and education as a **Sadaqah Jariyah (صدقة جارية إن شاء الله)**.

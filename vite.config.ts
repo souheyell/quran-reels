@@ -1,8 +1,10 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import fs from 'node:fs'
 import path from 'node:path'
 import { exec } from 'node:child_process'
+import { listFiles, ingestSelection, handleFileStream, formatDateInfo, parseNameDate } from './server/fsService.js'
 
 function localMediaPlugin(): Plugin {
   const backgroundsDir = path.resolve(process.cwd(), 'public/backgrounds')
@@ -362,13 +364,131 @@ function localMediaPlugin(): Plugin {
         }
         next()
       })
+
+      // ── Bulk Publisher Filesystem & Ingestion APIs (/api/fs/*) ──
+      server.middlewares.use((req, res, next) => {
+        if (!req.url?.startsWith('/api/fs')) return next()
+
+        const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
+        const workspaceDir = process.cwd()
+
+        if (req.method === 'GET' && url.pathname === '/api/fs/list') {
+          const targetPath = url.searchParams.get('path') || 'exports'
+          try {
+            const data = listFiles(targetPath, workspaceDir)
+            res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
+            res.end(JSON.stringify(data))
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Failed to list files'
+            res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
+            res.end(JSON.stringify({ error: message }))
+          }
+          return
+        }
+
+        if (req.method === 'POST' && url.pathname === '/api/fs/ingest') {
+          let body = ''
+          req.on('data', (c) => { body += c })
+          req.on('end', () => {
+            try {
+              const { targetPath, selectedFiles } = JSON.parse(body || '{}')
+              const data = ingestSelection(targetPath, selectedFiles, workspaceDir)
+              res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
+              res.end(JSON.stringify(data))
+            } catch (err: unknown) {
+              const message = err instanceof Error ? err.message : 'Ingestion failed'
+              res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
+              res.end(JSON.stringify({ error: message }))
+            }
+          })
+          return
+        }
+
+        if (req.method === 'GET' && url.pathname === '/api/fs/stream') {
+          const rawPath = url.searchParams.get('path')
+          if (!rawPath) {
+            res.writeHead(400, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ error: 'Missing path parameter' }))
+            return
+          }
+          handleFileStream(rawPath, req, res)
+          return
+        }
+
+        next()
+      })
+
+      // ── Bulk Publisher Export Packs Discovery (/api/export-packs) ──
+      server.middlewares.use('/api/export-packs', (req, res, next) => {
+        if (req.method === 'GET') {
+          try {
+            const packs = []
+            if (fs.existsSync(exportsDir)) {
+              const entries = fs.readdirSync(exportsDir, { withFileTypes: true })
+              for (const ent of entries) {
+                if (ent.isDirectory() || ent.name.endsWith('.zip')) {
+                  const packPath = path.join(exportsDir, ent.name)
+                  const stat = fs.statSync(packPath)
+                  const dateInfo = formatDateInfo(stat.mtime)
+                  const nameDate = parseNameDate(ent.name)
+                  const files = ent.isDirectory() ? fs.readdirSync(packPath) : []
+                  const videos = files.filter((f) => Boolean(f.match(/\.(mp4|mov|m4v|webm)$/i)))
+                  const hasManifest = files.includes('manifest.json') || files.includes('metadata.json')
+                  packs.push({
+                    name: ent.name,
+                    folderPath: path.relative(process.cwd(), packPath),
+                    absolutePath: packPath,
+                    isZip: ent.name.endsWith('.zip'),
+                    videoCount: videos.length,
+                    hasManifest,
+                    videos,
+                    updatedAt: dateInfo?.iso || null,
+                    updatedFormatted: dateInfo?.formatted || null,
+                    updatedFullDate: dateInfo?.fullDateTime || dateInfo?.fullDate || null,
+                    timeAgo: dateInfo?.timeAgo || null,
+                    mtimeMs: dateInfo?.timestamp || 0,
+                    batchDate: nameDate?.formatted || null,
+                    batchFullDate: nameDate?.fullDate || null,
+                  })
+                }
+              }
+            }
+            // Sort newest-updated first
+            packs.sort((a, b) => b.mtimeMs - a.mtimeMs)
+            res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
+            res.end(JSON.stringify({ success: true, count: packs.length, packs }))
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Failed to scan packs'
+            res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
+            res.end(JSON.stringify({ success: false, error: message }))
+          }
+          return
+        }
+        next()
+      })
+
+      // ── Bulk Publisher Engine Status (/api/status) ──
+      server.middlewares.use('/api/status', (req, res, next) => {
+        if (req.method === 'GET') {
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
+          res.end(JSON.stringify({
+            status: 'online',
+            isCloudBridge: true,
+            network: 'Unified Studio Pipeline',
+            exportsPath: exportsDir,
+            uptimeSeconds: Math.floor(process.uptime()),
+          }))
+          return
+        }
+        next()
+      })
     },
   }
 }
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), localMediaPlugin()],
+  plugins: [react(), tailwindcss(), localMediaPlugin()],
   server: {
     allowedHosts: ['.monkeycode-ai.live'],
     headers: {
@@ -376,6 +496,24 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
     },
     proxy: {
+      '/api-meta-graph': {
+        target: 'https://graph.facebook.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api-meta-graph/, ''),
+        secure: true,
+      },
+      '/api-meta-rupload': {
+        target: 'https://rupload.facebook.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api-meta-rupload/, ''),
+        secure: true,
+      },
+      '/api/audio': {
+        target: 'https://everyayah.com/data',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/audio/, ''),
+        secure: true,
+      },
       '/quran-audio': {
         target: 'https://cdn.islamic.network/quran/audio',
         changeOrigin: true,
