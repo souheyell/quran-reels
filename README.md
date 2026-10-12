@@ -24,20 +24,27 @@ May Allah accept this humble endeavor from everyone who recites, builds, designs
 
 <div align="center">
   <img src="docs/screenshots/01_studio_overview.png" alt="Islamic Reels Creator Studio Overview" width="100%" />
-  <p><em>Unified Studio Workspace: Live Canvas Preview, Word-by-Word Sub-Ayah Karaoke Glow, Real-Time Audio Spectrogram, and Studio Inspector</em></p>
+  <p><em>Unified Studio Workspace: Live Canvas Preview, Sub-Ayah Karaoke Glow, Real-Time Audio Spectrogram, and Studio Inspector</em></p>
 </div>
 
 <br/>
 
-| Bulk Generator & Master Manifest | Direct Local Backgrounds & Media Library |
+| 📅 Solar Prayer Publishing Calendar | 📦 Bulk Generator & Master Manifest |
 | :---: | :---: |
-| <img src="docs/screenshots/03_bulk_generator_modal.png" width="100%" alt="Bulk Reel Studio Modal" /> | <img src="docs/screenshots/04_local_media_library.png" width="100%" alt="Local Backgrounds Folder & In-Finder Access" /> |
-| *Automated batch creation with master manifest.json* | *1-click Finder opening, drag-and-drop disk save & live scanning* |
+| <img src="docs/screenshots/02_publishing_calendar.png" width="100%" alt="Accurate Solar Prayer Publishing Calendar" /> | <img src="docs/screenshots/03_bulk_generator_modal.png" width="100%" alt="Bulk Reel Studio Modal" /> |
+| *Solar prayer times scheduling (Fajr, Dhuhr, Asr, Maghrib, Isha) & Meta Cloud pre-upload* | *Automated batch creation with Format 1 master manifest.json & Surah chunking* |
+
+<br/>
+
+| 📁 Export Packs & Disk Batches | 📱 Connected Meta Channels |
+| :---: | :---: |
+| <img src="docs/screenshots/04_export_packs_view.png" width="100%" alt="Export Packs Explorer" /> | <img src="docs/screenshots/" width="100%" alt="Connected Facebook Pages and Instagram Accounts" /> |
+| *Automated disk library scanning, human-friendly relative dates & 1-click queue ingestion* | *Facebook Pages & Instagram profiles, token health diagnostics & audience stats* |
 
 <br/>
 
 <div align="center">
-  <img src="docs/screenshots/05_quick_wizard_flow.png" alt="Quick Reel Wizard Flow" width="85%" />
+  <img src="docs/screenshots/06_quick_wizard_flow.png" alt="Quick Reel Wizard Flow" width="85%" />
   <p><em>3-Step Quick Reel Wizard: Viral Surahs, Master Reciter Selection, and Instant Export</em></p>
 </div>
 

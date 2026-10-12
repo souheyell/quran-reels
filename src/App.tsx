@@ -126,7 +126,16 @@ function App() {
     addReels,
   } = studio
 
-  const [workflowMode, setWorkflowMode] = useState<StudioWorkflow>('creator')
+  const [workflowMode, setWorkflowMode] = useState<StudioWorkflow>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const tabParam = params.get('tab') as StudioWorkflow
+      if (tabParam && ['creator', 'bulk', 'queue', 'schedule', 'exports', 'pages', 'dashboard'].includes(tabParam)) {
+        return tabParam
+      }
+    } catch {}
+    return 'creator'
+  })
 
   const lastPublisherActiveTabRef = useRef(publisherActiveTab)
 
@@ -185,9 +194,23 @@ function App() {
 
   const [image, setImage] = useState<HTMLImageElement | HTMLVideoElement | null>(null)
   const [showAbout, setShowAbout] = useState(false)
-  const [showBulkModal, setShowBulkModal] = useState(false)
+  const [showBulkModal, setShowBulkModal] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      return params.get('modal') === 'bulk' || params.get('tab') === 'bulk'
+    } catch {
+      return false
+    }
+  })
   const [showRecipeModal, setShowRecipeModal] = useState(false)
-  const [showQuickWizard, setShowQuickWizard] = useState(false)
+  const [showQuickWizard, setShowQuickWizard] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      return params.get('modal') === 'wizard'
+    } catch {
+      return false
+    }
+  })
   const [activeTab, setActiveTab] = useState<StudioTab>('verses')
 
   // Re-register saved custom fonts on app boot

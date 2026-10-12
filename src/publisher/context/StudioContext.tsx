@@ -125,7 +125,16 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(initial.activityLogs);
   const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>(initial.scheduleEvents);
   const [selectedReelIds, setSelectedReelIds] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<ActiveNavTab>('dashboard');
+  const [activeTab, setActiveTab] = useState<ActiveNavTab>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab') as ActiveNavTab;
+      if (tabParam && ['dashboard', 'batches', 'queue', 'schedule', 'exports', 'history', 'pages', 'settings', 'upload'].includes(tabParam)) {
+        return tabParam;
+      }
+    } catch {}
+    return 'dashboard';
+  });
   const [activeDrawerReel, setActiveDrawerReel] = useState<Reel | null>(null);
   const [diagnosticsModalReel, setDiagnosticsModalReel] = useState<Reel | null>(null);
   

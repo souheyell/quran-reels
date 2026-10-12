@@ -1,0 +1,29 @@
+{
+  "name": "Islamic Reels Creator & Bulk Publisher Studio",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "upgradePackages": true
+    }
+  },
+  "forwardPorts": [5173, 3001],
+  "portsAttributes": {
+    "5173": {
+      "label": "Unified Studio (Creator & Bulk Publisher)",
+      "onAutoForward": "openBrowser"
+    },
+    "3001": {
+      "label": "Cloud Bridge 1Gbps Upload Server",
+      "onAutoForward": "silent"
+    }
+  },
+  "postCreateCommand": "npm install && mkdir -p shared_wip exports",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  }
+}
