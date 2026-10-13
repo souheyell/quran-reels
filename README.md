@@ -2,8 +2,8 @@
 
 <div align="center">
 
-[![Release](https://img.shields.io/badge/Release-v1.1.0-D4AF37?style=for-the-badge&logo=android&logoColor=white)](https://github.com/souheyell/quran-reels/releases/tag/v1.1.0)
-[![Download APK](https://img.shields.io/badge/Download_APK-v1.1.0_(30MB)-10b981?style=for-the-badge&logo=android&logoColor=white)](https://github.com/souheyell/quran-reels/releases/download/v1.1.0/quran-reels-creator.apk)
+[![Release](https://img.shields.io/badge/Release-v1.2.0-D4AF37?style=for-the-badge&logo=android&logoColor=white)](https://github.com/souheyell/quran-reels/releases/tag/v1.2.0)
+[![Download APK](https://img.shields.io/badge/Download_APK-v1.2.0_(30MB)-10b981?style=for-the-badge&logo=android&logoColor=white)](https://github.com/souheyell/quran-reels/releases/download/v1.2.0/quran-reels-creator.apk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-38bdf8?style=for-the-badge)](LICENSE)
 [![Tests: 131 Passing](https://img.shields.io/badge/Tests-131_Passing-10b981?style=for-the-badge&logo=vitest&logoColor=white)](https://github.com/souheyell/quran-reels)
 
@@ -152,6 +152,28 @@ python3 scripts/bulk_uploader.py --folder "exports/quran_pack_kahf_20261013_1200
 
 ---
 
+### 🎬 8. YouTube Shorts Native Pipeline (Google Data API v3)
+* **Resumable Google Upload Session**: Integrated direct-to-YouTube video dispatcher supporting unlisted, public, and private publishing.
+* **Automatic `#Shorts` Title Tagging**: Enforces official YouTube Shorts discovery criteria and strict 100-character title truncation.
+* **Smart Categorization & Metatags**: Automatic assignment to *Category 22 (People & Blogs)*, Islamic keywords (`#Quran`, `#Shorts`, `#Tilawah`), and clean SEO descriptions.
+* **Unified 4-Platform Matrix**: Publish or pre-schedule across **Facebook Pages, Instagram Reels, YouTube Shorts, and TikTok** simultaneously from one modal.
+
+---
+
+### 📊 9. Meta Reels Performance Tracker & Audience Retention
+* **Second-by-Second Audience Retention Curves**: Interactive SVG area chart mapping real-time completion drops from 0s to end of recitation.
+* **Live Meta Graph Video Insights**: Direct querying of `/{video_id}/video_insights` fetching total impressions, unique accounts reached, average watch time, and completion rate.
+* **Barakah & Engagement Telemetry**: Monitor shares, comments, likes, and reach inside the Reel Detail Drawer and the Overview Telemetry HUD.
+* **1-Click Sync**: "Sync Insights" button to refresh performance data from Meta servers anytime.
+
+---
+
+### 🔋 10. Mobile Screen WakeLock & Local Prayer Alerts (APK v1.2.0)
+* **Screen WakeLock Sentinel**: Keeps Android device displays alive and prevents OS sleep during intensive WebCodecs batch video rendering and MP4 muxing.
+* **Scheduled Prayer Push Alerts**: Triggers notification reminders whenever scheduled Quran video reels drop at Fajr, Dhuhr, Asr, Maghrib, or Isha.
+
+---
+
 ## 🌟 Core Creation Capabilities
 
 ### 🎙️ 25+ Classical & Contemporary Master Reciters (Qaris)
@@ -171,13 +193,17 @@ Audio fetched on-demand from the EveryAyah high-bitrate CDN:
 ### 🎥 7 Cinematic Camera Motion Presets (Ken Burns)
 * Slow push-in, expansive reveal, horizontal pan, ascending tilt, diagonal glide, contemplative breathing pulse, and static framing.
 
-### 📱 Native Android App (Official Release v1.1.0)
-* **Direct APK Download**: 📥 **[Download Quran Reels Creator APK v1.1.0 (30.1 MB)](https://github.com/souheyell/quran-reels/releases/download/v1.1.0/quran-reels-creator.apk)**
+### 📱 Native Android App (Official Release v1.2.0)
+* **Direct APK Download**: 📥 **[Download Quran Reels Creator APK v1.2.0 (30.1 MB)](https://github.com/souheyell/quran-reels/releases/download/v1.2.0/quran-reels-creator.apk)**
 * **Alternative Direct Link**: 💾 **[Raw Repository APK Download](https://github.com/souheyell/quran-reels/raw/main/quran-reels-creator.apk)**
-* **Release Page & Tag**: 🏷️ **[GitHub Release v1.1.0](https://github.com/souheyell/quran-reels/releases/tag/v1.1.0)**
+* **Release Page & Tag**: 🏷️ **[GitHub Release v1.2.0](https://github.com/souheyell/quran-reels/releases/tag/v1.2.0)**
 
-#### 🌟 What's New in Mobile v1.1.0:
-* **All-in-One Studio Integration**: Full mobile-optimized access to the Canvas Studio, Quick Reel Wizard, Bulk Reel Generator modal, Reel Queue, and Accurate Publishing Calendar.
+#### 🌟 What's New in Mobile v1.2.0:
+* **🔋 Screen WakeLock Sentinel**: Prevents Android device display sleep and thermal throttling during long batch exports and hardware-accelerated WebCodecs video rendering.
+* **🕌 Local Scheduled Prayer Notifications**: Automatic native alerts dispatching when Quran reels are scheduled and published across daily prayer drops (Fajr, Dhuhr, Asr, Maghrib, Isha).
+* **🎬 Native YouTube Shorts Dispatch**: Full multi-channel publishing modal supporting YouTube Shorts alongside Facebook and Instagram Reels.
+* **📊 Meta Reels & Shorts Performance Tracker**: Second-by-second audience retention curves, completion rates, view counts, and engagement analytics.
+* **All-in-One Studio Integration**: Full mobile-optimized access to Canvas Studio, Quick Reel Wizard, Bulk Reel Generator modal, Reel Queue, and Accurate Publishing Calendar.
 * **Offline High-Res Background Pack**: Pre-packaged with atmospheric Islamic architectural photography, minarets, and celestial starscapes for instant, zero-data rendering.
 * **Hardware-Accelerated WebCodecs**: Full 60 FPS Canvas rendering, real-time audio spectrogram, sub-pixel Arabic typography (Thuluth, Amiri, Naskh), and MP4 export.
 * **Native Android Share Sheet**: One-tap native sharing direct to Instagram Reels, WhatsApp Status, TikTok, YouTube Shorts, and local device gallery.

@@ -50,9 +50,10 @@ export const BulkScheduleModal: React.FC = () => {
   const [preUploadToCloud, setPreUploadToCloud] = useState(true);
   const [targetPageId, setTargetPageId] = useState(pages[0]?.id || '');
 
-  const [selectedPlatforms, setSelectedPlatforms] = useState<('facebook' | 'instagram' | 'tiktok')[]>([
+  const [selectedPlatforms, setSelectedPlatforms] = useState<('facebook' | 'instagram' | 'tiktok' | 'youtube')[]>([
     'facebook',
     'instagram',
+    'youtube',
     'tiktok',
   ]);
 
@@ -126,9 +127,9 @@ export const BulkScheduleModal: React.FC = () => {
 
   if (!bulkScheduleModalOpen) return null;
 
-  const togglePlatform = (plat: 'facebook' | 'instagram' | 'tiktok') => {
+  const togglePlatform = (plat: 'facebook' | 'instagram' | 'tiktok' | 'youtube') => {
     setSelectedPlatforms((prev) => {
-      let next: ('facebook' | 'instagram' | 'tiktok')[];
+      let next: ('facebook' | 'instagram' | 'tiktok' | 'youtube')[];
       if (prev.includes(plat)) {
         if (prev.length === 1) return prev;
         next = prev.filter((p) => p !== plat);
@@ -402,7 +403,7 @@ export const BulkScheduleModal: React.FC = () => {
                   : 'Multi-Network'}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {/* Facebook */}
               <button
                 type="button"
@@ -435,6 +436,23 @@ export const BulkScheduleModal: React.FC = () => {
                   <span>Instagram</span>
                 </div>
                 <span className="text-[10px] text-pink-300/80">Reels</span>
+              </button>
+
+              {/* YouTube Shorts */}
+              <button
+                type="button"
+                onClick={() => togglePlatform('youtube')}
+                className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${
+                  selectedPlatforms.includes('youtube')
+                    ? 'bg-red-600/20 border-red-500 text-white shadow-lg shadow-red-500/10'
+                    : 'bg-black/40 border-white/10 text-on-surface-variant opacity-60'
+                }`}
+              >
+                <div className="flex items-center gap-1 font-bold text-xs">
+                  <span className="text-red-500 font-bold">▶</span>
+                  <span>YouTube</span>
+                </div>
+                <span className="text-[10px] text-red-300/80">#Shorts</span>
               </button>
 
               {/* TikTok */}

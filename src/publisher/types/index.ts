@@ -28,7 +28,7 @@ export interface Reel {
   description?: string;
   hashtags: string[];
   targetPageIds: string[];
-  targetPlatforms?: ('facebook' | 'instagram' | 'tiktok')[];
+  targetPlatforms?: ('facebook' | 'instagram' | 'tiktok' | 'youtube')[];
   scheduledTime?: string; // ISO or date string
   batchId?: string;
   batchName?: string;
@@ -47,8 +47,22 @@ export interface Reel {
   videoFile?: File | Blob;
   isUploadedToCloud?: boolean;
   metaVideoId?: string;
+  youtubeVideoId?: string;
+  insights?: ReelInsights;
   createdAt: string;
   publishedAt?: string;
+}
+
+export interface ReelInsights {
+  views: number;
+  reach: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  avgWatchTimeSeconds: number;
+  completionRate: number; // 0 to 100 %
+  retentionGraph?: number[]; // percentage points [100, 92, 85, ...]
+  lastSyncedAt: string;
 }
 
 export type BatchStatus = 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
@@ -103,6 +117,17 @@ export interface TikTokAccount {
   status: 'CONNECTED' | 'EXPIRED' | 'DISCONNECTED';
 }
 
+export interface YouTubeChannel {
+  id: string;
+  title: string;
+  customUrl?: string;
+  subscriberCount?: number;
+  avatarUrl?: string;
+  status: 'CONNECTED' | 'DISCONNECTED';
+  accessToken?: string;
+  privacyDefault: 'public' | 'unlisted' | 'private';
+}
+
 export type ActivityType = 'PUBLISHED' | 'UPLOADING' | 'SCHEDULED' | 'FAILED' | 'VALIDATED';
 
 export interface ActivityLog {
@@ -111,7 +136,7 @@ export interface ActivityLog {
   reelTitle: string;
   surahName: string;
   pageName: string;
-  platform?: 'facebook' | 'instagram' | 'tiktok';
+  platform?: 'facebook' | 'instagram' | 'tiktok' | 'youtube';
   actionType: ActivityType;
   timestamp: string;
   progress?: number;

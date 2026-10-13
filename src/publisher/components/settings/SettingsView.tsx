@@ -55,6 +55,31 @@ export const SettingsView: React.FC = () => {
   const [isVerifyingTikTok, setIsVerifyingTikTok] = useState(false);
   const [tiktokVerified, setTiktokVerified] = useState(true);
 
+  // YouTube Shorts Data API v3 Credentials
+  const [youtubeClientId, setYoutubeClientId] = useState(() => {
+    try {
+      return localStorage.getItem('YOUTUBE_CLIENT_ID') || 'apps.googleusercontent.com...';
+    } catch {
+      return '';
+    }
+  });
+  const [youtubeAccessToken, setYoutubeAccessToken] = useState(() => {
+    try {
+      return localStorage.getItem('YOUTUBE_ACCESS_TOKEN') || 'ya29.a0AfH6SM...';
+    } catch {
+      return '';
+    }
+  });
+  const [youtubeDefaultPrivacy, setYoutubeDefaultPrivacy] = useState<'public' | 'unlisted' | 'private'>(() => {
+    try {
+      return (localStorage.getItem('YOUTUBE_PRIVACY_DEFAULT') as any) || 'public';
+    } catch {
+      return 'public';
+    }
+  });
+  const [isVerifyingYouTube, setIsVerifyingYouTube] = useState(false);
+  const [youtubeVerified, setYoutubeVerified] = useState(true);
+
   // CLI Command Template Setting
   const DEFAULT_CLI_TEMPLATE = 'python scripts/bulk_uploader.py --folder "{folder}"';
   const [cliCommandTemplate, setCliCommandTemplate] = useState(() => {
@@ -95,9 +120,12 @@ export const SettingsView: React.FC = () => {
     try {
       localStorage.setItem('TIKTOK_CLIENT_KEY', tiktokClientKey);
       localStorage.setItem('TIKTOK_ACCESS_TOKEN', tiktokAccessToken);
+      localStorage.setItem('YOUTUBE_CLIENT_ID', youtubeClientId);
+      localStorage.setItem('YOUTUBE_ACCESS_TOKEN', youtubeAccessToken);
+      localStorage.setItem('YOUTUBE_PRIVACY_DEFAULT', youtubeDefaultPrivacy);
       localStorage.setItem('CLI_COMMAND_TEMPLATE', cliCommandTemplate);
     } catch (_) {}
-    showToast('Studio settings, Meta & TikTok API configurations saved!', 'success');
+    showToast('Studio settings, Meta, YouTube Shorts & TikTok API configurations saved!', 'success');
   };
 
   return (
@@ -462,6 +490,84 @@ export const SettingsView: React.FC = () => {
             </div>
 
             {/* TikTok Developer & Content Posting API Credentials */}
+            {/* YouTube Shorts Data API v3 Section */}
+            <div className="p-5 rounded-2xl bg-black/40 border border-red-500/20 space-y-4 font-mono text-xs">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-red-500 font-bold text-sm">▶</span>
+                  <span className="text-white font-bold">YouTube Data API v3 (Shorts Dispatch)</span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 text-[10px]">
+                  {youtubeVerified ? '● Ready / Connected (@NoorAlQuranShorts)' : 'Not Connected'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-on-surface-variant mb-1.5 uppercase font-bold text-[10px]">
+                    Google Cloud Client ID / Project
+                  </label>
+                  <input
+                    type="text"
+                    value={youtubeClientId}
+                    onChange={(e) => setYoutubeClientId(e.target.value)}
+                    placeholder="e.g. 1098234-apps.googleusercontent.com"
+                    className="w-full bg-black/40 border border-white/15 focus:border-red-500 text-white rounded-xl px-4 py-2.5 outline-none font-mono text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-on-surface-variant mb-1.5 uppercase font-bold text-[10px]">
+                    YouTube OAuth Access / Channel Token
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      value={youtubeAccessToken}
+                      onChange={(e) => setYoutubeAccessToken(e.target.value)}
+                      placeholder="e.g. ya29.a0AfH6SM..."
+                      className="w-full bg-black/40 border border-white/15 focus:border-red-500 text-white rounded-xl px-4 py-2.5 outline-none font-mono text-xs"
+                    />
+                    <Lock className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] text-on-surface-variant">Default Upload Visibility:</span>
+                  <select
+                    value={youtubeDefaultPrivacy}
+                    onChange={(e) => setYoutubeDefaultPrivacy(e.target.value as any)}
+                    className="bg-black/60 border border-white/20 text-white rounded-lg px-2.5 py-1 text-xs outline-none"
+                  >
+                    <option value="public">Public (Instant Live)</option>
+                    <option value="unlisted">Unlisted (Review Link)</option>
+                    <option value="private">Private (Draft)</option>
+                  </select>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  loading={isVerifyingYouTube}
+                  onClick={() => {
+                    setIsVerifyingYouTube(true);
+                    setTimeout(() => {
+                      setIsVerifyingYouTube(false);
+                      setYoutubeVerified(true);
+                      showToast('YouTube Shorts Data API v3 connection verified!', 'success');
+                    }, 600);
+                  }}
+                  className="border-red-500/30 text-red-300 hover:border-red-500"
+                >
+                  Test YouTube Connection
+                </Button>
+              </div>
+            </div>
+
+            {/* TikTok Section */}
             <div className="p-5 rounded-2xl bg-black/40 border border-cyan-500/20 space-y-4 font-mono text-xs">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">

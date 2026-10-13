@@ -20,9 +20,10 @@ export const PublishReelModal: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [targetPageId, setTargetPageId] = useState('');
-  const [selectedPlatforms, setSelectedPlatforms] = useState<('facebook' | 'instagram' | 'tiktok')[]>([
+  const [selectedPlatforms, setSelectedPlatforms] = useState<('facebook' | 'instagram' | 'tiktok' | 'youtube')[]>([
     'facebook',
     'instagram',
+    'youtube',
     'tiktok',
   ]);
 
@@ -41,16 +42,16 @@ export const PublishReelModal: React.FC = () => {
       setSelectedPlatforms(
         publishModalReel.targetPlatforms && publishModalReel.targetPlatforms.length > 0
           ? publishModalReel.targetPlatforms
-          : ['facebook', 'instagram', 'tiktok']
+          : ['facebook', 'instagram', 'youtube', 'tiktok']
       );
     }
   }, [publishModalReel, pages]);
 
   if (!publishModalReel) return null;
 
-  const togglePlatform = (plat: 'facebook' | 'instagram' | 'tiktok') => {
+  const togglePlatform = (plat: 'facebook' | 'instagram' | 'tiktok' | 'youtube') => {
     setSelectedPlatforms((prev) => {
-      let next: ('facebook' | 'instagram' | 'tiktok')[];
+      let next: ('facebook' | 'instagram' | 'tiktok' | 'youtube')[];
       if (prev.includes(plat)) {
         if (prev.length === 1) return prev; // Keep at least one platform selected
         next = prev.filter((p) => p !== plat);
@@ -186,8 +187,7 @@ export const PublishReelModal: React.FC = () => {
                   ? 'f Facebook Page Only'
                   : 'Multi-Network'}
               </span>
-            </div>
-            <div className="grid grid-cols-3 gap-2.5">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {/* Facebook */}
               <button
                 type="button"
@@ -222,6 +222,23 @@ export const PublishReelModal: React.FC = () => {
                 <span className="text-[10px] text-pink-300/80">Reels</span>
               </button>
 
+              {/* YouTube Shorts */}
+              <button
+                type="button"
+                onClick={() => togglePlatform('youtube')}
+                className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${
+                  selectedPlatforms.includes('youtube')
+                    ? 'bg-red-600/20 border-red-500 text-white shadow-lg shadow-red-500/10'
+                    : 'bg-black/40 border-white/10 text-on-surface-variant opacity-60'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs">
+                  <span className="text-red-500 font-bold">▶</span>
+                  <span>YouTube</span>
+                </div>
+                <span className="text-[10px] text-red-300/80">#Shorts</span>
+              </button>
+
               {/* TikTok */}
               <button
                 type="button"
@@ -238,7 +255,7 @@ export const PublishReelModal: React.FC = () => {
                 </div>
                 <span className="text-[10px] text-cyan-300/80">Creator Hub</span>
               </button>
-            </div>
+            </div>       </div>
 
             {selectedPlatforms.includes('instagram') && !selectedPlatforms.includes('facebook') && (
               <p className="text-[11px] text-pink-300 font-mono flex items-center gap-1.5 bg-pink-500/10 border border-pink-500/20 p-2 rounded-xl">

@@ -9,6 +9,7 @@ import {
   saveAndDownloadDataUrl,
 } from '../lib/export'
 import { shareReelVideo, generateSocialCaption } from '../lib/share'
+import { acquireWakeLock, releaseWakeLock } from '../lib/wakeLock'
 
 export function useExport(
   config: ReelConfig,
@@ -72,6 +73,7 @@ export function useExport(
     setExporting(true)
     setExportError(null)
     setExportProgress(0)
+    await acquireWakeLock()
     try {
       const handle = exportVideo(config, image, timeline, (progress) => {
         setExportProgress(Math.round(progress * 100))
@@ -107,6 +109,7 @@ export function useExport(
       setExporting(false)
       setExportProgress(0)
       handleRef.current = null
+      await releaseWakeLock()
     }
   }, [config, image, timeline, exportOptions])
 
@@ -118,6 +121,7 @@ export function useExport(
       setExporting(true)
       setExportError(null)
       setExportProgress(0)
+      await acquireWakeLock()
       try {
         const handle = exportVideo(config, image, timeline, (progress) => {
           setExportProgress(Math.round(progress * 100))
@@ -138,6 +142,7 @@ export function useExport(
         setExporting(false)
         setExportProgress(0)
         handleRef.current = null
+        await releaseWakeLock()
       }
     }
 

@@ -48,6 +48,8 @@ import {
 } from '../api/unsplash'
 import { shareReelVideo } from '../lib/share'
 import { saveAndDownloadBlob } from '../lib/export'
+import { acquireWakeLock, releaseWakeLock } from '../lib/wakeLock'
+import { notifyBatchComplete } from '../lib/notifications'
 import { useStudio } from '../publisher/context/StudioContext'
 
 interface BulkCreateModalProps {
@@ -490,156 +492,161 @@ export function BulkCreateModal({
     isCancelledRef.current = false
     setOverallPercent(0)
     setZipProgress(null)
+    await acquireWakeLock()
 
-    // Initialize statuses
-    const initialStatuses: Record<string, BatchItemStatus> = {}
-    itemsToProcess.forEach((it) => {
-      initialStatuses[it.id] = {
-        item: it,
-        status: 'queued',
-        progress: 0,
-        message: 'Queued',
-      }
-    })
-    setBatchStatuses(initialStatuses)
+    try {
+      // Initialize statuses
+      const initialStatuses: Record<string, BatchItemStatus> = {}
+      itemsToProcess.forEach((it) => {
+        initialStatuses[it.id] = {
+          item: it,
+          status: 'queued',
+          progress: 0,
+          message: 'Queued',
+        }
+      })
+      setBatchStatuses(initialStatuses)
 
-    const completedResults: Array<{
-      item: BulkItem
-      blob: Blob
-      caption: string
-      verses: import('../types').Verse[]
-      durationMs: number
-    }> = []
+      const completedResults: Array<{
+        item: BulkItem
+        blob: Blob
+        caption: string
+        verses: import('../types').Verse[]
+        durationMs: number
+      }> = []
 
-    // Pre-generate a 100% unique batch of random scenes for items without explicit scene overrides
-    const isRandomMode =
-      bgStrategy === 'random-scenes' ||
-      bgStrategy === 'random-videos' ||
-      bgStrategy === 'random-wallpapers' ||
-      bgStrategy === 'random-all'
+      // Pre-generate a 100% unique batch of random scenes for items without explicit scene overrides
+      const isRandomMode =
+        bgStrategy === 'random-scenes' ||
+        bgStrategy === 'random-videos' ||
+        bgStrategy === 'random-wallpapers' ||
+        bgStrategy === 'random-all'
 
-    const randomModeType =
-      bgStrategy === 'random-videos'
-        ? 'video'
-        : bgStrategy === 'random-wallpapers'
-          ? 'image'
-          : 'all'
+      const randomModeType =
+        bgStrategy === 'random-videos'
+          ? 'video'
+          : bgStrategy === 'random-wallpapers'
+            ? 'image'
+            : 'all'
 
-    const preassignedBatchScenes = isRandomMode
-      ? getRandomScenesBatch(itemsToProcess.length, randomModeType)
-      : []
+      const preassignedBatchScenes = isRandomMode
+        ? getRandomScenesBatch(itemsToProcess.length, randomModeType)
+        : []
 
-    for (let i = 0; i < itemsToProcess.length; i++) {
-      if (isCancelledRef.current) break
+      for (let i = 0; i < itemsToProcess.length; i++) {
+        if (isCancelledRef.current) break
 
-      const item = itemsToProcess[i]
-      setCurrentQueueIndex(i)
+        const item = itemsToProcess[i]
+        setCurrentQueueIndex(i)
 
-      const preassigned =
-        !item.backgroundUrl && preassignedBatchScenes[i]
-          ? {
-              url: preassignedBatchScenes[i].full,
-              mediaType: preassignedBatchScenes[i].mediaType,
-              title: preassignedBatchScenes[i].title,
-            }
-          : undefined
-
-      setBatchStatuses((prev) => ({
-        ...prev,
-        [item.id]: {
-          item,
-          status: 'loading',
-          progress: 10,
-          message: 'Loading verses…',
-        },
-      }))
-
-      try {
-        const result = await renderBulkItem(
-          item,
-          i,
-          baseConfig,
-          editionId,
-          bulkReciterId,
-          bgStrategy,
-          (stepMessage, pct) => {
-            setBatchStatuses((prev) => ({
-              ...prev,
-              [item.id]: {
-                item,
-                status: pct >= 100 ? 'completed' : 'rendering',
-                progress: pct,
-                message: stepMessage,
-              },
-            }))
-          },
-          reciterStrategy,
-          preassigned,
-        )
-
-        const videoUrl = URL.createObjectURL(result.blob)
+        const preassigned =
+          !item.backgroundUrl && preassignedBatchScenes[i]
+            ? {
+                url: preassignedBatchScenes[i].full,
+                mediaType: preassignedBatchScenes[i].mediaType,
+                title: preassignedBatchScenes[i].title,
+              }
+            : undefined
 
         setBatchStatuses((prev) => ({
           ...prev,
           [item.id]: {
             item,
-            status: 'completed',
-            progress: 100,
-            message: `Completed (${(result.durationMs / 1000).toFixed(1)}s)`,
+            status: 'loading',
+            progress: 10,
+            message: 'Loading verses…',
+          },
+        }))
+
+        try {
+          const result = await renderBulkItem(
+            item,
+            i,
+            baseConfig,
+            editionId,
+            bulkReciterId,
+            bgStrategy,
+            (stepMessage, pct) => {
+              setBatchStatuses((prev) => ({
+                ...prev,
+                [item.id]: {
+                  item,
+                  status: pct >= 100 ? 'completed' : 'rendering',
+                  progress: pct,
+                  message: stepMessage,
+                },
+              }))
+            },
+            reciterStrategy,
+            preassigned,
+          )
+
+          const videoUrl = URL.createObjectURL(result.blob)
+
+          setBatchStatuses((prev) => ({
+            ...prev,
+            [item.id]: {
+              item,
+              status: 'completed',
+              progress: 100,
+              message: `Completed (${(result.durationMs / 1000).toFixed(1)}s)`,
+              blob: result.blob,
+              videoUrl,
+              caption: result.caption,
+              verses: result.verses,
+              durationMs: result.durationMs,
+            },
+          }))
+
+          completedResults.push({
+            item,
             blob: result.blob,
-            videoUrl,
             caption: result.caption,
             verses: result.verses,
             durationMs: result.durationMs,
-          },
-        }))
+          })
+        } catch (err) {
+          console.error(`Batch render failed for ${item.title}:`, err)
+          setBatchStatuses((prev) => ({
+            ...prev,
+            [item.id]: {
+              item,
+              status: 'error',
+              progress: 0,
+              message: 'Failed',
+              error: err instanceof Error ? err.message : 'Render failed',
+            },
+          }))
+        }
 
-        completedResults.push({
-          item,
-          blob: result.blob,
-          caption: result.caption,
-          verses: result.verses,
-          durationMs: result.durationMs,
-        })
-      } catch (err) {
-        console.error(`Batch render failed for ${item.title}:`, err)
-        setBatchStatuses((prev) => ({
-          ...prev,
-          [item.id]: {
-            item,
-            status: 'error',
-            progress: 0,
-            message: 'Failed',
-            error: err instanceof Error ? err.message : 'Render failed',
-          },
-        }))
+        const overall = Math.round(((i + 1) / itemsToProcess.length) * 100)
+        setOverallPercent(overall)
       }
 
-      const overall = Math.round(((i + 1) / itemsToProcess.length) * 100)
-      setOverallPercent(overall)
-    }
+      if (completedResults.length > 0 && !isCancelledRef.current) {
+        const totalBatchMs = completedResults.reduce((acc, r) => acc + (r.durationMs || 0), 0)
+        showToast(`⚡ Batch Complete! ${completedResults.length} Reels Generated (${formatDurationSecsDetailed(totalBatchMs)} total duration).`)
+        setBatchDone(true)
+        void notifyBatchComplete('Quran Reels Batch', completedResults.length, Math.round(totalBatchMs / 1000))
 
-    setIsProcessing(false)
-    setCurrentQueueIndex(-1)
+        // Auto-save entire batch to server / cloudspace exports folder
+        try {
+          const primarySurah = completedResults[0]?.verses?.[0]?.surah || completedResults[0]?.item.surah || 1
+          const surahMeta = SURAHS_INDEX.find((s) => s.number === primarySurah)
+          const primarySurahName = completedResults[0]?.verses?.[0]?.surahName || surahMeta?.englishName || 'quran'
+          const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+          const packFolderName = `quran_pack_${getSurahSlug(primarySurah, primarySurahName)}_${dateStr}_${Date.now().toString().slice(-4)}`
+          setLastPackFolderName(packFolderName)
 
-    if (completedResults.length > 0 && !isCancelledRef.current) {
-      const totalBatchMs = completedResults.reduce((acc, r) => acc + (r.durationMs || 0), 0)
-      showToast(`⚡ Batch Complete! ${completedResults.length} Reels Generated (${formatDurationSecsDetailed(totalBatchMs)} total duration).`)
-      setBatchDone(true)
-
-      // Auto-save entire batch to server / cloudspace exports folder
-      try {
-        const primarySurah = completedResults[0]?.verses?.[0]?.surah || completedResults[0]?.item.surah || 1
-        const surahMeta = SURAHS_INDEX.find((s) => s.number === primarySurah)
-        const primarySurahName = completedResults[0]?.verses?.[0]?.surahName || surahMeta?.englishName || 'quran'
-        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-        const packFolderName = `quran_pack_${getSurahSlug(primarySurah, primarySurahName)}_${dateStr}_${Date.now().toString().slice(-4)}`
-        setLastPackFolderName(packFolderName)
-
-        void handleSavePackToDisk(packFolderName, completedResults)
-      } catch (saveErr) {
-        console.warn('Auto-save to server exports folder skipped:', saveErr)
+          void handleSavePackToDisk(packFolderName, completedResults)
+        } catch (saveErr) {
+          console.warn('Auto-save to server exports folder skipped:', saveErr)
+        }
       }
+    } finally {
+      setIsProcessing(false)
+      setCurrentQueueIndex(-1)
+      await releaseWakeLock()
     }
   }
 

@@ -23,8 +23,11 @@ import {
   fetchPageInstagramAccount,
   cacheReelBinary, 
   getReelBinary,
+  fetchMetaReelInsights,
   type MetaFetchedPage
 } from '../services/metaGraphApi';
+import { publishReelToYouTubeShorts } from '../services/youtubeApi';
+import { notifyPrayerReelPublished } from '../../lib/notifications';
 import { publishTikTokVideo } from '../services/tiktokApi';
 import { formatLocalDate, formatLocalTime } from '../utils/dateUtils';
 import { generatePrayerSequence, type PrayerPacingType } from '../services/prayerTimes';
@@ -88,12 +91,14 @@ interface StudioContextType {
     startDate: string, 
     startTime: string, 
     intervalMinutes: number, 
-    targetPlatforms?: ('facebook' | 'instagram' | 'tiktok')[],
+    targetPlatforms?: ('facebook' | 'instagram' | 'tiktok' | 'youtube')[],
     preUploadToCloud?: boolean,
     targetPageId?: string,
     prayerPacing?: PrayerPacingType
   ) => Promise<void>;
   publishReelsNow: (reelIds: string[], overrides?: Partial<Reel>) => Promise<void>;
+  syncReelInsights: (reelId: string) => Promise<void>;
+  syncAllInsights: () => Promise<void>;
   
   toggleWorker: (running?: boolean) => void;
   pauseBatch: (batchId: string) => void;
@@ -305,7 +310,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     startDate: string, 
     startTime: string, 
     intervalMinutes: number,
-    targetPlatforms?: ('facebook' | 'instagram' | 'tiktok')[],
+    targetPlatforms?: ('facebook' | 'instagram' | 'tiktok' | 'youtube')[],
     preUploadToCloud: boolean = true,
     targetPageId?: string,
     prayerPacing?: PrayerPacingType
@@ -346,7 +351,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setTargetScheduleDate(null);
     clearSelection();
 
-    const platforms: ('facebook' | 'instagram' | 'tiktok')[] = targetPlatforms && targetPlatforms.length > 0 
+    const platforms: ('facebook' | 'instagram' | 'tiktok' | 'youtube')[] = targetPlatforms && targetPlatforms.length > 0 
       ? targetPlatforms 
       : ['facebook', 'instagram'];
     const includesFacebook = platforms.includes('facebook');
@@ -827,8 +832,75 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }
 
+      // 4. YouTube Shorts Dispatch
+      if (platforms.includes('youtube')) {
+        try {
+          const ytResult = await publishReelToYouTubeShorts(binary, {
+            title: currentReel.title,
+            description: finalCaption,
+            surahName: currentReel.surahName,
+            onProgress: (pct) => {
+              setReels((prev) =>
+                prev.map((r) => (r.id === reelId ? { ...r, uploadProgress: pct } : r))
+              );
+            },
+          });
+
+          if (ytResult.success) {
+            anySuccess = true;
+            publishedPlatformNames.push('YouTube Shorts');
+            setActivityLogs((prev) => [
+              {
+                id: `log-yt-${Date.now()}`,
+                reelId,
+                reelTitle: currentReel.title,
+                surahName: currentReel.surahName,
+                pageName: 'YouTube Shorts (@NoorAlQuranShorts)',
+                platform: 'youtube',
+                actionType: 'PUBLISHED',
+                timestamp: 'Just now',
+                message: `Dispatched to YouTube Shorts! Video ID: ${ytResult.videoId}`,
+                isError: false,
+              },
+              ...prev.slice(0, 29),
+            ]);
+          } else {
+            platformErrors.push(`YouTube: ${ytResult.errorMessage || 'Upload rejected'}`);
+            setActivityLogs((prev) => [
+              {
+                id: `log-yt-fail-${Date.now()}`,
+                reelId,
+                reelTitle: currentReel.title,
+                surahName: currentReel.surahName,
+                pageName: 'YouTube',
+                platform: 'youtube',
+                actionType: 'FAILED',
+                timestamp: 'Just now',
+                message: `YouTube Rejected: ${ytResult.errorMessage}`,
+                isError: true,
+              },
+              ...prev.slice(0, 29),
+            ]);
+          }
+        } catch (ytErr: any) {
+          const ytMsg = ytErr?.message || 'YouTube upload error';
+          platformErrors.push(`YouTube: ${ytMsg}`);
+          console.warn('YouTube dispatch error:', ytErr);
+        }
+      }
+
       if (anySuccess) {
         const hasPlatformError = platformErrors.length > 0;
+        // Generate baseline performance insights tracker
+        let initInsights = currentReel.insights;
+        try {
+          initInsights = await fetchMetaReelInsights(
+            currentReel.metaVideoId || `reel_${reelId}`,
+            pageToken,
+            { durationSeconds: currentReel.durationSeconds, followersCount: targetPage?.followersCount }
+          );
+        } catch {}
+
         setReels((prev) =>
           prev.map((r) =>
             r.id === reelId
@@ -837,6 +909,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                   status: 'PUBLISHED',
                   uploadProgress: 100,
                   publishedAt: new Date().toISOString(),
+                  insights: initInsights,
                   errorMessage: hasPlatformError ? platformErrors.join(' • ') : undefined,
                   errorReason: hasPlatformError ? platformErrors.join(' • ') : undefined,
                 }
@@ -849,8 +922,9 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             particleCount: 50,
             spread: 70,
             origin: { y: 0.75 },
-            colors: ['#F59E0B', '#10B981', '#FFC174', '#EC4899', '#3B82F6'],
+            colors: ['#F59E0B', '#10B981', '#FFC174', '#EC4899', '#3B82F6', '#EF4444'],
           });
+          notifyPrayerReelPublished('Scheduled Drop', currentReel.surahName || 'Quran', publishedPlatformNames);
         } catch (_) {}
 
         if (hasPlatformError) {
@@ -1323,6 +1397,41 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setIsWorkerRunning((prev) => (running !== undefined ? running : !prev));
   };
 
+  const syncReelInsights = async (reelId: string) => {
+    const reel = reels.find((r) => r.id === reelId);
+    if (!reel) return;
+    const targetPage = pages.find((p) => (reel.targetPageIds || []).includes(p.id)) || pages[0];
+    const newInsights = await fetchMetaReelInsights(
+      reel.metaVideoId || `reel_${reel.id}`,
+      targetPage?.accessToken,
+      { durationSeconds: reel.durationSeconds, followersCount: targetPage?.followersCount }
+    );
+    setReels((prev) =>
+      prev.map((r) => (r.id === reelId ? { ...r, insights: newInsights } : r))
+    );
+    showToast(`Synced Meta insights for "${reel.title}"`, 'success');
+  };
+
+  const syncAllInsights = async () => {
+    const published = reels.filter((r) => r.status === 'PUBLISHED');
+    if (published.length === 0) {
+      showToast('No published reels to sync insights for yet.', 'info');
+      return;
+    }
+    for (const r of published) {
+      const targetPage = pages.find((p) => (r.targetPageIds || []).includes(p.id)) || pages[0];
+      const newInsights = await fetchMetaReelInsights(
+        r.metaVideoId || `reel_${r.id}`,
+        targetPage?.accessToken,
+        { durationSeconds: r.durationSeconds, followersCount: targetPage?.followersCount }
+      );
+      setReels((prev) =>
+        prev.map((item) => (item.id === r.id ? { ...item, insights: newInsights } : item))
+      );
+    }
+    showToast(`Synced Meta insights for ${published.length} published reels!`, 'success');
+  };
+
   return (
     <StudioContext.Provider
       value={{
@@ -1374,6 +1483,8 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         assignPagesToReels,
         scheduleReelsBulk,
         publishReelsNow,
+        syncReelInsights,
+        syncAllInsights,
         
         toggleWorker,
         pauseBatch,

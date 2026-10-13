@@ -39,7 +39,7 @@ interface UnifiedCalendarEvent {
   surahName: string;
   pageId: string;
   pageName: string;
-  platforms: ('facebook' | 'instagram' | 'tiktok')[];
+  platforms: ('facebook' | 'instagram' | 'tiktok' | 'youtube')[];
   status: string;
   scheduledTimeIso?: string;
   prayerSlot?: PrayerSlotInfo;
@@ -122,8 +122,8 @@ export const SchedulingCalendar: React.FC = () => {
           captionArabic: '',
           captionEnglish: item.description,
           hashtags: item.hashtags || ['#Quran', '#IslamicReels'],
-          targetPageIds: defaultPageIds.length > 0 ? defaultPageIds : ['fb-page-ajr'],
-          targetPlatforms: ['facebook', 'instagram', 'tiktok'] as ('facebook' | 'instagram' | 'tiktok')[],
+          targetPageIds: defaultPageIds.length > 0 ? defaultPageIds : ['fb-page-109823471829301'],
+          targetPlatforms: ['facebook', 'instagram', 'youtube', 'tiktok'] as ('facebook' | 'instagram' | 'tiktok' | 'youtube')[],
           audioLufs: -14,
           audioNormalized: true,
           videoValid: true,
