@@ -749,6 +749,7 @@ function App() {
               type="button"
               className={`studio-tab-btn ${activeTab === 'verses' ? 'active' : ''}`}
               onClick={() => setActiveTab('verses')}
+              title="Scripture, Verses & Reciters"
             >
               <span>📖</span> Scripture
             </button>
@@ -756,22 +757,25 @@ function App() {
               type="button"
               className={`studio-tab-btn ${activeTab === 'media' ? 'active' : ''}`}
               onClick={() => setActiveTab('media')}
+              title="Footage & Background Layout"
             >
-              <span>🎬</span> Footage &amp; Layout
+              <span>🎬</span> Footage
             </button>
             <button
               type="button"
               className={`studio-tab-btn ${activeTab === 'typography' ? 'active' : ''}`}
               onClick={() => setActiveTab('typography')}
+              title="Arabic & Translation Typography"
             >
-              <span>✒️</span> Typography
+              <span>✒️</span> Style
             </button>
             <button
               type="button"
               className={`studio-tab-btn ${activeTab === 'effects' ? 'active' : ''}`}
               onClick={() => setActiveTab('effects')}
+              title="Visual Effects & Waveforms"
             >
-              <span>✨</span> Visual FX
+              <span>✨</span> FX
             </button>
           </div>
 

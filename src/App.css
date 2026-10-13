@@ -403,7 +403,7 @@
 /* ── 3-Column Studio Workspace ────────────────────────────────── */
 .studio-layout {
   display: grid;
-  grid-template-columns: 350px 1fr 370px;
+  grid-template-columns: 380px minmax(420px, 1fr) 350px;
   flex: 1;
   min-height: 0;
   height: calc(100vh - 52px - 30px);
@@ -426,30 +426,33 @@
 
 /* Category Tabs Bar */
 .studio-tabs-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   padding: 0.35rem 0.45rem;
   gap: 0.25rem;
-  background: rgba(3, 11, 14, 0.6);
-  border-bottom: 1px solid rgba(16, 185, 129, 0.12);
+  background: rgba(3, 11, 14, 0.7);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.15);
   flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .studio-tab-btn {
-  flex: 1;
   background: transparent;
   border: 1px solid transparent;
   color: var(--color-text-muted);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  padding: 0.35rem 0.4rem;
+  padding: 0.4rem 0.2rem;
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
+  gap: 0.25rem;
   transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
 }
 
 .studio-tab-btn:hover {
@@ -1842,6 +1845,182 @@
   background: rgba(245, 158, 11, 0.15);
   border-color: var(--color-border-gold);
   color: var(--color-accent-light);
+}
+
+/* ── Enhanced Verse Selectors Card (in VersePanel) ───────────── */
+.verse-selectors-card {
+  background: rgba(3, 11, 14, 0.6);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.selector-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.selector-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-emerald-light);
+}
+
+.styled-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.styled-surah-select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background: rgba(7, 25, 30, 0.85);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.45rem 2rem 0.45rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.styled-surah-select:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(7, 25, 30, 0.95);
+}
+
+.styled-surah-select:focus {
+  border-color: var(--color-emerald);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+}
+
+.styled-surah-select option {
+  background: #030b0e;
+  color: #fff;
+  padding: 8px 12px;
+}
+
+.select-chevron {
+  position: absolute;
+  right: 0.65rem;
+  pointer-events: none;
+  width: 14px;
+  height: 14px;
+  color: rgba(16, 185, 129, 0.7);
+}
+
+.selector-row-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.stepper-input-group {
+  display: flex;
+  align-items: center;
+  background: rgba(7, 25, 30, 0.85);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 8px;
+  overflow: hidden;
+  height: 34px;
+  transition: border-color 0.2s ease;
+}
+
+.stepper-input-group:focus-within {
+  border-color: var(--color-emerald);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.stepper-btn {
+  background: transparent;
+  border: none;
+  color: #8fa3ad;
+  width: 32px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.stepper-btn:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.2);
+  color: #fff;
+}
+
+.stepper-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.stepper-number-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  text-align: center;
+  font-size: 0.82rem;
+  font-family: monospace;
+  font-weight: 700;
+  outline: none;
+  width: 100%;
+  min-width: 0;
+}
+
+.stepper-number-input::-webkit-inner-spin-button,
+.stepper-number-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stepper-count-display {
+  flex: 1;
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-align: center;
+  user-select: none;
+}
+
+.lock-toggle-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--color-text-dim);
+  font-size: 0.65rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lock-toggle-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.lock-toggle-chip.locked {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
 }
 
 /* ── Reciter Selector Card (in VersePanel) ────────────────────── */

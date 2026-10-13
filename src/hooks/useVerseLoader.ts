@@ -182,12 +182,30 @@ export function useVerseLoader(options: UseVerseLoaderOptions) {
     return changeReciter(randomReciter)
   }, [changeReciter])
 
-  // Load initial verse on mount
+  // Load verse on initial mount: whenever page is refreshed or loaded, pick and load a fresh random verse!
   useEffect(() => {
     if (mountedRef.current) return
     mountedRef.current = true
-    void loadRange(options.initialSurah, options.initialAyat, fixedCount || 1)
-  }, [loadRange, options.initialSurah, options.initialAyat, fixedCount])
+
+    // Check if explicit surah and ayat query parameters were passed in the URL
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const surahParam = params.get('surah')
+      const ayahParam = params.get('ayah')
+      if (surahParam && ayahParam) {
+        const s = parseInt(surahParam, 10)
+        const a = parseInt(ayahParam, 10)
+        const c = parseInt(params.get('count') || '1', 10)
+        if (!isNaN(s) && !isNaN(a) && s >= 1 && s <= 114) {
+          void loadRange(s, a, c || 1)
+          return
+        }
+      }
+    }
+
+    // Default on refresh: load a fresh random Quranic verse
+    void loadRandom(fixedCount || 1)
+  }, [loadRange, loadRandom, fixedCount])
 
   return {
     verses,

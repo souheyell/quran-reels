@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import type { Verse } from '../types'
 import { POPULAR_EDITIONS, getReciterById } from '../api/quran'
+import { SURAHS_INDEX } from '../lib/bulkPacks'
 import { ReciterModal } from './ReciterModal'
 import { subscribeAudioProgress, type AudioProgressInfo } from '../lib/audioCache'
+import { ChevronDown, Sparkles } from 'lucide-react'
 
 interface VersePanelProps {
   verses: Verse[]
@@ -124,106 +126,190 @@ export function VersePanel({
     ? currentReciterObj.name
     : reciterId
 
+  const currentSurahNumber = Number(surahInput) || 1
+  const currentSurahMeta =
+    SURAHS_INDEX.find((s) => s.number === currentSurahNumber) || SURAHS_INDEX[1]
+  const maxAyahsInCurrentSurah = currentSurahMeta?.totalAyahs || 286
+
   return (
     <section className="panel" id="verse-panel">
       <h2>Verse & Reciter</h2>
 
-      {/* Surah, Ayat, Count row */}
-      <div className="row">
-        <label style={{ flex: 1 }}>
-          Surah
-          <input
-            id="surah-input"
-            type="number"
-            min={1}
-            max={114}
-            value={surahInput}
-            onChange={(e) => setSurahInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-        </label>
-        <label style={{ flex: 1 }}>
-          Ayat
-          <input
-            id="ayat-input"
-            type="number"
-            min={1}
-            max={286}
-            value={ayatInput}
-            onChange={(e) => setAyatInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-        </label>
-        <label style={{ flex: 1 }}>
-          Ayahs Count
-          <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-            <input
-              id="count-input"
-              type="number"
-              min={1}
-              max={30}
-              value={countInput}
-              onChange={(e) => {
-                const val = e.target.value
-                setCountInput(val)
-                const num = Number(val)
-                if (num > 0) onCountChange?.(num)
-              }}
-              onKeyDown={handleKeyDown}
-              style={{ flex: 1 }}
-            />
-            <button
-              type="button"
-              className={`btn chip-lock ${lockCount ? 'locked' : ''}`}
-              onClick={() => onToggleLockCount(!lockCount)}
-              title={lockCount ? 'Lock ayahs count during discovery' : 'Unlock ayahs count'}
-              style={{ padding: '0.4rem 0.5rem' }}
-            >
-              {lockCount ? '🔒' : '🔓'}
-            </button>
-          </div>
-        </label>
-      </div>
-
-      {/* Load & Upload Buttons */}
-      <div className="row" style={{ marginTop: '0.1rem' }}>
-        <button
-          id="load-btn"
-          type="button"
-          className="btn primary"
-          onClick={() => void loadRange()}
-          disabled={loading}
-          style={{ flex: 1 }}
-        >
-          {loading ? (
-            <span className="loading-text">
-              <span className="spinner" /> Loading…
+      {/* ── Surah, Ayah & Sequence Selectors Card ────────────────── */}
+      <div className="verse-selectors-card">
+        {/* Surah Dropdown Selector */}
+        <div className="selector-field">
+          <div className="selector-label-row">
+            <label htmlFor="surah-select">Surah (Chapter)</label>
+            <span className="surah-count-badge font-mono text-[10px] text-emerald-400">
+              {currentSurahMeta.name} · {currentSurahMeta.totalAyahs} Ayahs
             </span>
-          ) : (
-            'Load Verse'
-          )}
-        </button>
-
-        {onUploadAudio && (
-          <>
-            <input
-              type="file"
-              ref={audioFileInputRef}
-              accept="audio/*"
-              style={{ display: 'none' }}
-              onChange={handleAudioUpload}
-            />
-            <button
-              type="button"
-              className="btn"
-              onClick={() => audioFileInputRef.current?.click()}
-              title="Upload custom audio recitation or voiceover"
-              style={{ padding: '0.45rem 0.75rem' }}
+          </div>
+          <div className="styled-select-wrapper">
+            <select
+              id="surah-select"
+              value={surahInput}
+              onChange={(e) => {
+                const sNum = Number(e.target.value)
+                setSurahInput(String(sNum))
+                const targetMeta = SURAHS_INDEX.find((s) => s.number === sNum)
+                if (targetMeta && Number(ayatInput) > targetMeta.totalAyahs) {
+                  setAyatInput('1')
+                }
+              }}
+              className="styled-surah-select"
             >
-              🎙️ Custom Audio
-            </button>
-          </>
-        )}
+              {SURAHS_INDEX.map((s) => (
+                <option key={s.number} value={s.number}>
+                  {s.number}. {s.englishName} ({s.name}) — {s.totalAyahs} Ayahs
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="select-chevron" />
+          </div>
+        </div>
+
+        {/* Ayah & Count Stepper Row */}
+        <div className="selector-row-dual">
+          {/* Ayah Stepper */}
+          <div className="selector-field">
+            <div className="selector-label-row">
+              <label htmlFor="ayat-input">Ayah</label>
+              <span className="text-[10px] text-on-surface-variant font-mono">
+                1–{maxAyahsInCurrentSurah}
+              </span>
+            </div>
+            <div className="stepper-input-group">
+              <button
+                type="button"
+                className="stepper-btn"
+                onClick={() => {
+                  const curr = Number(ayatInput) || 1
+                  const prev = Math.max(1, curr - 1)
+                  setAyatInput(String(prev))
+                }}
+                disabled={Number(ayatInput) <= 1}
+                title="Previous Ayah"
+              >
+                ◀
+              </button>
+              <input
+                id="ayat-input"
+                type="number"
+                min={1}
+                max={maxAyahsInCurrentSurah}
+                value={ayatInput}
+                onChange={(e) => setAyatInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="stepper-number-input font-mono font-bold"
+              />
+              <button
+                type="button"
+                className="stepper-btn"
+                onClick={() => {
+                  const curr = Number(ayatInput) || 1
+                  const next = Math.min(maxAyahsInCurrentSurah, curr + 1)
+                  setAyatInput(String(next))
+                }}
+                disabled={Number(ayatInput) >= maxAyahsInCurrentSurah}
+                title="Next Ayah"
+              >
+                ▶
+              </button>
+            </div>
+          </div>
+
+          {/* Ayahs Count Stepper */}
+          <div className="selector-field">
+            <div className="selector-label-row">
+              <label htmlFor="count-input">Sequence</label>
+              <button
+                type="button"
+                className={`lock-toggle-chip ${lockCount ? 'locked' : ''}`}
+                onClick={() => onToggleLockCount(!lockCount)}
+                title={lockCount ? 'Lock ayahs count during discovery' : 'Unlock ayahs count'}
+              >
+                {lockCount ? '🔒 Lock' : '🔓 Count'}
+              </button>
+            </div>
+            <div className="stepper-input-group">
+              <button
+                type="button"
+                className="stepper-btn"
+                onClick={() => {
+                  const curr = Number(countInput) || 1
+                  const prev = Math.max(1, curr - 1)
+                  setCountInput(String(prev))
+                  onCountChange?.(prev)
+                }}
+                disabled={Number(countInput) <= 1}
+                title="Decrease count"
+              >
+                −
+              </button>
+              <div className="stepper-count-display font-mono font-bold text-center flex-1">
+                {countInput} {Number(countInput) === 1 ? 'Ayah' : 'Ayat'}
+              </div>
+              <button
+                type="button"
+                className="stepper-btn"
+                onClick={() => {
+                  const curr = Number(countInput) || 1
+                  const next = Math.min(30, curr + 1)
+                  setCountInput(String(next))
+                  onCountChange?.(next)
+                }}
+                disabled={Number(countInput) >= 30}
+                title="Increase count"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Load & Upload Buttons */}
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            id="load-btn"
+            type="button"
+            className="btn primary font-bold flex-1"
+            onClick={() => void loadRange()}
+            disabled={loading}
+          >
+            {loading ? (
+              <span className="loading-text">
+                <span className="spinner" /> Loading…
+              </span>
+            ) : (
+              <span className="flex items-center justify-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-black" />
+                <span>Load Verse</span>
+              </span>
+            )}
+          </button>
+
+          {onUploadAudio && (
+            <>
+              <input
+                type="file"
+                ref={audioFileInputRef}
+                accept="audio/*"
+                style={{ display: 'none' }}
+                onChange={handleAudioUpload}
+              />
+              <button
+                type="button"
+                className="btn"
+                onClick={() => audioFileInputRef.current?.click()}
+                title="Upload custom audio recitation or voiceover"
+                style={{ padding: '0.45rem 0.65rem' }}
+              >
+                🎙️ Audio
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* ── Enhanced Reciter Selection Card ──────────────────────── */}
@@ -314,21 +400,25 @@ export function VersePanel({
       </div>
 
       {/* Primary Translation Selector */}
-      <div className="row">
-        <label style={{ flex: 1 }}>
-          Primary Translation
+      <div className="selector-field">
+        <label htmlFor="edition-select" className="text-xs text-on-surface-variant font-medium mb-1 block">
+          Primary Translation Edition
+        </label>
+        <div className="styled-select-wrapper">
           <select
             id="edition-select"
             value={editionId}
             onChange={(e) => onEditionChange(e.target.value)}
+            className="styled-surah-select font-mono text-xs"
           >
             {POPULAR_EDITIONS.map((e) => (
               <option key={e.id} value={e.id}>
-                {e.name} ({e.language})
+                {e.name} — {e.language}
               </option>
             ))}
           </select>
-        </label>
+          <ChevronDown className="select-chevron" />
+        </div>
       </div>
 
       {/* Random discovery button */}

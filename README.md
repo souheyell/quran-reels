@@ -64,6 +64,7 @@ May Allah accept this humble endeavor from everyone who recites, builds, designs
 ### 🚀 1. Complete All-in-One Studio Integration
 The entire creation, batch processing, and multi-channel publishing ecosystem is now consolidated into a single unified application with matching celestial dark aesthetics (`#051424`, obsidian glass, gold accents):
 * **🎨 Canvas Studio**: Real-time rendering engine with sub-pixel typography, 25+ classical and contemporary Qaris, audio spectrogram visualizers, particles, and 1080p 60FPS video export.
+* **🧭 Ergonomic Scripture Selectors**: Complete 114-Surah directory with Arabic typography, precision incremental Ayah steppers, sequence span counters, reciter badge cards, and fresh inspirational Quran verse loading automatically on every page refresh.
 * **⚡ Bulk Generator**: Rapid chunking of entire Surahs or thematic packs into 1–10 Ayah reel series with master `manifest.json` indexing.
 * **📋 Reel Queue Library**: Production review grid with batch-level filtering, caption editing, hashtag management, and status tracking (`READY`, `SCHEDULED`, `PUBLISHED`, `FAILED`).
 * **📅 Accurate Publishing Calendar**: Interactive calendar view with day/week/month matrix, local timezone preservation, and solar prayer time scheduling.
@@ -242,12 +243,50 @@ To connect your own Facebook Pages or configure default tokens without committin
    ```bash
    cp .env.example .env
    ```
-2. Open `.env` and fill in your Meta credentials:
+2. Open `.env` and fill in your Meta and YouTube credentials:
    ```env
+   # Meta / Facebook Graph API
    VITE_META_APP_ID=your_meta_app_id
    VITE_META_USER_ACCESS_TOKEN=your_user_access_token
    VITE_FB_PAGE_ACCESS_TOKEN=your_page_access_token
+
+   # YouTube Data API v3 (Shorts Dispatch)
+   VITE_YOUTUBE_API_KEY=your_google_api_key
+   VITE_YOUTUBE_ACCESS_TOKEN=your_oauth_access_token
    ```
+
+### 🔴 Step-by-Step Guide: Setting Up YouTube Data API v3
+To publish generated Quran reels directly to YouTube Shorts:
+1. **Create / Open a Project in Google Cloud Console**:
+   * Visit the [Google Cloud Console](https://console.cloud.google.com/).
+   * Create a new project (e.g., `Quran Reels Creator`) or select an existing one.
+2. **Enable YouTube Data API v3**:
+   * Navigate to **APIs & Services** > **Library**.
+   * Search for `YouTube Data API v3`, select it, and click **Enable**.
+3. **Configure the OAuth Consent Screen**:
+   * Go to **APIs & Services** > **OAuth consent screen**.
+   * Select **External** user type and click **Create**.
+   * Fill in your app name, support email, and developer contact email.
+   * On the **Scopes** step, click **Add or Remove Scopes** and add:
+     * `https://www.googleapis.com/auth/youtube.upload` (Upload YouTube videos)
+     * `https://www.googleapis.com/auth/youtube.readonly` (View channel and video analytics)
+   * On the **Test Users** step, add the Gmail address of the YouTube channel you want to upload to.
+4. **Create OAuth 2.0 Credentials**:
+   * Go to **APIs & Services** > **Credentials** > **Create Credentials** > **API Key** (save as your `VITE_YOUTUBE_API_KEY`).
+   * Click **Create Credentials** > **OAuth client ID**.
+   * Select Application type: **Web application**.
+   * Add Authorized redirect URI: `https://developers.google.com/oauthplayground` (for easy token minting).
+   * Note down your **Client ID** and **Client Secret**.
+5. **Generate an OAuth Access Token**:
+   * Open the [Google OAuth 2.0 Playground](https://developers.google.com/oauthplayground/).
+   * Click the settings gear (top right), check **Use your own OAuth credentials**, and paste your Client ID and Client Secret.
+   * In Step 1, select or input the scope: `https://www.googleapis.com/auth/youtube.upload`.
+   * Click **Authorize APIs** and log into your YouTube Google Account.
+   * In Step 2, click **Exchange authorization code for tokens**.
+   * Copy the **Access Token** (and Refresh Token).
+6. **Paste Credentials into Quran Reels Creator**:
+   * You can paste them directly into the in-app **Publisher Settings** > **Meta API & Credentials** > **YouTube Data API v3** card, or save them in your `.env` file.
+   * You can now dispatch any rendered reel directly to YouTube Shorts with 1 click!
 
 ### 1-Click Launch (Unified Studio + Cloud Bridge)
 Launch the unified web application, start the Cloud Bridge daemon, and open your browser automatically:

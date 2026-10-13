@@ -79,6 +79,7 @@ export const SettingsView: React.FC = () => {
   });
   const [isVerifyingYouTube, setIsVerifyingYouTube] = useState(false);
   const [youtubeVerified, setYoutubeVerified] = useState(true);
+  const [showYouTubeHelp, setShowYouTubeHelp] = useState(false);
 
   // CLI Command Template Setting
   const DEFAULT_CLI_TEMPLATE = 'python scripts/bulk_uploader.py --folder "{folder}"';
@@ -361,6 +362,71 @@ export const SettingsView: React.FC = () => {
                 6. When publishing or auto-scheduling, simply toggle <strong className="text-cyan-300">[x] TikTok</strong> to dispatch directly!
               </p>
             </div>
+
+            {/* Step 6: Link YouTube Shorts (Google Data API v3) */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-red-500/10 via-rose-500/10 to-black/40 border border-red-500/30 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-white font-serif font-bold text-sm">
+                  <span className="w-6 h-6 rounded-full bg-red-600 text-white font-mono text-xs flex items-center justify-center font-bold">6</span>
+                  <span>Link YouTube Shorts (Google Data API v3)</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
+                  ▶ YouTube Shorts
+                </span>
+              </div>
+              <p>
+                1. Open{' '}
+                <a
+                  href="https://console.cloud.google.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-red-400 underline inline-flex items-center gap-1"
+                >
+                  console.cloud.google.com
+                  <ExternalLink className="w-3 h-3" />
+                </a>{' '}
+                and create a project (e.g. <em>Quran Shorts Studio</em>).
+              </p>
+              <p>
+                2. Navigate to <strong>APIs & Services &rarr; Library</strong>, search for <strong>YouTube Data API v3</strong>, and click <strong>Enable</strong>.
+              </p>
+              <p>
+                3. Go to <strong>OAuth consent screen</strong> &rarr; Select <strong>External</strong> &rarr; Add app name and support email. Under <strong>Scopes</strong>, add:
+              </p>
+              <code className="block bg-black/70 p-2 rounded text-red-300 border border-red-500/30 text-[11px] break-all">
+                https://www.googleapis.com/auth/youtube.upload, https://www.googleapis.com/auth/youtube.readonly
+              </code>
+              <p>
+                Under <strong>Test users</strong>, add your YouTube channel's Google email address.
+              </p>
+              <p>
+                4. Go to <strong>Credentials &rarr; Create Credentials &rarr; OAuth 2.0 Client ID</strong> &rarr; Select <strong>Web application</strong>. Under <em>Authorized redirect URIs</em>, add:
+              </p>
+              <code className="block bg-black/70 p-1.5 rounded text-amber-300 border border-white/10 text-[11px] break-all">
+                https://developers.google.com/oauthplayground
+              </code>
+              <p>
+                5. To generate an OAuth token easily, visit{' '}
+                <a
+                  href="https://developers.google.com/oauthplayground/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-red-400 underline inline-flex items-center gap-1"
+                >
+                  developers.google.com/oauthplayground
+                  <ExternalLink className="w-3 h-3" />
+                </a>:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-on-surface-variant/90 pl-1">
+                <li>Click the gear icon (top right) &rarr; Check <em>Use your own OAuth credentials</em> &rarr; Paste your Client ID and Client Secret.</li>
+                <li>In Step 1, paste scope: <code className="text-red-300">https://www.googleapis.com/auth/youtube.upload</code> &rarr; Click <strong>Authorize APIs</strong>.</li>
+                <li>Sign in with your channel account and click Allow.</li>
+                <li>In Step 2, click <strong>Exchange authorization code for tokens</strong> &rarr; Copy the generated <code className="text-amber-300">access_token</code> (starts with <code className="text-emerald-400">ya29...</code>).</li>
+              </ul>
+              <p>
+                6. Paste your Client ID and Access Token in the <strong>YouTube Data API v3</strong> card below and click <strong>Test YouTube Connection</strong>!
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -497,10 +563,53 @@ export const SettingsView: React.FC = () => {
                   <span className="text-red-500 font-bold text-sm">▶</span>
                   <span className="text-white font-bold">YouTube Data API v3 (Shorts Dispatch)</span>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 text-[10px]">
-                  {youtubeVerified ? '● Ready / Connected (@NoorAlQuranShorts)' : 'Not Connected'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowYouTubeHelp(!showYouTubeHelp)}
+                    className="px-2.5 py-1 rounded-lg bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25 transition-colors flex items-center gap-1.5 cursor-pointer font-bold text-[10px]"
+                  >
+                    <BookOpen className="w-3 h-3" />
+                    <span>{showYouTubeHelp ? 'Hide Setup Tutorial' : '📖 How to Get API Key'}</span>
+                  </button>
+                  <span className="px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 text-[10px]">
+                    {youtubeVerified ? '● Ready / Connected (@NoorAlQuranShorts)' : 'Not Connected'}
+                  </span>
+                </div>
               </div>
+
+              {showYouTubeHelp && (
+                <div className="p-3.5 rounded-xl bg-red-950/30 border border-red-500/30 text-[11px] text-on-surface-variant leading-relaxed space-y-2">
+                  <div className="text-white font-bold flex items-center gap-1.5">
+                    <span className="text-red-400">⚡</span>
+                    <span>Quick Guide: Generating YouTube Data API v3 OAuth Access Token</span>
+                  </div>
+                  <ol className="list-decimal list-inside space-y-1 pl-1">
+                    <li>
+                      Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer" className="text-red-300 underline font-semibold">Google Cloud Console</a> &rarr; Enable <strong>YouTube Data API v3</strong>.
+                    </li>
+                    <li>
+                      In <strong>OAuth consent screen</strong> &rarr; Add scope: <code className="bg-black/60 px-1 py-0.5 rounded text-red-300 font-mono">https://www.googleapis.com/auth/youtube.upload</code> &rarr; Add your email under Test Users.
+                    </li>
+                    <li>
+                      In <strong>Credentials</strong> &rarr; Create <strong>OAuth 2.0 Web Client ID</strong> &rarr; Add redirect URI: <code className="bg-black/60 px-1 py-0.5 rounded text-amber-300 font-mono">https://developers.google.com/oauthplayground</code>.
+                    </li>
+                    <li>
+                      Go to <a href="https://developers.google.com/oauthplayground/" target="_blank" rel="noreferrer" className="text-red-300 underline font-semibold">Google OAuth Playground</a> &rarr; Click Gear (top right) &rarr; Check "Use own OAuth credentials" &rarr; Authorize <code className="text-red-300 font-mono">https://www.googleapis.com/auth/youtube.upload</code> &rarr; Exchange code &rarr; Copy the <code className="text-emerald-400 font-mono">ya29...</code> access token.
+                    </li>
+                  </ol>
+                  <div className="pt-1 flex items-center justify-between border-t border-white/10">
+                    <span className="text-white/70">Need full detailed tutorial?</span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSubTab('guide')}
+                      className="text-primary hover:underline font-bold"
+                    >
+                      Open Full Setup Tutorial &rarr;
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
