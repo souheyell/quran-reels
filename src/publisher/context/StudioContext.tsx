@@ -433,7 +433,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const targetPage = targetPageId 
         ? chosenPage 
         : (pages.find((p) => (currentReel.targetPageIds || []).includes(p.id)) || pages[0]);
-      const pageId = targetPage?.pageNumericId || '1217144761490127';
+      const pageId = targetPage?.pageNumericId || '109823471829301';
       const pageToken = targetPage?.accessToken || USER_META_CONFIG.userAccessToken;
       const scheduledUnixSeconds = Math.floor(item.moment.getTime() / 1000);
 
@@ -608,7 +608,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const targetPageId = currentReel.targetPageIds?.[0];
       const targetPage = pages.find((p) => p.id === targetPageId) || pages[0];
-      const pageId = targetPage?.pageNumericId || '1217144761490127';
+      const pageId = targetPage?.pageNumericId || '109823471829301';
       const pageToken = targetPage?.accessToken || USER_META_CONFIG.userAccessToken;
 
       const binary = getReelBinary(reelId) || currentReel.videoFile || currentReel.videoUrl || '';
@@ -693,7 +693,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (platforms.includes('instagram')) {
         const igUserId = targetPage?.instagramBusinessAccount?.id;
         if (!igUserId) {
-          const noIgMsg = `Facebook Page "${targetPage?.name}" has no linked Instagram Business Account. Choose a page with linked Instagram (such as "أَجْر - Ajr" @ajr4_all or "Boumardessna" @boumardessna) or uncheck Instagram.`;
+          const noIgMsg = `Facebook Page "${targetPage?.name}" has no linked Instagram Business Account. Choose a page with linked Instagram (such as "Noor Al-Quran" @noor_alquran_official or "Ayat & Dhikr" @ayat_wa_dhikr) or uncheck Instagram.`;
           platformErrors.push(`Instagram: ${noIgMsg}`);
           setActivityLogs((prev) => [
             {

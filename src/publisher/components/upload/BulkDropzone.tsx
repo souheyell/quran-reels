@@ -583,7 +583,7 @@ export const BulkDropzone: React.FC<{ onUploadComplete?: () => void }> = ({ onUp
             </h4>
           </div>
           <p className="text-xs text-on-surface-variant leading-relaxed">
-            Want to test bulk operations before dropping your video library? Generate high-resolution Quran Reels with Surahs (Al-Kahf, Maryam, Ar-Rahman) assigned to <strong className="text-white">أجر - Ajr</strong>.
+            Want to test bulk operations before dropping your video library? Generate high-resolution Quran Reels with Surahs (Al-Kahf, Maryam, Ar-Rahman) assigned to <strong className="text-white">Noor Al-Quran - نُور القُرآن</strong>.
           </p>
         </div>
 

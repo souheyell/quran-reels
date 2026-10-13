@@ -201,7 +201,7 @@ export const AutoUploadDock: React.FC<AutoUploadDockProps> = ({
                   </option>
                 ))}
                 {pages.length === 0 && (
-                  <option value="">أجر - Ajr (1217144761490127)</option>
+                  <option value="">Noor Al-Quran - نُور القُرآن (109823471829301)</option>
                 )}
               </select>
             </div>

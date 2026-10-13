@@ -51,9 +51,13 @@ export const loadStudioState = (): PersistedStudioState => {
 
     const parsed = JSON.parse(raw) as PersistedStudioState;
 
-    // Validate that pages array is present and populated
-    const storedPages = Array.isArray(parsed.pages) && parsed.pages.length > 0
-      ? parsed.pages
+    // Validate that pages array is present and populated against allowed initial demo pages or valid pages
+    const validPageIds = new Set(INITIAL_FACEBOOK_PAGES.map((p) => p.id));
+    const cleanParsedPages = (Array.isArray(parsed.pages) && parsed.pages.length > 0 ? parsed.pages : [])
+      .filter((p) => validPageIds.has(p.id) || (p.id.startsWith('fb-page-') && !p.id.includes('1217') && !p.id.includes('2052')));
+
+    const storedPages = cleanParsedPages.length > 0
+      ? cleanParsedPages
       : INITIAL_FACEBOOK_PAGES;
 
     // Merge any missing pages from INITIAL_FACEBOOK_PAGES into storedPages
@@ -89,7 +93,7 @@ export const loadStudioState = (): PersistedStudioState => {
       lastSavedAt: parsed.lastSavedAt || new Date().toISOString(),
     };
   } catch (err) {
-    console.warn('Failed to load state from localStorage, resetting to Ajr-only:', err);
+    console.warn('Failed to load state from localStorage, resetting to defaults:', err);
     return {
       reels: INITIAL_REELS,
       batches: INITIAL_BATCHES,

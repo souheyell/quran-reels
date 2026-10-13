@@ -158,7 +158,7 @@ export const BulkScheduleModal: React.FC = () => {
     if (selectedPlatforms.includes('instagram') && !chosen?.instagramBusinessAccount) {
       if (selectedPlatforms.length === 1) {
         showToast(
-          `Cannot schedule for Instagram: "${chosen?.name}" has no linked Instagram account. Please select "أَجْر - Ajr" (@ajr4_all) or "Boumardessna" (@boumardessna).`,
+          `Cannot schedule for Instagram: "${chosen?.name}" has no linked Instagram account. Please select a page with linked Instagram (such as "Noor Al-Quran" or "Ayat & Dhikr").`,
           'error'
         );
         return;
@@ -502,7 +502,7 @@ export const BulkScheduleModal: React.FC = () => {
                     </span>
                   ) : selectedPlatforms.includes('instagram') ? (
                     <span className="text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
-                      ⚠️ No linked Instagram account on this page. Choose Page 1 (أَجْر) or Page 2 (Boumardessna).
+                      ⚠️ No linked Instagram account on this page. Choose Page 1 (Noor Al-Quran) or Page 2 (Ayat & Dhikr).
                     </span>
                   ) : null}
                 </div>

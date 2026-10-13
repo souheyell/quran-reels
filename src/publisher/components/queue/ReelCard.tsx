@@ -205,7 +205,7 @@ export const ReelCard: React.FC<{ reel: Reel }> = ({ reel }) => {
         ) : (
           <div className="flex items-center justify-between pt-2 border-t border-white/10 text-[10px] font-mono">
             <span className="text-primary truncate font-semibold">
-              {targetPages.length > 0 ? targetPages[0].name : 'أجر - Ajr'}
+              {targetPages.length > 0 ? targetPages[0].name : 'Noor Al-Quran'}
             </span>
 
             {/* Quick Action Buttons */}

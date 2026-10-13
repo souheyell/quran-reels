@@ -39,7 +39,7 @@ RED = "\033[91m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-DEFAULT_PAGE_ID = os.environ.get("FB_PAGE_ID", "1217144761490127")  # أجر - Ajr default
+DEFAULT_PAGE_ID = os.environ.get("FB_PAGE_ID", "109823471829301")  # Default Page ID
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".webm"}
 
 

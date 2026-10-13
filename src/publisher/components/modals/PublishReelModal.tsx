@@ -78,7 +78,7 @@ export const PublishReelModal: React.FC = () => {
     if (selectedPlatforms.includes('instagram') && !targetPage?.instagramBusinessAccount) {
       if (selectedPlatforms.length === 1) {
         showToast(
-          `Cannot publish to Instagram: "${targetPage?.name}" has no linked Instagram account. Please select "أَجْر - Ajr" (@ajr4_all) or "Boumardessna" (@boumardessna).`,
+          `Cannot publish to Instagram: "${targetPage?.name}" has no linked Instagram account. Please select a page with linked Instagram (such as "Noor Al-Quran" or "Ayat & Dhikr").`,
           'error'
         );
         return;
@@ -311,7 +311,7 @@ export const PublishReelModal: React.FC = () => {
               </p>
             ) : selectedPlatforms.includes('instagram') ? (
               <p className="text-[11px] text-amber-400 font-mono mt-1.5 flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl">
-                <span>⚠️ Selected Page has no linked Instagram account. Select <strong>أَجْر - Ajr</strong> (@ajr4_all) or <strong>Boumardessna</strong> (@boumardessna) from the dropdown to publish to Instagram.</span>
+                <span>⚠️ Selected Page has no linked Instagram account. Select <strong>Noor Al-Quran</strong> (@noor_alquran_official) or <strong>Ayat & Dhikr</strong> (@ayat_wa_dhikr) from the dropdown to publish to Instagram.</span>
               </p>
             ) : null}
           </div>
